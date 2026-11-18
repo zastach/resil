@@ -1,3 +1,4 @@
+import { discordRolePolicy } from '../discord-roles';
 import { fetchUserInfo, type OAuthOptions, type OAuthUserInfoOptions } from '.';
 
 export function discordAuthorizeURL({ clientId, origin, state, redirectUri }: OAuthOptions): string {
@@ -6,8 +7,9 @@ export function discordAuthorizeURL({ clientId, origin, state, redirectUri }: OA
   u.searchParams.set('client_id', clientId);
   u.searchParams.set('redirect_uri', redirectUri ?? `${origin}/api/auth/oauth/discord`);
   u.searchParams.set('response_type', 'code');
-  u.searchParams.set('scope', 'identify');
-  u.searchParams.set('prompt', 'none');
+  const restricted = discordRolePolicy();
+  u.searchParams.set('scope', restricted ? 'identify guilds.members.read' : 'identify');
+  u.searchParams.set('prompt', restricted ? 'consent' : 'none');
 
   if (state) u.searchParams.set('state', state);
 

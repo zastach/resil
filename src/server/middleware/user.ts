@@ -1,3 +1,5 @@
+import { discordRolePolicy } from '@/lib/oauth/discord-roles';
+import { requireDiscordRole } from './discord-roles';
 import { config } from '@/lib/config';
 import { decryptToken } from '@/lib/crypto';
 import { db } from '@/lib/db';
@@ -50,7 +52,10 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
     upload &&
     !req.headers.authorization &&
     !req.cookies['zipline_session'];
-  if (anonFolderUpload) return;
+  if (anonFolderUpload) {
+    if (discordRolePolicy()) throw new ApiError(2002);
+    return;
+  }
 
   const authorization = req.headers.authorization;
 
@@ -69,6 +74,7 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
     }
     if (!user) throw new ApiError(2001);
 
+    await requireDiscordRole(user);
     req.user = user as User;
 
     return;
@@ -91,5 +97,6 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
   }
   if (!user) throw new ApiError(2001);
 
+  await requireDiscordRole(user);
   req.user = user as User;
 }

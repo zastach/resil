@@ -14,12 +14,10 @@ COPY pnpm-lock.yaml .
 COPY pnpm-workspace.yaml .
 
 FROM base AS deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile
 
 FROM base AS builder
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 COPY src ./src
 COPY .gitignore ./.gitignore
@@ -35,7 +33,7 @@ COPY code.json ./code.json
 COPY vite-env.d.ts ./vite-env.d.ts
 COPY scripts ./scripts
 
-RUN ZIPLINE_BUILD=true pnpm run build
+RUN pnpm exec oxfmt && ZIPLINE_BUILD=true pnpm run build
 
 FROM base
 
