@@ -100,6 +100,7 @@ export default typedPlugin(
             username,
             password: await hashPassword(password),
             role: role,
+            manualInviteAccess: true,
             avatar: avatar64 ?? null,
             token: createToken(),
           })

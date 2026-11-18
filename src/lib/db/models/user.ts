@@ -60,7 +60,7 @@ export const limitedUserSchema = userSchema.omit({
   totpEnabled: true,
   passkeys: true,
   sessions: true,
-});
+}).extend({ manualInviteAccess: z.boolean().optional() });
 
 export type User = z.infer<typeof userSchema>;
 export type LimitedUser = z.infer<typeof limitedUserSchema>;
@@ -160,7 +160,7 @@ export async function getUserBySession(sessionId: string, client: DbClient = db)
 
 export async function getUserSummary(id: string, client: DbClient = db) {
   const row = await client.query.users.findFirst({
-    columns: publicUserColumns,
+    columns: { ...publicUserColumns, manualInviteAccess: true },
     where: { id },
     with: { quota: true },
   });
@@ -173,7 +173,7 @@ export async function listUsers(
 ): Promise<LimitedUser[]> {
   if (options.roles?.length === 0) return [];
   const rows = await client.query.users.findMany({
-    columns: options.avatar ? publicUserColumnsWithAvatar : publicUserColumns,
+    columns: { ...(options.avatar ? publicUserColumnsWithAvatar : publicUserColumns), manualInviteAccess: true },
     where:
       options.roles || options.excludeId
         ? {

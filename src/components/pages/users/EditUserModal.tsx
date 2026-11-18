@@ -15,6 +15,7 @@ import {
   PasswordInput,
   Select,
   Stack,
+  Switch,
   Text,
   TextInput,
   Title,
@@ -50,6 +51,7 @@ export default function EditUserModal({
     password: string;
     role: 'USER' | 'ADMIN' | 'SUPERADMIN';
     avatar: File | null;
+    manualInviteAccess: boolean;
     fileType: 'BY_BYTES' | 'BY_FILES' | 'NONE';
     maxFiles: number;
     maxBytes: string;
@@ -60,6 +62,7 @@ export default function EditUserModal({
       password: '',
       role: user?.role || 'USER',
       avatar: null,
+      manualInviteAccess: user?.manualInviteAccess ?? false,
       fileType: derivedFileType,
       maxFiles: user?.quota?.maxFiles ?? 0,
       maxBytes: user?.quota?.maxBytes ?? '',
@@ -88,6 +91,7 @@ export default function EditUserModal({
       password: '',
       role: user?.role || 'USER',
       avatar: null,
+      manualInviteAccess: user?.manualInviteAccess ?? false,
       fileType:
         user?.quota?.maxBytes != null ? 'BY_BYTES' : user?.quota?.maxFiles != null ? 'BY_FILES' : 'NONE',
       maxFiles: user?.quota?.maxFiles ?? 0,
@@ -145,6 +149,7 @@ export default function EditUserModal({
       ...(values.password && { password: values.password }),
       ...(values.role !== user.role && { role: values.role }),
       ...(avatar64 && { avatar: avatar64 }),
+      ...(values.manualInviteAccess !== user.manualInviteAccess && { manualInviteAccess: values.manualInviteAccess }),
       quota: finalQuota,
     });
 
@@ -229,6 +234,11 @@ export default function EditUserModal({
             />
 
             <Divider />
+            <Switch
+              label='Bypass Discord Role Requirement'
+              description='Allow this account to access Resil without an eligible Discord role.'
+              {...form.getInputProps('manualInviteAccess', { type: 'checkbox' })}
+            />
             <Title order={5}>{t('edit.quota.title')}</Title>
 
             <Select
