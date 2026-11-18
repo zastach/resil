@@ -206,6 +206,7 @@ export const users = pgTable(
     avatar: text(),
     token: text().notNull(),
     role: role().default('USER').notNull(),
+    manualInviteAccess: boolean().default(false).notNull(),
     view: jsonb().$type<Record<string, Json | undefined>>().default({}).notNull(),
     quickLinks: jsonb().$type<QuickLinkId[]>().default([]).notNull(),
     totpSecret: text(),

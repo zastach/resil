@@ -2,12 +2,14 @@ import { ApiError } from '@/lib/api/errors';
 import { config } from '@/lib/config';
 import { db } from '@/lib/db';
 import { type User } from '@/lib/db/models/user';
-import { oauthProviders } from '@/lib/db/schema';
+import { oauthProviders, users } from '@/lib/db/schema';
 import { discordMembership, discordRolePolicy } from '@/lib/oauth/discord-roles';
 import { and, eq } from 'drizzle-orm';
 
 export async function requireDiscordRole(user: Pick<User, 'id' | 'role'>) {
   if (user.role === 'SUPERADMIN' || user.role === 'ADMIN' || !discordRolePolicy()) return;
+  const [account] = await db.select({ manualInviteAccess: users.manualInviteAccess }).from(users).where(eq(users.id, user.id)).limit(1);
+  if (account?.manualInviteAccess) return;
   const allowed = await db.transaction(async (tx) => {
     const [provider] = await tx
       .select()
