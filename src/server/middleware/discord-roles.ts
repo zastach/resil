@@ -8,7 +8,11 @@ import { and, eq } from 'drizzle-orm';
 
 export async function requireDiscordRole(user: Pick<User, 'id' | 'role'>) {
   if (user.role === 'SUPERADMIN' || user.role === 'ADMIN' || !discordRolePolicy()) return;
-  const [account] = await db.select({ manualInviteAccess: users.manualInviteAccess }).from(users).where(eq(users.id, user.id)).limit(1);
+  const [account] = await db
+    .select({ manualInviteAccess: users.manualInviteAccess })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
   if (account?.manualInviteAccess) return;
   const allowed = await db.transaction(async (tx) => {
     const [provider] = await tx
