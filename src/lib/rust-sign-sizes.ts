@@ -12,6 +12,16 @@ export const rustSignGroups = [
     ],
   },
   {
+    name: 'Artist canvases',
+    sizes: [
+      ['Artist Canvas XXL', 1024, 512],
+      ['Artist Canvas XL', 512, 512],
+      ['Artist Canvas Large', 320, 240],
+      ['Artist Canvas Standing', 256, 640],
+      ['Artist Canvas Small', 192, 256],
+    ],
+  },
+  {
     name: 'Wooden signs and posts',
     sizes: [
       ['Huge Wooden Sign', 1024, 256],
