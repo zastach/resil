@@ -13,7 +13,15 @@ export function getSignPreset(name: string | null) {
   return presets.find(([label]) => label === name);
 }
 
-export const defaultSignAdjustments = { zoom: 100, x: 0, y: 0, brightness: 100, contrast: 0, sharpness: 0 };
+export const defaultSignAdjustments = {
+  preserveProportions: false,
+  zoom: 100,
+  x: 0,
+  y: 0,
+  brightness: 100,
+  contrast: 0,
+  sharpness: 0,
+};
 
 export function isNeonSign(name: string) {
   return name.includes('Neon Sign');
@@ -107,9 +115,10 @@ export async function makeSignCopy(
     if (brightness !== 100 || adjustments.contrast !== 0)
       context.filter = `contrast(${100 + adjustments.contrast}%) brightness(${brightness}%)`;
     context.imageSmoothingQuality = 'high';
-    const scale = (Math.min(width / image.width, height / image.height) * adjustments.zoom) / 100;
-    const drawWidth = image.width * scale;
-    const drawHeight = image.height * scale;
+    const fitScale = Math.min(width / image.width, height / image.height);
+    const zoom = adjustments.zoom / 100;
+    const drawWidth = (adjustments.preserveProportions ? image.width * fitScale : width) * zoom;
+    const drawHeight = (adjustments.preserveProportions ? image.height * fitScale : height) * zoom;
     const x = (width - drawWidth) / 2 + (width * adjustments.x) / 100;
     const y = (height - drawHeight) / 2 + (height * adjustments.y) / 100;
     clipped = x < -0.5 || y < -0.5 || x + drawWidth > width + 0.5 || y + drawHeight > height + 0.5;

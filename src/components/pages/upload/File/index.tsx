@@ -200,6 +200,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     limit: number;
     pairs: { original: File; saved: File | null; copy: SignCopy }[];
   } | null>(null);
+  const [showAdjustments, setShowAdjustments] = useState(false);
   const [adjustments, setAdjustments] = useState(defaultSignAdjustments);
   const [debouncedAdjustments] = useDebouncedValue(adjustments, 150);
   const [adjusted, setAdjusted] = useState<{
@@ -332,6 +333,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           const saved = original === editSource ? null : await fitImageToUploadLimit(original, limit);
           pairs.push({ original, saved, copy });
         }
+        setShowAdjustments(false);
         setAdjustments(defaultSignAdjustments);
         setAdjusted(null);
         setActualSize(false);
@@ -379,47 +381,79 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 Save to <strong>{destinationLabel}</strong>
               </Text>
             )}
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing='lg'>
-              {(
-                [
-                  ['zoom', 'Zoom', 50, 200],
-                  ['x', 'Move left or right', -50, 50],
-                  ['y', 'Move up or down', -50, 50],
-                  ['sharpness', 'Sharpness', 0, 100],
-                  ['contrast', 'Contrast', -30, 50],
-                  ...(isNeonSign(preview.preset[0]) ? [['brightness', 'Brightness', 10, 100] as const] : []),
-                ] as const
-              ).map(([key, label, min, max]) => (
-                <div key={key}>
-                  <Group justify='space-between' gap='xs' mb={4}>
-                    <Text size='sm' fw={600}>
-                      {label} · {adjustments[key]}%
-                    </Text>
-                    <Button
-                      variant='subtle'
-                      size='compact-xs'
-                      aria-label={`Reset ${label.toLowerCase()} to default`}
-                      disabled={adjustments[key] === defaultSignAdjustments[key]}
-                      onClick={() =>
-                        setAdjustments((previous) => ({ ...previous, [key]: defaultSignAdjustments[key] }))
-                      }
-                    >
-                      Reset to default
-                    </Button>
-                  </Group>
-                  <Slider
-                    aria-label={label}
-                    min={min}
-                    max={max}
-                    value={adjustments[key]}
-                    marks={key === 'brightness' ? [{ value: 50, label: 'Recommended · 50%' }] : undefined}
-                    mb={key === 'brightness' ? 'md' : undefined}
-                    label={(value) => `${value}%`}
-                    onChange={(value) => setAdjustments((previous) => ({ ...previous, [key]: value }))}
-                  />
-                </div>
-              ))}
-            </SimpleGrid>
+            <Text size='sm' c='dimmed'>
+              The default preview estimates how /sil stretches the whole image to fill this sign. The server's
+              actual rendering can vary.
+            </Text>
+            <Group gap='sm'>
+              <Button
+                size='compact-sm'
+                variant='light'
+                onClick={() => setShowAdjustments((show) => !show)}
+                aria-expanded={showAdjustments}
+              >
+                {showAdjustments ? 'Hide adjustments' : 'Adjust sign image'}
+              </Button>
+            </Group>
+            <Collapse expanded={showAdjustments}>
+              <Stack gap='md'>
+                <Switch
+                  label='Preserve proportions'
+                  description='Fit the entire image with margins when needed.'
+                  checked={adjustments.preserveProportions}
+                  onChange={(event) => {
+                    const checked = event.currentTarget.checked;
+                    setAdjustments((previous) => ({ ...previous, preserveProportions: checked }));
+                  }}
+                />
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing='lg'>
+                  {(
+                    [
+                      ['zoom', 'Zoom', 50, 200],
+                      ['x', 'Move left or right', -50, 50],
+                      ['y', 'Move up or down', -50, 50],
+                      ['sharpness', 'Sharpness', 0, 100],
+                      ['contrast', 'Contrast', -30, 50],
+                      ...(isNeonSign(preview.preset[0])
+                        ? [['brightness', 'Brightness', 10, 100] as const]
+                        : []),
+                    ] as const
+                  ).map(([key, label, min, max]) => (
+                    <div key={key}>
+                      <Group justify='space-between' gap='xs' mb={4}>
+                        <Text size='sm' fw={600}>
+                          {label} · {adjustments[key]}%
+                        </Text>
+                        <Button
+                          variant='subtle'
+                          size='compact-xs'
+                          aria-label={`Reset ${label.toLowerCase()} to default`}
+                          disabled={adjustments[key] === defaultSignAdjustments[key]}
+                          onClick={() =>
+                            setAdjustments((previous) => ({
+                              ...previous,
+                              [key]: defaultSignAdjustments[key],
+                            }))
+                          }
+                        >
+                          Reset to default
+                        </Button>
+                      </Group>
+                      <Slider
+                        aria-label={label}
+                        min={min}
+                        max={max}
+                        value={adjustments[key]}
+                        marks={key === 'brightness' ? [{ value: 50, label: 'Recommended · 50%' }] : undefined}
+                        mb={key === 'brightness' ? 'md' : undefined}
+                        label={(value) => `${value}%`}
+                        onChange={(value) => setAdjustments((previous) => ({ ...previous, [key]: value }))}
+                      />
+                    </div>
+                  ))}
+                </SimpleGrid>
+              </Stack>
+            </Collapse>
             <Group justify='space-between'>
               <Switch
                 label='Show sign copy at actual pixel size'
@@ -452,7 +486,15 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                   <Button
                     size='compact-sm'
                     variant='light'
-                    onClick={() => setAdjustments((previous) => ({ ...previous, zoom: 100, x: 0, y: 0 }))}
+                    onClick={() =>
+                      setAdjustments((previous) => ({
+                        ...previous,
+                        preserveProportions: true,
+                        zoom: 100,
+                        x: 0,
+                        y: 0,
+                      }))
+                    }
                   >
                     Fit whole image
                   </Button>
