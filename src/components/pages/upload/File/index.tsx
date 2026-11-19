@@ -462,19 +462,21 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
               <Paper key={index} withBorder p='sm'>
                 <SimpleGrid cols={{ base: 1, sm: 2 }}>
                   <PreviewImage file={original} label='Original' />
-                  <PreviewImage
-                    file={(currentAdjustment?.copies?.[index] ?? copy).file}
-                    label='Sign copy'
-                    magnify
-                    actualSize={actualSize}
-                  />
+                  <Stack gap='xs'>
+                    <PreviewImage
+                      file={(currentAdjustment?.copies?.[index] ?? copy).file}
+                      label='Sign copy'
+                      magnify
+                      actualSize={actualSize}
+                    />
+                    {!adjusting && !currentAdjustment?.error && (
+                      <SignReadability
+                        original={original}
+                        copy={(currentAdjustment?.copies?.[index] ?? copy).file}
+                      />
+                    )}
+                  </Stack>
                 </SimpleGrid>
-                {!adjusting && !currentAdjustment?.error && (
-                  <SignReadability
-                    original={original}
-                    copy={(currentAdjustment?.copies?.[index] ?? copy).file}
-                  />
-                )}
                 {saved && saved !== original && (
                   <Text size='sm' mt='xs' c='dimmed'>
                     The source image is over the upload limit. Resil will save a compressed source copy and

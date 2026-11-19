@@ -1,18 +1,19 @@
-import { Button, Stack, Text } from '@mantine/core';
+import type { SignReadabilityGrade } from '@/lib/client/upload/sign-readability-grade';
+import { Button, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { useState } from 'react';
 
 export default function SignReadability({ original, copy }: { original: File; copy: File }) {
-  const [result, setResult] = useState<{ copy: File; score: number | null }>();
+  const [result, setResult] = useState<{ copy: File; grade: SignReadabilityGrade }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const score = result?.copy === copy ? result.score : undefined;
+  const grade = result?.copy === copy ? result.grade : undefined;
 
   async function check() {
     setBusy(true);
     setError('');
     try {
       const { checkSignReadability } = await import('@/lib/client/upload/sign-readability');
-      setResult({ copy, score: await checkSignReadability(original, copy) });
+      setResult({ copy, grade: await checkSignReadability(original, copy) });
     } catch {
       setError('The text check could not run. Review the sign copy at actual pixel size.');
     } finally {
@@ -30,13 +31,23 @@ export default function SignReadability({ original, copy }: { original: File; co
           {error}
         </Text>
       )}
-      {score === null && (
+      {grade === null && (
         <Text size='sm'>No English text detected. If your sign has lettering, try larger, bolder text.</Text>
       )}
-      {typeof score === 'number' && (
+      {grade && (
         <Text size='sm' aria-live='polite'>
-          <strong>Estimated readability: {score}/100.</strong>{' '}
-          {score < 70
+          <strong>Estimated readability</strong>{' '}
+          <Tooltip label={`${grade.score}/100`} events={{ hover: true, focus: true, touch: true }}>
+            <UnstyledButton
+              fw={700}
+              component='button'
+              type='button'
+              style={{ textDecoration: 'underline dotted' }}
+            >
+              {grade.grade}
+            </UnstyledButton>
+          </Tooltip>{' '}
+          {grade.grade === 'VERY LOW' || grade.grade === 'LOW'
             ? 'Try a larger, bolder font, stronger contrast, or a larger sign. Then check again.'
             : 'Check how the lettering looks in Rust before relying on this estimate.'}
         </Text>
