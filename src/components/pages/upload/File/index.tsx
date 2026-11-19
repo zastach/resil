@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '@mantine/hooks';
 import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import { useConfig } from '@/components/ConfigProvider';
 import SafeTrans from '@/components/SafeTrans';
@@ -18,6 +19,8 @@ import {
   Image,
   Modal,
   SimpleGrid,
+  Slider,
+  Switch,
   Paper,
   Progress,
   Radio,
@@ -31,20 +34,29 @@ import { Dropzone } from '@mantine/dropzone';
 import { useColorScheme } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { IconFiles, IconTrashFilled, IconUpload, IconX } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getSignPreset, makeSignCopy, signOptions } from '@/lib/client/upload/rust-sign';
+import {
+  defaultSignAdjustments,
+  fitImageToUploadLimit,
+  getSignPreset,
+  isNeonSign,
+  makeSignCopy,
+  signOptions,
+} from '@/lib/client/upload/rust-sign';
 import DropzoneFile from './DropzoneFile';
 
 const initialVisible = 24;
 
-function PreviewImage({ file, label }: { file: File; label: string }) {
-  const [url, setUrl] = useState<string>();
+function PreviewImage({ file, label, actualSize }: { file: File; label: string; actualSize?: boolean }) {
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    const image = imageRef.current;
+    if (!image) return;
     const preview = URL.createObjectURL(file);
-    setUrl(preview);
+    image.src = preview;
     return () => URL.revokeObjectURL(preview);
   }, [file]);
 
@@ -53,7 +65,16 @@ function PreviewImage({ file, label }: { file: File; label: string }) {
       <Text size='sm' fw={600}>
         {label}
       </Text>
-      {url && <Image src={url} alt={file.name} fit='contain' h={260} />}
+      <div style={actualSize ? { overflow: 'auto', maxHeight: 320 } : undefined}>
+        <Image
+          ref={imageRef}
+          alt={file.name}
+          fit='contain'
+          h={actualSize ? 'auto' : 260}
+          w={actualSize ? 'auto' : '100%'}
+          style={actualSize ? { maxWidth: 'none' } : undefined}
+        />
+      </div>
       <Text size='xs' c='dimmed' style={{ overflowWrap: 'anywhere' }}>
         {file.name} · {bytes(file.size)}
       </Text>
@@ -74,9 +95,23 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const [sign, setSign] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState('');
-  const [preview, setPreview] = useState<{ sign: string; pairs: { original: File; copy: File }[] } | null>(
-    null,
-  );
+  const [preview, setPreview] = useState<{
+    preset: NonNullable<ReturnType<typeof getSignPreset>>;
+    limit: number;
+    pairs: { original: File; saved: File; copy: File }[];
+  } | null>(null);
+  const [adjustments, setAdjustments] = useState(defaultSignAdjustments);
+  const [debouncedAdjustments] = useDebouncedValue(adjustments, 150);
+  const [adjusted, setAdjusted] = useState<{
+    preview: NonNullable<typeof preview>;
+    adjustments: typeof defaultSignAdjustments;
+    copies?: File[];
+    error?: string;
+  } | null>(null);
+  const [actualSize, setActualSize] = useState(false);
+  const currentAdjustment =
+    adjusted?.preview === preview && adjusted?.adjustments === adjustments ? adjusted : null;
+  const adjusting = adjustments !== defaultSignAdjustments && !currentAdjustment;
   const preset = getSignPreset(sign);
   const busy = loading || preparing;
   const [visibleCount, setVisibleCount] = useState(initialVisible);
@@ -109,6 +144,33 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     return () => document.removeEventListener('paste', handlePaste);
   }, [busy, preview, setFiles, t]);
 
+  useEffect(() => {
+    if (!preview || debouncedAdjustments === defaultSignAdjustments) return;
+    let active = true;
+    async function render() {
+      if (!preview) return;
+      try {
+        const copies: File[] = [];
+        for (const { original } of preview.pairs) {
+          if (!active) return;
+          copies.push(await makeSignCopy(original, preview.preset, preview.limit, debouncedAdjustments));
+        }
+        if (active) setAdjusted({ preview, adjustments: debouncedAdjustments, copies });
+      } catch (error) {
+        if (active)
+          setAdjusted({
+            preview,
+            adjustments: debouncedAdjustments,
+            error: error instanceof Error ? error.message : 'Could not update the preview.',
+          });
+      }
+    }
+    void render();
+    return () => {
+      active = false;
+    };
+  }, [preview, debouncedAdjustments]);
+
   if (!config) return null;
 
   async function uploadSelection() {
@@ -117,19 +179,29 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     setError('');
     try {
       const limit = bytes(config.files.maxFileSize);
-      const oversized = files.find((file) => file.size > limit);
-      if (oversized)
-        throw new Error(
-          `"${oversized.name}" exceeds the ${formatResilFileLimit(limit, bytes(limit))} file limit.`,
-        );
       if (purpose === 'sign' && preset) {
-        const pairs: { original: File; copy: File }[] = [];
+        const pairs: NonNullable<typeof preview>['pairs'] = [];
         for (const original of files) {
-          pairs.push({ original, copy: await makeSignCopy(original, preset, limit) });
+          const copy = await makeSignCopy(original, preset, limit);
+          const saved = await fitImageToUploadLimit(original, limit);
+          pairs.push({ original, saved, copy });
         }
-        setPreview({ sign: preset[0], pairs });
+        setAdjustments(defaultSignAdjustments);
+        setAdjusted(null);
+        setActualSize(false);
+        setPreview({ preset, limit, pairs });
       } else {
-        await upload(files);
+        const replacements = new Map<File, File>();
+        const batch: File[] = [];
+        for (const file of files) {
+          const saved = await fitImageToUploadLimit(file, limit);
+          if (saved !== file) replacements.set(file, saved);
+          batch.push(saved);
+        }
+        if (replacements.size) {
+          showNotification({ message: 'Large images were compressed to fit the upload limit.' });
+        }
+        await upload(batch, replacements);
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
@@ -150,14 +222,73 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         {preview && (
           <Stack>
             <Text size='sm'>
-              Review the {preview.sign} copy. Both the original and the sign copy will be uploaded.
+              {preview.preset[0]} · {preview.preset[1]} × {preview.preset[2]} pixels. Changes apply to all
+              sign copies.
             </Text>
-            {preview.pairs.map(({ original, copy }, index) => (
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing='lg'>
+              {(
+                [
+                  ['zoom', 'Zoom', 50, 200],
+                  ['x', 'Move left or right', -50, 50],
+                  ['y', 'Move up or down', -50, 50],
+                  ...(isNeonSign(preview.preset[0]) ? [['darkness', 'Neon darkness', 0, 90] as const] : []),
+                ] as const
+              ).map(([key, label, min, max]) => (
+                <div key={key}>
+                  <Text size='sm' fw={600}>
+                    {label} · {adjustments[key]}%
+                  </Text>
+                  <Slider
+                    aria-label={label}
+                    min={min}
+                    max={max}
+                    value={adjustments[key]}
+                    label={(value) => `${value}%`}
+                    onChange={(value) => setAdjustments((previous) => ({ ...previous, [key]: value }))}
+                  />
+                </div>
+              ))}
+            </SimpleGrid>
+            <Group justify='space-between'>
+              <Switch
+                label='Show sign copy at actual pixel size'
+                checked={actualSize}
+                onChange={(event) => setActualSize(event.currentTarget.checked)}
+              />
+              <Button variant='subtle' size='xs' onClick={() => setAdjustments(defaultSignAdjustments)}>
+                Reset adjustments
+              </Button>
+            </Group>
+            <Text size='sm' c='dimmed'>
+              If text is hard to read at actual size, use larger lettering, move the image closer with Zoom,
+              or choose a larger sign.
+            </Text>
+            {isNeonSign(preview.preset[0]) && (
+              <Text size='sm' c='dimmed'>
+                Increase darkness if your neon sign looks too bright in-game.
+              </Text>
+            )}
+            {currentAdjustment?.error && (
+              <Alert color='red' role='alert'>
+                {currentAdjustment.error}
+              </Alert>
+            )}
+            {preview.pairs.map(({ original, saved, copy }, index) => (
               <Paper key={index} withBorder p='sm'>
                 <SimpleGrid cols={{ base: 1, sm: 2 }}>
                   <PreviewImage file={original} label='Original' />
-                  <PreviewImage file={copy} label='Sign copy' />
+                  <PreviewImage
+                    file={currentAdjustment?.copies?.[index] ?? copy}
+                    label='Sign copy'
+                    actualSize={actualSize}
+                  />
                 </SimpleGrid>
+                {saved !== original && (
+                  <Text size='sm' mt='xs' c='dimmed'>
+                    The source image is over the upload limit. Resil will save a compressed source copy and
+                    the sign copy.
+                  </Text>
+                )}
               </Paper>
             ))}
             <Group justify='flex-end'>
@@ -165,9 +296,16 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 Back
               </Button>
               <Button
+                loading={adjusting}
+                disabled={adjusting || !!currentAdjustment?.error}
                 onClick={() => {
+                  const replacements = new Map(preview.pairs.map(({ original, saved }) => [original, saved]));
+                  const batch = preview.pairs.flatMap(({ saved, copy }, index) => [
+                    saved,
+                    currentAdjustment?.copies?.[index] ?? copy,
+                  ]);
                   setPreview(null);
-                  void upload(preview.pairs.flatMap(({ original, copy }) => [original, copy]));
+                  void upload(batch, replacements);
                 }}
               >
                 Upload originals and sign copies
@@ -225,8 +363,8 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 searchable
               />
               <Text size='sm' c='dimmed'>
-                Resil saves the original and a sign-sized JPEG that fits the whole image. White margins fill
-                any extra space.{' '}
+                Resil saves a source copy and a sign-sized JPEG. You can adjust the sign copy before
+                uploading.{' '}
                 <Anchor component={Link} to='/auth/image-guide' target='_blank' rel='noopener noreferrer'>
                   View sign dimensions
                 </Anchor>
