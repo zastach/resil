@@ -23,6 +23,8 @@ import {
   Switch,
   Paper,
   Progress,
+  Popover,
+  UnstyledButton,
   Radio,
   Text,
   Title,
@@ -49,7 +51,15 @@ import DropzoneFile from './DropzoneFile';
 
 const initialVisible = 24;
 
-function PreviewImage({ file, label, actualSize }: { file: File; label: string; actualSize?: boolean }) {
+function PreviewBitmap({
+  file,
+  height,
+  actualSize,
+}: {
+  file: File;
+  height: number | string;
+  actualSize?: boolean;
+}) {
   const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
@@ -61,19 +71,81 @@ function PreviewImage({ file, label, actualSize }: { file: File; label: string; 
   }, [file]);
 
   return (
+    <Image
+      ref={imageRef}
+      alt={file.name}
+      fit='contain'
+      h={actualSize ? 'auto' : height}
+      w={actualSize ? 'auto' : '100%'}
+      style={actualSize ? { maxWidth: 'none' } : undefined}
+    />
+  );
+}
+
+function PreviewImage({
+  file,
+  label,
+  actualSize,
+  magnify,
+}: {
+  file: File;
+  label: string;
+  actualSize?: boolean;
+  magnify?: boolean;
+}) {
+  const [opened, setOpened] = useState(false);
+  const bitmap = <PreviewBitmap file={file} height={260} actualSize={actualSize} />;
+
+  return (
     <Stack gap='xs'>
-      <Text size='sm' fw={600}>
-        {label}
-      </Text>
-      <div style={actualSize ? { overflow: 'auto', maxHeight: 320 } : undefined}>
-        <Image
-          ref={imageRef}
-          alt={file.name}
-          fit='contain'
-          h={actualSize ? 'auto' : 260}
-          w={actualSize ? 'auto' : '100%'}
-          style={actualSize ? { maxWidth: 'none' } : undefined}
-        />
+      <Group justify='space-between' gap='xs'>
+        <Text size='sm' fw={600}>
+          {label}
+        </Text>
+        {magnify && (
+          <Text size='xs' c='dimmed'>
+            Hover or tap to enlarge
+          </Text>
+        )}
+      </Group>
+      <div>
+        {magnify ? (
+          <Popover
+            opened={opened}
+            onChange={setOpened}
+            position='top'
+            width='min(640px, calc(100vw - 2rem))'
+            withArrow
+            shadow='lg'
+            withinPortal={false}
+          >
+            <Popover.Target>
+              <UnstyledButton
+                w={actualSize ? undefined : '100%'}
+                style={{
+                  cursor: 'zoom-in',
+                  maxWidth: '100%',
+                  ...(actualSize && { overflow: 'auto', maxHeight: 320 }),
+                }}
+                aria-label='Enlarge sign copy'
+                onPointerEnter={(event) => {
+                  if (event.pointerType === 'mouse') setOpened(true);
+                }}
+                onPointerLeave={(event) => {
+                  if (event.pointerType === 'mouse') setOpened(false);
+                }}
+                onClick={() => setOpened(true)}
+              >
+                {bitmap}
+              </UnstyledButton>
+            </Popover.Target>
+            <Popover.Dropdown p='xs'>
+              <PreviewBitmap file={file} height='min(55vh, 440px)' />
+            </Popover.Dropdown>
+          </Popover>
+        ) : (
+          bitmap
+        )}
       </div>
       <Text size='xs' c='dimmed' style={{ overflowWrap: 'anywhere' }}>
         {file.name} · {bytes(file.size)}
@@ -108,7 +180,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     copies?: File[];
     error?: string;
   } | null>(null);
-  const [actualSize, setActualSize] = useState(true);
+  const [actualSize, setActualSize] = useState(false);
   const currentAdjustment =
     adjusted?.preview === preview && adjusted?.adjustments === adjustments ? adjusted : null;
   const adjusting = adjustments !== defaultSignAdjustments && !currentAdjustment;
@@ -188,7 +260,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         }
         setAdjustments(defaultSignAdjustments);
         setAdjusted(null);
-        setActualSize(true);
+        setActualSize(false);
         setPreview({ preset, limit, pairs });
       } else {
         const replacements = new Map<File, File>();
@@ -282,6 +354,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                   <PreviewImage
                     file={currentAdjustment?.copies?.[index] ?? copy}
                     label='Sign copy'
+                    magnify
                     actualSize={actualSize}
                   />
                 </SimpleGrid>
