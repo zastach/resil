@@ -13,7 +13,7 @@ export function getSignPreset(name: string | null) {
   return presets.find(([label]) => label === name);
 }
 
-export const defaultSignAdjustments = { zoom: 100, x: 0, y: 0, darkness: 0 };
+export const defaultSignAdjustments = { zoom: 100, x: 0, y: 0, darkness: 0, contrast: 0, sharpness: 0 };
 
 export function isNeonSign(name: string) {
   return name.includes('Neon Sign');
@@ -65,6 +65,26 @@ export async function fitImageToUploadLimit(file: File, limit: number) {
   throw new Error(`Could not fit "${file.name}" under the upload limit.`);
 }
 
+function sharpenSign(context: CanvasRenderingContext2D, width: number, height: number, strength: number) {
+  const pixels = context.getImageData(0, 0, width, height);
+  const source = pixels.data.slice();
+  const stride = width * 4;
+  const amount = strength / 200;
+
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const pixel = y * stride + x * 4;
+      for (let channel = 0; channel < 3; channel++) {
+        const i = pixel + channel;
+        const neighbors = source[i - 4] + source[i + 4] + source[i - stride] + source[i + stride];
+        pixels.data[i] = source[i] + amount * (4 * source[i] - neighbors);
+      }
+    }
+  }
+
+  context.putImageData(pixels, 0, 0);
+}
+
 export async function makeSignCopy(
   file: File,
   [name, width, height]: SignPreset,
@@ -82,7 +102,9 @@ export async function makeSignCopy(
     const neon = isNeonSign(name);
     context.fillStyle = neon ? '#000' : '#fff';
     context.fillRect(0, 0, width, height);
-    if (neon) context.filter = `brightness(${100 - adjustments.darkness}%)`;
+    const brightness = neon ? 100 - adjustments.darkness : 100;
+    if (brightness !== 100 || adjustments.contrast !== 0)
+      context.filter = `contrast(${100 + adjustments.contrast}%) brightness(${brightness}%)`;
     context.imageSmoothingQuality = 'high';
     const scale = (Math.min(width / image.width, height / image.height) * adjustments.zoom) / 100;
     const drawWidth = image.width * scale;
@@ -94,6 +116,7 @@ export async function makeSignCopy(
       drawWidth,
       drawHeight,
     );
+    if (adjustments.sharpness > 0) sharpenSign(context, width, height, adjustments.sharpness);
   } finally {
     image.close();
   }

@@ -108,7 +108,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     copies?: File[];
     error?: string;
   } | null>(null);
-  const [actualSize, setActualSize] = useState(false);
+  const [actualSize, setActualSize] = useState(true);
   const currentAdjustment =
     adjusted?.preview === preview && adjusted?.adjustments === adjustments ? adjusted : null;
   const adjusting = adjustments !== defaultSignAdjustments && !currentAdjustment;
@@ -188,7 +188,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         }
         setAdjustments(defaultSignAdjustments);
         setAdjusted(null);
-        setActualSize(false);
+        setActualSize(true);
         setPreview({ preset, limit, pairs });
       } else {
         const replacements = new Map<File, File>();
@@ -216,7 +216,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         opened={preview !== null}
         onClose={() => setPreview(null)}
         title='Preview sign copies'
-        size='xl'
+        size='min(1040px, calc(100vw - 2rem))'
         centered
       >
         {preview && (
@@ -231,6 +231,8 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                   ['zoom', 'Zoom', 50, 200],
                   ['x', 'Move left or right', -50, 50],
                   ['y', 'Move up or down', -50, 50],
+                  ['sharpness', 'Sharpness', 0, 100],
+                  ['contrast', 'Contrast', -30, 50],
                   ...(isNeonSign(preview.preset[0]) ? [['darkness', 'Neon darkness', 0, 90] as const] : []),
                 ] as const
               ).map(([key, label, min, max]) => (
