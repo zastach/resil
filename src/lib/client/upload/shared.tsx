@@ -1,3 +1,4 @@
+import { RESIL_MAX_FILE_BYTES } from '@/lib/resil-upload-limits';
 import { copyRustImage } from '@/lib/client/copyRustImage';
 import SafeTrans from '@/components/SafeTrans';
 import { Response } from '@/lib/api/response';
@@ -152,29 +153,18 @@ export function showUploadModal(
                   target='_blank'
                   c={file.pending ? 'dimmed' : undefined}
                 >
-                  {file.url}
+                  {file.originalName ?? file.url}
                 </Anchor>
               </Group>
               <Group justify='right'>
-                {file.type.startsWith('image/') && !file.pending && (
-                  <Button
-                    size='xs'
-                    disabled={
-                      file.size === undefined ||
-                      file.size > 1000000 ||
-                      !['image/png', 'image/jpeg'].includes(file.type)
-                    }
-                    onClick={() => copyRustImage(file.name, clipboard)}
-                  >
-                    {file.size === undefined
-                      ? 'Check in My Images'
-                      : file.size > 1000000
-                        ? 'Optimization required'
-                        : !['image/png', 'image/jpeg'].includes(file.type)
-                          ? 'Format not verified'
-                          : 'Copy /sil'}
-                  </Button>
-                )}
+                {!file.pending &&
+                  file.size !== undefined &&
+                  file.size <= RESIL_MAX_FILE_BYTES &&
+                  ['image/png', 'image/jpeg'].includes(file.type) && (
+                    <Button size='xs' onClick={() => copyRustImage(file.name, clipboard)}>
+                      Copy /sil
+                    </Button>
+                  )}
                 <Tooltip label={i18n.t('upload:modal.open')}>
                   <ActionIcon onClick={() => open(i)} variant='filled' color={actionIconColor}>
                     <IconExternalLink size='1rem' />

@@ -6,7 +6,10 @@ import { bytes } from '@/lib/bytes';
 import { getPastedContent } from '@/lib/client/upload/paste';
 import { humanizeDuration } from '@/lib/relativeTime';
 import {
+  Alert,
   Anchor,
+  Select,
+  Stack,
   Button,
   Collapse,
   Grid,
@@ -26,8 +29,8 @@ import { showNotification } from '@mantine/notifications';
 import { IconFiles, IconTrashFilled, IconUpload, IconX } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import UploadOptionsButton from '../UploadOptionsButton';
+import { Link, useSearchParams } from 'react-router-dom';
+import { getSignPreset, makeSignCopy, signOptions } from '@/lib/client/upload/rust-sign';
 import DropzoneFile from './DropzoneFile';
 
 const initialVisible = 24;
@@ -38,6 +41,15 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const colorScheme = useColorScheme();
   const config = useConfig();
   const { files, setFiles, progress, loading, upload } = useFileUpload();
+  const [searchParams] = useSearchParams();
+  const [purpose, setPurpose] = useState<string | null>(
+    searchParams.get('purpose') === 'sign' ? 'sign' : null,
+  );
+  const [sign, setSign] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [error, setError] = useState('');
+  const preset = getSignPreset(sign);
+  const busy = loading || preparing;
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
   const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Macintosh');
@@ -69,6 +81,30 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
 
   if (!config) return null;
 
+  async function uploadSelection() {
+    if (!purpose || busy || !files.length || (purpose === 'sign' && !preset)) return;
+    setPreparing(true);
+    setError('');
+    try {
+      const limit = bytes(config.files.maxFileSize);
+      const oversized = files.find((file) => file.size > limit);
+      if (oversized)
+        throw new Error(
+          `"${oversized.name}" exceeds the ${formatResilFileLimit(limit, bytes(limit))} file limit.`,
+        );
+      const batch: File[] = [];
+      for (const file of files) {
+        batch.push(file);
+        if (purpose === 'sign' && preset) batch.push(await makeSignCopy(file, preset, limit));
+      }
+      await upload(batch);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
+    } finally {
+      setPreparing(false);
+    }
+  }
+
   return (
     <>
       <Group gap='sm'>
@@ -93,8 +129,8 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           setVisibleCount(initialVisible);
         }}
         my='sm'
-        loading={loading}
-        disabled={loading}
+        loading={busy}
+        disabled={busy}
         style={{ zIndex: 1 }}
       >
         <Group justify='center' gap='xl' style={{ minHeight: rem(220), pointerEvents: 'none' }}>
@@ -143,16 +179,43 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           </div>
         </Group>
       </Dropzone>
-      <Anchor
-        component={Link}
-        to='/dashboard/image-optimizer'
-        target='_blank'
-        rel='noopener noreferrer'
-        size='sm'
-        mt='xs'
-      >
-        Rust Image Optimizer
-      </Anchor>
+      <Stack gap='sm' mt='md'>
+        <Select
+          label='What will you use this image for?'
+          placeholder='Choose a use'
+          value={purpose}
+          onChange={setPurpose}
+          disabled={busy}
+          data={[
+            { value: 'general', label: 'General image or link' },
+            { value: 'sign', label: 'Rust sign or frame (/sil)' },
+          ]}
+        />
+        {purpose === 'sign' && (
+          <>
+            <Select
+              label='Rust sign or frame'
+              placeholder='Choose the sign or frame'
+              data={signOptions}
+              value={sign}
+              onChange={setSign}
+              disabled={busy}
+              searchable
+            />
+            <Text size='sm' c='dimmed'>
+              Resil saves the original and a separate JPEG cropped to fit the selected sign.{' '}
+              <Anchor component={Link} to='/auth/image-guide' target='_blank' rel='noopener noreferrer'>
+                View sign dimensions
+              </Anchor>
+            </Text>
+          </>
+        )}
+        {error && (
+          <Alert color='red' role='alert'>
+            {error}
+          </Alert>
+        )}
+      </Stack>
 
       <Collapse expanded={progress.percent > 0 && progress.percent < 100}>
         {progress.percent > 0 && progress.percent < 100 && (
@@ -187,7 +250,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         {visibleFiles.map((file, i) => (
           <Grid.Col span={3} key={i}>
             <DropzoneFile
-              loading={loading}
+              loading={busy}
               file={file}
               onDelete={() => setFiles((prev) => prev.filter((_, j) => i !== j))}
             />
@@ -226,7 +289,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           variant='outline'
           color='red'
           leftSection={<IconTrashFilled size='1rem' />}
-          disabled={files.length === 0 || loading}
+          disabled={files.length === 0 || busy}
           onClick={() => {
             setFiles([]);
             setVisibleCount(initialVisible);
@@ -234,12 +297,12 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         >
           {t('actions.clearAll')}
         </Button>
-        <UploadOptionsButton folder={folder} numFiles={files.length} />
         <Button
           variant='outline'
           leftSection={<IconUpload size='1rem' />}
-          disabled={files.length === 0 || loading}
-          onClick={() => void upload(files)}
+          disabled={files.length === 0 || !purpose || (purpose === 'sign' && !preset)}
+          loading={busy}
+          onClick={() => void uploadSelection()}
         >
           {t('actions.upload', { count: files.length, size: bytes(aggSize) })}
         </Button>

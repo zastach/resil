@@ -90,6 +90,8 @@ export default typedPlugin(
         onResponse: cleanupClaimedPartial,
       },
       async (req, res) => {
+        if (req.headers['x-zipline-filename'] !== undefined || req.headers['x-zipline-domain'] !== undefined)
+          throw new ApiError(1001, 'Upload filename and domain overrides are disabled.');
         const options = parseHeaders(req.headers, config.files);
 
         if (!options.partial) throw new ApiError(1004);
@@ -187,6 +189,8 @@ export default typedPlugin(
             userId: req.user ? req.user.id : options.folder ? folder?.userId : undefined,
           };
 
+          if (options.password && mimetype.startsWith('image/'))
+            throw new ApiError(1001, 'Image uploads cannot be password-protected.');
           if (options.password) {
             const password = await hashPassword(options.password);
             data.password = password;
@@ -359,6 +363,7 @@ export default typedPlugin(
           response.files.push({
             id: fileUpload.id,
             name: fileUpload.name,
+            originalName: fileUpload.originalName ?? undefined,
             type: fileUpload.type,
             url: responseUrl,
             pending: true,

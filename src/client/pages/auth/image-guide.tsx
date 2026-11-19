@@ -16,7 +16,7 @@ export function Component() {
             each file under 1 MB for /sil.
           </Text>
           <Button component={Link} to='/dashboard/image-optimizer' mt='md'>
-            Open image optimizer
+            Upload for a Rust sign
           </Button>
         </div>
         {rustSignGroups.map(({ name, sizes }) => (

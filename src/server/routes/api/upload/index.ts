@@ -37,6 +37,7 @@ export type ApiUploadResponse = {
   files: {
     id: string;
     name: string;
+    originalName?: string;
     type: string;
     url: string;
     size?: number;
@@ -77,6 +78,7 @@ export default typedPlugin(
                   z.object({
                     id: z.string(),
                     name: z.string(),
+                    originalName: z.string().optional(),
                     type: z.string(),
                     url: z.string(),
                     size: z.number().optional(),
@@ -100,6 +102,8 @@ export default typedPlugin(
         },
       },
       async (req, res) => {
+        if (req.headers['x-zipline-filename'] !== undefined || req.headers['x-zipline-domain'] !== undefined)
+          throw new ApiError(1001, 'Upload filename and domain overrides are disabled.');
         const options = parseHeaders(req.headers, config.files);
 
         if (options.partial) throw new ApiError(1001, 'bad options, receieved: partial upload');
@@ -264,6 +268,8 @@ export default typedPlugin(
           if (options.maxViews) data.maxViews = options.maxViews;
           if (options.discordPreviewMode) data.discordPreviewMode = options.discordPreviewMode;
           if (options.discordComponentEmbed) data.discordComponentEmbed = options.discordComponentEmbed;
+          if (password && mimetype.startsWith('image/'))
+            throw new ApiError(1001, 'Image uploads cannot be password-protected.');
           if (password) data.password = password;
           if (folder) data.folderId = folder.id;
           if (originalName) data.originalName = originalName;
@@ -344,6 +350,7 @@ export default typedPlugin(
           const responseFile = {
             id: fileUpload.id,
             name: fileUpload.name,
+            originalName: fileUpload.originalName ?? undefined,
             type: fileUpload.type,
             url: responseUrl,
             size: fileUpload.size,

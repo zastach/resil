@@ -5,7 +5,7 @@ import { bytes } from '@/lib/bytes';
 import { uploadFiles } from '@/lib/client/upload/files';
 import { createTextFiles } from '@/lib/client/upload/text';
 import useMultiTextFiles from '@/lib/client/upload/useMultiTextFiles';
-import { useUploadOptionsStore } from '@/lib/client/store/uploadOptions';
+import { defaultUploadOptions, defaultEphemeralOptions } from '@/lib/client/store/uploadOptions';
 import {
   ActionIcon,
   Box,
@@ -26,16 +26,11 @@ import { IconFiles, IconPlus, IconTrashFilled, IconUpload } from '@tabler/icons-
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { useShallow } from 'zustand/shallow';
-import UploadOptionsButton from '../UploadOptionsButton';
 import styles from './index.module.css';
 
 export default function UploadText({ initialText }: { initialText?: string }) {
   const { t } = useTranslation('upload');
   const clipboard = useClipboard();
-  const [options, ephemeral, clearEphemeral] = useUploadOptionsStore(
-    useShallow((state) => [state.options, state.ephemeral, state.clearEphemeral]),
-  );
 
   const [loading, setLoading] = useState(false);
   const [files, selected, { setFile, addFile, removeFile }] = useMultiTextFiles(initialText);
@@ -86,9 +81,9 @@ export default function UploadText({ initialText }: { initialText?: string }) {
       setFiles: () => {},
       setLoading,
       setProgress: () => {},
-      clearEphemeral,
-      options,
-      ephemeral,
+      clearEphemeral: () => {},
+      options: defaultUploadOptions,
+      ephemeral: defaultEphemeralOptions,
     });
   };
 
@@ -221,7 +216,6 @@ export default function UploadText({ initialText }: { initialText?: string }) {
       </Tabs>
 
       <Group justify='flex-end' gap='xs'>
-        <UploadOptionsButton numFiles={files.length} />
         <Button
           variant='outline'
           leftSection={<IconUpload size='1rem' />}

@@ -32,7 +32,7 @@ export async function uploadFileBatch(
   let uploadedPartial: Awaited<ReturnType<typeof uploadPartialFiles>> = null;
 
   if (normalUploads.length > 0) {
-    const size = normalUploads.reduce((acc, file) => acc + file.size, 0);
+    const size = normalUploads.reduce((largest, file) => Math.max(largest, file.size), 0);
     if (size > bytes(config.files.maxFileSize)) {
       notifications.show({
         title: i18n.t('upload:file.notifications.mayFail.title'),

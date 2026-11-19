@@ -374,7 +374,7 @@ export default function Layout() {
               <ScrollArea mah='auto'>
                 <Box>
                   <NavLink
-                    label='Rust Image Optimizer'
+                    label='Upload for a Rust Sign'
                     component={Link}
                     to='/dashboard/image-optimizer'
                     leftSection={<IconExternalLink size='1rem' />}

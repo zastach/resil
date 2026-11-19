@@ -1,3 +1,4 @@
+import { RESIL_MAX_FILE_BYTES } from '@/lib/resil-upload-limits';
 import type { File } from '@/lib/db/models/file';
 import { Button, Card } from '@mantine/core';
 import { copyRustImage } from '@/lib/client/copyRustImage';
@@ -32,23 +33,20 @@ export default function DashboardFile({
       <FileContextMenu file={file} reduce={reduce} user={id} onView={handleView}>
         <Card shadow='md' radius='md' p={0} onClick={handleView} className={styles.file}>
           <DashboardFileType key={file.id} file={file} />
-          {file.type.startsWith('image/') && (
-            <Button
-              fullWidth
-              size='xs'
-              disabled={file.size > 1000000 || !['image/png', 'image/jpeg'].includes(file.type)}
-              onClick={(event) => {
-                event.stopPropagation();
-                copyRustImage(file.name, clipboard);
-              }}
-            >
-              {file.size > 1000000
-                ? 'Optimization required'
-                : !['image/png', 'image/jpeg'].includes(file.type)
-                  ? 'Format not verified'
-                  : 'Copy /sil'}
-            </Button>
-          )}
+          {!file.password &&
+            file.size <= RESIL_MAX_FILE_BYTES &&
+            ['image/png', 'image/jpeg'].includes(file.type) && (
+              <Button
+                fullWidth
+                size='xs'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  copyRustImage(file.name, clipboard);
+                }}
+              >
+                Copy /sil
+              </Button>
+            )}
         </Card>
       </FileContextMenu>
     </>

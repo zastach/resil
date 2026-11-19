@@ -36,7 +36,7 @@ function DashboardUploadCapture({ children }: { children: React.ReactNode }) {
       if (isUploadPage || files.length === 0 || behavior === 'disabled') return;
 
       setFiles((prev) => [...files, ...prev]);
-      if (behavior === 'upload') {
+      if (behavior === 'upload' && files.every((file) => file.type.startsWith('text/'))) {
         upload(files);
       } else {
         showNotification({
@@ -98,10 +98,7 @@ function DashboardUploadCapture({ children }: { children: React.ReactNode }) {
           <Stack align='center' gap='sm' style={{ pointerEvents: 'none' }}>
             <IconUpload size='3.2rem' stroke={1.5} />
             <Text size='xl' fw={500}>
-              {t(dropBehavior === 'upload' ? 'global.dropUpload' : 'global.dropReview')}
-            </Text>
-            <Text size='sm' c='dimmed'>
-              {t('global.savedOptions')}
+              {t('global.dropReview')}
             </Text>
           </Stack>
         </Dropzone.FullScreen>

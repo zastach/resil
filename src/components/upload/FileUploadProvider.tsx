@@ -1,5 +1,5 @@
 import { useConfig } from '@/components/ConfigProvider';
-import { useUploadOptionsStore } from '@/lib/client/store/uploadOptions';
+import { defaultEphemeralOptions, defaultUploadOptions } from '@/lib/client/store/uploadOptions';
 import { uploadFileBatch } from '@/lib/client/upload/files';
 import { initialState, useProgress, type UploadProgress } from '@/lib/client/upload/useProgress';
 import { useClipboard } from '@mantine/hooks';
@@ -43,23 +43,19 @@ export default function FileUploadProvider({
     (batch: File[]) => {
       if (batch.length === 0) return Promise.resolve();
 
-      const { options, ephemeral } = useUploadOptionsStore.getState();
       setPendingUploads((count) => count + 1);
 
       const next = queue.current.then(async () => {
         try {
           await uploadFileBatch(batch, {
             config,
-            options,
-            ephemeral,
+            options: { ...defaultUploadOptions, addOriginalName: true },
+            ephemeral: defaultEphemeralOptions,
             folder,
             clipboard,
             setFiles,
             setProgress,
-            clearEphemeral: () => {
-              const state = useUploadOptionsStore.getState();
-              if (state.ephemeral === ephemeral) state.clearEphemeral();
-            },
+            clearEphemeral: () => {},
           });
         } catch (error) {
           showNotification({
