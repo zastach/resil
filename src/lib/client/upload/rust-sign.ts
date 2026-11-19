@@ -27,7 +27,7 @@ export async function makeSignCopy(file: File, [name, width, height]: SignPreset
     context.fillStyle = '#fff';
     context.fillRect(0, 0, width, height);
     context.imageSmoothingQuality = 'high';
-    const scale = Math.max(width / image.width, height / image.height);
+    const scale = Math.min(width / image.width, height / image.height);
     const drawWidth = image.width * scale;
     const drawHeight = image.height * scale;
     context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);

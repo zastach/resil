@@ -157,7 +157,8 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 searchable
               />
               <Text size='sm' c='dimmed'>
-                Resil saves the original and a separate JPEG cropped to fit the selected sign.{' '}
+                Resil saves the original and a sign-sized JPEG that fits the whole image. White margins fill
+                any extra space.{' '}
                 <Anchor component={Link} to='/auth/image-guide' target='_blank' rel='noopener noreferrer'>
                   View sign dimensions
                 </Anchor>
