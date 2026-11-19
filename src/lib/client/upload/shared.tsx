@@ -138,7 +138,7 @@ export function showUploadModal(
 
   const pendingCount = files.filter((file) => file.pending).length;
 
-  modals.open({
+  const modalId = modals.open({
     title: i18n.t('upload:modal.title', { count: files.length }),
     size: 'auto',
     children: (
@@ -222,6 +222,24 @@ export function showUploadModal(
             </Tooltip>
           </Group>
         )}
+        <Group mt='md' gap='sm' grow>
+          <Button
+            component={Link}
+            to='/dashboard/upload/file'
+            variant='light'
+            onClick={() => modals.close(modalId)}
+          >
+            Upload another
+          </Button>
+          <Button
+            component={Link}
+            to='/dashboard/files'
+            variant='outline'
+            onClick={() => modals.close(modalId)}
+          >
+            View My Images
+          </Button>
+        </Group>
       </>
     ),
   });
