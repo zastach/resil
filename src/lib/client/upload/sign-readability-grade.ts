@@ -26,7 +26,7 @@ export function gradeSignReadability(source: Recognition, output: Recognition, w
 
   const confidence = Math.max(0, Math.min(100, output.confidence || 0));
   const estimate = expectedCount ? 70 * (matched / expectedCount) + 0.3 * confidence : confidence;
-  const sizeCeiling = wordHeight < 5 ? 51 : wordHeight < 8 ? 72 : wordHeight < 11 ? 89 : 100;
+  const sizeCeiling = wordHeight < 7 ? 51 : wordHeight < 9 ? 72 : wordHeight < 11 ? 89 : 100;
   const score = Math.min(Math.round(estimate), sizeCeiling);
   let grade = 'VERY LOW';
   if (score >= 90) grade = 'VERY GOOD';
