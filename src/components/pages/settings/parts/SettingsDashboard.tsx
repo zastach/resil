@@ -1,7 +1,7 @@
 import DomainSelect from '@/components/DomainSelect';
 import SafeTrans from '@/components/SafeTrans';
 import { useSettingsStore, type UploadBehavior } from '@/lib/client/store/settings';
-import { Divider, Group, Paper, Select, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core';
+import { Divider, Paper, Select, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/shallow';
 

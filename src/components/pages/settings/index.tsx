@@ -1,4 +1,4 @@
-import useLogin from '@/lib/client/hooks/useLogin';
+import useUser from '@/lib/client/hooks/useUser';
 import { isAdministrator } from '@/lib/role';
 import { useConfig } from '@/components/ConfigProvider';
 import { eitherTrue } from '@/lib/primitive';
@@ -29,7 +29,7 @@ const DASHBOARD_SETTINGS_TABS = [
 
 export default function DashboardSettings() {
   const config = useConfig();
-  const { user } = useLogin();
+  const { user } = useUser();
   const { t } = useTranslation('settings');
 
   const [currTab, setCurrTab] = useQueryState(
@@ -98,7 +98,7 @@ export default function DashboardSettings() {
 
             <Tabs.Panel value='tools'>
               <Stack gap='md'>
-                {isAdministrator(user?.role) && <SettingsGenerators />}
+                {user && isAdministrator(user.role) && <SettingsGenerators />}
                 <SettingsExports />
               </Stack>
             </Tabs.Panel>
