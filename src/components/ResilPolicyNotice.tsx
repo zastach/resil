@@ -1,7 +1,8 @@
+import Markdown from '@/components/render/Markdown';
+import { resilPrivacy, resilTerms } from '@/lib/resil-policy-copy';
 import { RESIL_POLICY_ACCEPTANCE_PATH, RESIL_POLICY_VERSION } from '@/lib/resil-policy';
-import { Alert, Anchor, Button, Checkbox, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Button, Checkbox, Modal, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 
 export default function ResilPolicyNotice({
   logout,
@@ -10,6 +11,9 @@ export default function ResilPolicyNotice({
   logout: () => Promise<void>;
   refreshUser: () => Promise<unknown>;
 }) {
+  const [policy, setPolicy] = useState<'terms' | 'privacy' | null>(null);
+  const policyTitle = policy === 'terms' ? 'Terms of Service' : 'Privacy Policy';
+  const policyText = policy === 'terms' ? resilTerms : resilPrivacy;
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -34,14 +38,17 @@ export default function ResilPolicyNotice({
 
   return (
     <Alert title='Review the RE /sil policies' mb='md'>
+      <Modal opened={policy !== null} onClose={() => setPolicy(null)} title={policyTitle} size='lg' centered>
+        <Markdown md={policyText.replace(/^# .+\n\n/, '')} />
+      </Modal>
       <Stack align='flex-start' gap='sm'>
         <Text size='sm'>
           Read the{' '}
-          <Anchor component={Link} to='/auth/terms'>
+          <Anchor component='button' type='button' onClick={() => setPolicy('terms')}>
             Terms of Service
           </Anchor>{' '}
           and{' '}
-          <Anchor component={Link} to='/auth/privacy'>
+          <Anchor component='button' type='button' onClick={() => setPolicy('privacy')}>
             Privacy Policy
           </Anchor>
           .

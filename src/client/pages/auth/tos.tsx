@@ -4,7 +4,7 @@ import { useTitle } from '@/lib/client/hooks/useTitle';
 import { Container, LoadingOverlay } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { resilTerms } from './resil-info';
+import { resilTerms } from '@/lib/resil-policy-copy';
 import GenericError from '../../error/GenericError';
 
 export function Component() {

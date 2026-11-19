@@ -68,12 +68,6 @@ function Form({ data, isLoading }: { data: Response['/api/server/settings']; isL
         />
 
         <Switch
-          label='/robots.txt'
-          description={t('features.robotsTxt.description')}
-          {...form.getInputProps('featuresRobotsTxt', { type: 'checkbox' })}
-        />
-
-        <Switch
           label={t('features.healthcheck.label')}
           description={t('features.healthcheck.description')}
           {...form.getInputProps('featuresHealthcheck', { type: 'checkbox' })}
