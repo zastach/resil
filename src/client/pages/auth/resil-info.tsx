@@ -6,6 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const contact = `# Contact Us
 
+- Contact us on Discord in [❓❓ staff-help-and-questions](https://discord.com/channels/382423281900191746/471822254670610433)
 - [support@resil.me](mailto:support@resil.me) for account and upload help
 - [privacy@resil.me](mailto:privacy@resil.me) for privacy and data requests
 - [legal@resil.me](mailto:legal@resil.me) for legal inquiries
