@@ -60,28 +60,31 @@ export default function SignReadability({ original, copy }: { original: File; co
 
   return (
     <Stack gap='xs' align='flex-start' mt='sm'>
+      <Text size='sm' fw={600}>
+        Readability check
+      </Text>
       <Group gap='xs'>
         <Button
           size='compact-sm'
           variant='light'
           disabled={busy}
           onClick={() => {
-            setSelecting(!selecting);
             setSelection(undefined);
+            void check();
           }}
         >
-          {selecting ? 'Close text selection' : 'Select text to check'}
+          Check entire sign
         </Button>
         <Button
           size='compact-sm'
           variant='subtle'
           disabled={busy}
           onClick={() => {
+            setSelecting(!selecting);
             setSelection(undefined);
-            void check();
           }}
         >
-          Check whole sign
+          {selecting ? 'Close area selection' : 'Select an area'}
         </Button>
       </Group>
       {selecting && (
