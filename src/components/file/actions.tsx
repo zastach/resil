@@ -21,6 +21,13 @@ import {
 } from '@tabler/icons-react';
 import { mutate } from 'swr';
 
+export function editSignLink(file: Pick<File, 'name' | 'originalName' | 'folderId'>) {
+  return {
+    to: '/dashboard/upload/file?purpose=sign',
+    state: { signSource: { name: file.name, originalName: file.originalName, folderId: file.folderId } },
+  };
+}
+
 export function viewFile(file: File) {
   window.open(formatRootUrl('/view', file.name), '_blank');
 }

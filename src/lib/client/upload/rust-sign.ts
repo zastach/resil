@@ -93,6 +93,7 @@ export async function makeSignCopy(
 ) {
   const image = await decodeImage(file);
   const canvas = document.createElement('canvas');
+  let clipped: boolean;
   try {
     canvas.width = width;
     canvas.height = height;
@@ -109,13 +110,10 @@ export async function makeSignCopy(
     const scale = (Math.min(width / image.width, height / image.height) * adjustments.zoom) / 100;
     const drawWidth = image.width * scale;
     const drawHeight = image.height * scale;
-    context.drawImage(
-      image,
-      (width - drawWidth) / 2 + (width * adjustments.x) / 100,
-      (height - drawHeight) / 2 + (height * adjustments.y) / 100,
-      drawWidth,
-      drawHeight,
-    );
+    const x = (width - drawWidth) / 2 + (width * adjustments.x) / 100;
+    const y = (height - drawHeight) / 2 + (height * adjustments.y) / 100;
+    clipped = x < -0.5 || y < -0.5 || x + drawWidth > width + 0.5 || y + drawHeight > height + 0.5;
+    context.drawImage(image, x, y, drawWidth, drawHeight);
     if (adjustments.sharpness > 0) sharpenSign(context, width, height, adjustments.sharpness);
   } finally {
     image.close();
@@ -127,6 +125,6 @@ export async function makeSignCopy(
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/-$/, '');
   const blob = await encodeJpeg(canvas, limit);
-  if (blob) return new File([blob], `${stem}-${suffix}.jpeg`, { type: blob.type });
+  if (blob) return { file: new File([blob], `${stem}-${suffix}.jpeg`, { type: blob.type }), clipped };
   throw new Error(`The sign copy of "${file.name}" exceeds the upload limit.`);
 }

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import FolderComboboxOptions from '@/components/folders/FolderComboboxOptions';
 import { useFolders } from '@/lib/client/hooks/useFolders';
 import { useSettingsStore } from '@/lib/client/store/settings';
@@ -28,6 +29,7 @@ import {
   createFolderAndAdd,
   deleteFile,
   downloadFile,
+  editSignLink,
   favoriteFile,
   removeFromFolder,
   viewFile,
@@ -201,6 +203,12 @@ export default function FileContextMenu({
           <Menu.Item leftSection={<IconExternalLink size='1rem' />} onClick={stop(run(() => viewFile(file)))}>
             {t('contextMenu.openInNewTab')}
           </Menu.Item>
+
+          {!reduce && !file.password && file.type.startsWith('image/') && (
+            <Menu.Item component={Link} {...editSignLink(file)} leftSection={<IconPencil size='1rem' />}>
+              Edit for a Rust sign
+            </Menu.Item>
+          )}
 
           <Menu.Divider />
 

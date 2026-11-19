@@ -52,6 +52,7 @@
     "@simplewebauthn/server": "^14.1.0",
     "@smithy/node-http-handler": "^4.14.2",
     "@tabler/icons-react": "^3.50.0",
+    "@tesseract.js-data/eng": "^1.0.0",
     "archiver": "8.0.0",
     "argon2": "^0.45.2",
     "asciinema-player": "^3.18.0",
@@ -86,6 +87,8 @@
     "sharp": "^0.35.5",
     "shiki": "^4.6.0",
     "swr": "^2.5.1",
+    "tesseract.js": "^7.0.0",
+    "tesseract.js-core": "^7.0.0",
     "vite": "^8.3.6",
     "zod": "^4.6.7",
     "zustand": "^5.1.0"

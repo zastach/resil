@@ -1,3 +1,8 @@
+import { formatRootUrl } from '@/lib/url';
+import { useFolders } from '@/lib/client/hooks/useFolders';
+import type { Folder } from '@/lib/db/models/folder';
+import { fetchApi } from '@/lib/fetchApi';
+import { buildFolderHierarchy } from '@/lib/folderHierarchy';
 import { useDebouncedValue } from '@mantine/hooks';
 import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import { useConfig } from '@/components/ConfigProvider';
@@ -29,6 +34,7 @@ import {
   Text,
   Title,
   Tooltip,
+  TextInput,
   rem,
   useMantineTheme,
 } from '@mantine/core';
@@ -38,7 +44,7 @@ import { showNotification } from '@mantine/notifications';
 import { IconFiles, IconTrashFilled, IconUpload, IconX } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   defaultSignAdjustments,
   fitImageToUploadLimit,
@@ -48,6 +54,8 @@ import {
   signOptions,
 } from '@/lib/client/upload/rust-sign';
 import DropzoneFile from './DropzoneFile';
+import SignReadability from './SignReadability';
+type SignCopy = Awaited<ReturnType<typeof makeSignCopy>>;
 
 const initialVisible = 24;
 
@@ -160,6 +168,26 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const colorScheme = useColorScheme();
   const config = useConfig();
   const { files, setFiles, progress, loading, upload } = useFileUpload();
+  const { data: folders, error: foldersError, mutate: refreshFolders } = useFolders(undefined, !folder);
+  const location = useLocation();
+  const edit = (
+    location.state as {
+      signSource?: { name: string; originalName?: string | null; folderId?: string | null };
+    } | null
+  )?.signSource;
+  const [editSource, setEditSource] = useState<File>();
+  const [destination, setDestination] = useState(edit?.folderId ?? 'root');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [savingFolder, setSavingFolder] = useState(false);
+  const [folderName, setFolderName] = useState('');
+  const [folderError, setFolderError] = useState('');
+  const folderOptions = buildFolderHierarchy(folders ?? []).map(({ id, path }) => ({
+    value: id,
+    label: path,
+  }));
+  const destinationId = folder ?? (destination === 'root' ? undefined : destination);
+  const destinationLabel =
+    folderOptions.find((option) => option.value === destination)?.label ?? 'My Images (no folder)';
   const [searchParams] = useSearchParams();
   const [purpose, setPurpose] = useState<string | null>(
     searchParams.get('purpose') === 'sign' ? 'sign' : null,
@@ -170,14 +198,14 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const [preview, setPreview] = useState<{
     preset: NonNullable<ReturnType<typeof getSignPreset>>;
     limit: number;
-    pairs: { original: File; saved: File; copy: File }[];
+    pairs: { original: File; saved: File | null; copy: SignCopy }[];
   } | null>(null);
   const [adjustments, setAdjustments] = useState(defaultSignAdjustments);
   const [debouncedAdjustments] = useDebouncedValue(adjustments, 150);
   const [adjusted, setAdjusted] = useState<{
     preview: NonNullable<typeof preview>;
     adjustments: typeof defaultSignAdjustments;
-    copies?: File[];
+    copies?: SignCopy[];
     error?: string;
   } | null>(null);
   const [actualSize, setActualSize] = useState(false);
@@ -194,6 +222,29 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const hiddenFiles = Math.max(0, files.length - visibleFiles.length);
 
   const aggSize = files.reduce((acc, file) => acc + file.size, 0);
+
+  useEffect(() => {
+    if (!edit) return;
+    const controller = new AbortController();
+    async function loadSource() {
+      if (!edit) return;
+      try {
+        const response = await fetch(formatRootUrl('/raw', edit.name), { signal: controller.signal });
+        if (!response.ok) throw new Error('Could not open the saved image.');
+        const blob = await response.blob();
+        if (controller.signal.aborted) return;
+        if (!blob.type.startsWith('image/')) throw new Error('The saved file is no longer an image.');
+        const file = new File([blob], edit.originalName || edit.name, { type: blob.type });
+        setEditSource(file);
+        setFiles((previous) => [file, ...previous]);
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setError(error instanceof Error ? error.message : 'Could not open the saved image.');
+      }
+    }
+    void loadSource();
+    return () => controller.abort();
+  }, [edit, setFiles]);
 
   useEffect(() => {
     if (busy || preview) return;
@@ -222,7 +273,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     async function render() {
       if (!preview) return;
       try {
-        const copies: File[] = [];
+        const copies: SignCopy[] = [];
         for (const { original } of preview.pairs) {
           if (!active) return;
           copies.push(await makeSignCopy(original, preview.preset, preview.limit, debouncedAdjustments));
@@ -245,6 +296,29 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
 
   if (!config) return null;
 
+  async function createFolder(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = folderName.trim();
+    if (!name || savingFolder) return;
+    setSavingFolder(true);
+    setFolderError('');
+    try {
+      const { data, error } = await fetchApi<Folder>('/api/user/folders', 'POST', { name, isPublic: false });
+      if (error || !data) throw new Error(error?.error ?? 'Could not create the folder.');
+      await refreshFolders(
+        (current) => [...(current ?? []).filter((folder) => folder.id !== data.id), data],
+        { revalidate: false },
+      );
+      setDestination(data.id);
+      setCreatingFolder(false);
+      setFolderName('');
+    } catch (error) {
+      setFolderError(error instanceof Error ? error.message : 'Could not create the folder.');
+    } finally {
+      setSavingFolder(false);
+    }
+  }
+
   async function uploadSelection() {
     if (!purpose || busy || !files.length || (purpose === 'sign' && !preset)) return;
     setPreparing(true);
@@ -255,7 +329,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         const pairs: NonNullable<typeof preview>['pairs'] = [];
         for (const original of files) {
           const copy = await makeSignCopy(original, preset, limit);
-          const saved = await fitImageToUploadLimit(original, limit);
+          const saved = original === editSource ? null : await fitImageToUploadLimit(original, limit);
           pairs.push({ original, saved, copy });
         }
         setAdjustments(defaultSignAdjustments);
@@ -273,7 +347,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         if (replacements.size) {
           showNotification({ message: 'Large images were compressed to fit the upload limit.' });
         }
-        await upload(batch, replacements);
+        await upload(batch, replacements, destinationId);
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
@@ -293,10 +367,18 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
       >
         {preview && (
           <Stack>
+            {preview.pairs.some(({ saved }) => !saved) && (
+              <Text size='sm'>The saved source stays in My Images. This creates a new sign copy.</Text>
+            )}
             <Text size='sm'>
               {preview.preset[0]} · {preview.preset[1]} × {preview.preset[2]} pixels. Changes apply to all
               sign copies.
             </Text>
+            {!folder && (
+              <Text size='sm'>
+                Save to <strong>{destinationLabel}</strong>
+              </Text>
+            )}
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing='lg'>
               {(
                 [
@@ -362,18 +444,38 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 {currentAdjustment.error}
               </Alert>
             )}
+            {!adjusting &&
+              preview.pairs.some(
+                ({ copy }, index) => (currentAdjustment?.copies?.[index] ?? copy).clipped,
+              ) && (
+                <Alert color='yellow' title='Part of the image is outside the sign'>
+                  <Button
+                    size='compact-sm'
+                    variant='light'
+                    onClick={() => setAdjustments((previous) => ({ ...previous, zoom: 100, x: 0, y: 0 }))}
+                  >
+                    Fit whole image
+                  </Button>
+                </Alert>
+              )}
             {preview.pairs.map(({ original, saved, copy }, index) => (
               <Paper key={index} withBorder p='sm'>
                 <SimpleGrid cols={{ base: 1, sm: 2 }}>
                   <PreviewImage file={original} label='Original' />
                   <PreviewImage
-                    file={currentAdjustment?.copies?.[index] ?? copy}
+                    file={(currentAdjustment?.copies?.[index] ?? copy).file}
                     label='Sign copy'
                     magnify
                     actualSize={actualSize}
                   />
                 </SimpleGrid>
-                {saved !== original && (
+                {!adjusting && !currentAdjustment?.error && (
+                  <SignReadability
+                    original={original}
+                    copy={(currentAdjustment?.copies?.[index] ?? copy).file}
+                  />
+                )}
+                {saved && saved !== original && (
                   <Text size='sm' mt='xs' c='dimmed'>
                     The source image is over the upload limit. Resil will save a compressed source copy and
                     the sign copy.
@@ -389,16 +491,19 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 loading={adjusting}
                 disabled={adjusting || !!currentAdjustment?.error}
                 onClick={() => {
-                  const replacements = new Map(preview.pairs.map(({ original, saved }) => [original, saved]));
-                  const batch = preview.pairs.flatMap(({ saved, copy }, index) => [
-                    saved,
-                    currentAdjustment?.copies?.[index] ?? copy,
-                  ]);
+                  const replacements = new Map<File, File>();
+                  const batch = preview.pairs.flatMap(({ original, saved, copy }, index) => {
+                    const signFile = (currentAdjustment?.copies?.[index] ?? copy).file;
+                    replacements.set(original, saved ?? signFile);
+                    return saved ? [saved, signFile] : [signFile];
+                  });
                   setPreview(null);
-                  void upload(batch, replacements);
+                  void upload(batch, replacements, destinationId);
                 }}
               >
-                Upload originals and sign copies
+                {preview.pairs.every(({ saved }) => !saved)
+                  ? 'Save new sign copy'
+                  : 'Upload images and sign copies'}
               </Button>
             </Group>
           </Stack>
@@ -459,6 +564,61 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                   View sign dimensions
                 </Anchor>
               </Text>
+            </>
+          )}
+          {!folder && (
+            <>
+              <Group align='flex-end' gap='sm'>
+                <Select
+                  label='Save to folder'
+                  data={[{ value: 'root', label: 'My Images (no folder)' }, ...folderOptions]}
+                  value={destination}
+                  onChange={(value) => setDestination(value ?? 'root')}
+                  allowDeselect={false}
+                  searchable
+                  disabled={busy || creatingFolder}
+                  style={{ flex: '1 1 14rem' }}
+                />
+                {!creatingFolder && (
+                  <Button variant='light' disabled={busy} onClick={() => setCreatingFolder(true)}>
+                    New folder
+                  </Button>
+                )}
+              </Group>
+              {foldersError && (
+                <Text size='sm' c='red'>
+                  Could not load your folders.
+                </Text>
+              )}
+              {creatingFolder && (
+                <form onSubmit={createFolder}>
+                  <Group align='flex-end' gap='sm'>
+                    <TextInput
+                      label='New folder name'
+                      value={folderName}
+                      onChange={(event) => setFolderName(event.currentTarget.value)}
+                      error={folderError || undefined}
+                      disabled={savingFolder}
+                      required
+                      style={{ flex: '1 1 14rem' }}
+                    />
+                    <Button type='submit' loading={savingFolder} disabled={!folderName.trim()}>
+                      Create and select
+                    </Button>
+                    <Button
+                      variant='subtle'
+                      disabled={savingFolder}
+                      onClick={() => {
+                        setCreatingFolder(false);
+                        setFolderName('');
+                        setFolderError('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </Group>
+                </form>
+              )}
             </>
           )}
           {error && (
@@ -608,7 +768,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         <Button
           variant='outline'
           leftSection={<IconUpload size='1rem' />}
-          disabled={files.length === 0 || !purpose || (purpose === 'sign' && !preset)}
+          disabled={files.length === 0 || !purpose || creatingFolder || (purpose === 'sign' && !preset)}
           loading={busy}
           onClick={() => void uploadSelection()}
         >

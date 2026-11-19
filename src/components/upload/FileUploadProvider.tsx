@@ -12,7 +12,7 @@ type FileUploadContextType = {
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   progress: UploadProgress;
   loading: boolean;
-  upload: (files: File[], replacements?: ReadonlyMap<File, File>) => Promise<void>;
+  upload: (files: File[], replacements?: ReadonlyMap<File, File>, destination?: string) => Promise<void>;
 };
 
 const FileUploadContext = createContext<FileUploadContextType | null>(null);
@@ -40,7 +40,7 @@ export default function FileUploadProvider({
   const queue = useRef(Promise.resolve());
 
   const upload = useCallback(
-    (batch: File[], replacements?: ReadonlyMap<File, File>) => {
+    (batch: File[], replacements?: ReadonlyMap<File, File>, destination?: string) => {
       if (batch.length === 0) return Promise.resolve();
 
       setPendingUploads((count) => count + 1);
@@ -51,7 +51,7 @@ export default function FileUploadProvider({
             config,
             options: { ...defaultUploadOptions, addOriginalName: true },
             ephemeral: defaultEphemeralOptions,
-            folder,
+            folder: folder ?? destination,
             clipboard,
             setFiles: replacements
               ? (update) =>
