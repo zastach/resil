@@ -1,5 +1,7 @@
 import type { File } from '@/lib/db/models/file';
-import { Card } from '@mantine/core';
+import { Button, Card } from '@mantine/core';
+import { copyRustImage } from '@/lib/client/copyRustImage';
+import { useClipboard } from '@mantine/hooks';
 import { useState } from 'react';
 import DashboardFileType from '../DashboardFileType';
 import FileContextMenu from '../FileContextMenu';
@@ -18,6 +20,7 @@ export default function DashboardFile({
   id?: string;
   onOpen?: (fileId: string) => void;
 }) {
+  const clipboard = useClipboard();
   const [open, setOpen] = useState(false);
 
   const handleView = () => (onOpen ? onOpen(file.id) : setOpen(true));
@@ -29,6 +32,7 @@ export default function DashboardFile({
       <FileContextMenu file={file} reduce={reduce} user={id} onView={handleView}>
         <Card shadow='md' radius='md' p={0} onClick={handleView} className={styles.file}>
           <DashboardFileType key={file.id} file={file} />
+          {file.type.startsWith('image/') && <Button fullWidth size='xs' disabled={file.size > 1000000 || !['image/png','image/jpeg'].includes(file.type)} onClick={(event) => { event.stopPropagation(); copyRustImage(file.name, clipboard); }}>{file.size > 1000000 ? 'Optimization required' : 'Copy /sil'}</Button>}
         </Card>
       </FileContextMenu>
     </>

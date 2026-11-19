@@ -95,7 +95,7 @@ export default function ThemeProvider({
         @media(max-width: 960px) { body::before { left: 0; } }
         h1,h2,h3,.mantine-Modal-title { font-family: Sora, Archivo, Arial, sans-serif; text-transform: uppercase; }
         .mantine-Button-root { border-radius: 500px; font-weight: 500; }
-        .mantine-Button-root[data-variant='filled']:not([data-disabled]):not(:disabled) { --button-bg: #eb1b0c; --button-hover: #ca190e; --button-color: #fff; }
+        .mantine-Button-root[data-variant='filled']:not(.resil-discord-button):not([data-disabled]):not(:disabled) { --button-bg: #eb1b0c; --button-hover: #ca190e; --button-color: #fff; }
         .mantine-Button-root[data-variant='outline']:not([data-disabled]):not(:disabled) { --button-color: #ff4c4c; --button-bd: 1px solid #eb1b0c; }
         .mantine-AppShell-header,.mantine-AppShell-navbar,.mantine-AppShell-footer { background: #111212; border-color: #3c4040; }
         .mantine-Paper-root,.mantine-Card-root,.mantine-Modal-content,.mantine-Modal-header,.mantine-Menu-dropdown,.mantine-Popover-dropdown { background-color: #1a1b1b; border-color: #3c4040; }

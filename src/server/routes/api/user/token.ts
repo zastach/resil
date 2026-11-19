@@ -6,6 +6,7 @@ import { updateUser, type User, userSchema } from '@/lib/db/models/user';
 import { users } from '@/lib/db/schema';
 import { log } from '@/lib/logger';
 import { secondlyRatelimit } from '@/lib/ratelimits';
+import { administratorMiddleware } from '@/server/middleware/administrator';
 import { userMiddleware } from '@/server/middleware/user';
 import typedPlugin from '@/server/typedPlugin';
 import { eq } from 'drizzle-orm';
@@ -33,7 +34,7 @@ export default typedPlugin(
           },
           tags: ['auth'],
         },
-        preHandler: [userMiddleware],
+        preHandler: [userMiddleware, administratorMiddleware],
       },
       async (req, res) => {
         const [user] = await db
@@ -61,7 +62,7 @@ export default typedPlugin(
     server.patch(
       PATH,
       {
-        preHandler: [userMiddleware],
+        preHandler: [userMiddleware, administratorMiddleware],
         ...secondlyRatelimit(1),
         schema: {
           description:

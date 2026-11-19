@@ -1,5 +1,6 @@
 import { discordRolePolicy } from '@/lib/oauth/discord-roles';
 import { requireDiscordRole } from './discord-roles';
+import { isAdministrator } from '@/lib/role';
 import { config } from '@/lib/config';
 import { decryptToken } from '@/lib/crypto';
 import { db } from '@/lib/db';
@@ -73,6 +74,7 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
       user = await getUserByToken(token);
     }
     if (!user) throw new ApiError(2001);
+    if (!isAdministrator(user.role)) throw new ApiError(3000);
 
     await requireDiscordRole(user);
     req.user = user as User;

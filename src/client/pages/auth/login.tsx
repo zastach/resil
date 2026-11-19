@@ -227,7 +227,7 @@ export default function Login() {
           <Stack>
             {config.oauthEnabled.discord && (
               <>
-                <Button component='a' href='/api/auth/oauth/discord' color='#5865F2' variant='filled' fullWidth leftSection={<IconBrandDiscordFilled size='1.2rem' />}>
+                <Button component='a' href='/api/auth/oauth/discord' className='resil-discord-button' color='#5865F2' variant='filled' fullWidth leftSection={<IconBrandDiscordFilled size='1.2rem' />}>
                   Continue with Discord
                 </Button>
                 <Text ta='center' size='xs' c='dimmed'>Requires an eligible Rust Empires <Anchor href='https://rustempires.com/index.php/donate/' target='_blank' rel='noopener noreferrer'>donator role</Anchor>.</Text>

@@ -353,6 +353,7 @@ export default function Layout() {
                         : user?.username}
                     </Menu.Label>
 
+                    {isAdministrator(user?.role) && <>
                     <Menu.Item leftSection={<IconClipboardCopy size='1rem' />} onClick={copyToken}>
                       {t('userMenu.copyToken')}
                     </Menu.Item>
@@ -364,6 +365,7 @@ export default function Layout() {
                       {t('userMenu.refreshToken')}
                     </Menu.Item>
                     <Menu.Divider />
+                    </>}
 
                     <Menu.Item
                       leftSection={<IconSettingsFilled size='1rem' />}

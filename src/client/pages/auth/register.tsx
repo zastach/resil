@@ -1,3 +1,4 @@
+import ResilBrand from '@/components/ResilBrand';
 import LanguageSelect from '@/components/LanguageSelect';
 import { Response } from '@/lib/api/response';
 import { fetchApi } from '@/lib/fetchApi';
@@ -16,7 +17,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications, showNotification } from '@mantine/notifications';
@@ -195,18 +195,7 @@ export function Component() {
           backdropFilter: config.website.loginBackgroundBlur ? 'blur(35px)' : undefined,
         }}
       >
-        <div style={{ width: '100%', overflowWrap: 'break-word' }}>
-          <Title
-            order={1}
-            ta='center'
-            style={{
-              whiteSpace: 'normal',
-              fontSize: `clamp(20px, ${Math.max(50 - (config.website.title?.length ?? 0) / 2, 20)}px, 50px)`,
-            }}
-          >
-            <b>{config.website.title ?? 'Zipline'}</b>
-          </Title>
-        </div>
+        <ResilBrand large />
 
         {invite && (
           <Text ta='center' size='sm' c='dimmed'>
@@ -214,14 +203,14 @@ export function Component() {
               <SafeTrans
                 t={t}
                 i18nKey='register.invitedBy'
-                values={{ title: config?.website?.title ?? 'Zipline', inviter: invite.inviter.username }}
+                values={{ title: 'RE /sil', inviter: invite.inviter.username }}
                 components={{ b: <b /> }}
               />
             ) : (
               <SafeTrans
                 t={t}
                 i18nKey='register.invited'
-                values={{ title: config?.website?.title ?? 'Zipline' }}
+                values={{ title: 'RE /sil' }}
                 components={{ b: <b /> }}
               />
             )}
