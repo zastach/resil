@@ -13,9 +13,13 @@ import { users, userSessions } from '@/lib/db/schema';
 import { discordComponentEmbedSchema } from '@/lib/discord';
 import { log } from '@/lib/logger';
 import { secondlyRatelimit } from '@/lib/ratelimits';
-import { RESIL_POLICY_VERSION } from '@/lib/resil-policy';
+import {
+  hasAcceptedResilPolicy,
+  RESIL_POLICY_ACCEPTANCE_PATH,
+  RESIL_POLICY_VERSION,
+} from '@/lib/resil-policy';
 import { zStringTrimmed } from '@/lib/validation';
-import { userMiddleware } from '@/server/middleware/user';
+import { authenticateUser, userMiddleware } from '@/server/middleware/user';
 import { getSession, saveSession } from '@/server/session';
 import typedPlugin from '@/server/typedPlugin';
 import { and, eq, ne } from 'drizzle-orm';
@@ -42,10 +46,33 @@ export default typedPlugin(
           },
           tags: ['auth'],
         },
-        preHandler: [userMiddleware],
+        preHandler: [authenticateUser],
       },
       async (req, res) => {
         return res.send({ user: req.user });
+      },
+    );
+
+    server.post(
+      RESIL_POLICY_ACCEPTANCE_PATH,
+      {
+        schema: {
+          description: 'Accept the current Resil policies.',
+          body: z.strictObject({ version: z.literal(RESIL_POLICY_VERSION) }),
+          response: { 204: z.undefined() },
+          tags: ['auth'],
+        },
+        preHandler: [authenticateUser],
+      },
+      async (req, res) => {
+        if (req.headers.authorization) throw new ApiError(2004);
+        if (!hasAcceptedResilPolicy(req.user)) {
+          const updated = await updateUser(req.user.id, {
+            resilPolicyAcceptance: { version: req.body.version, acceptedAt: new Date().toISOString() },
+          });
+          if (!updated) throw new ApiError(1068);
+        }
+        return res.code(204).send();
       },
     );
 
@@ -61,7 +88,6 @@ export default typedPlugin(
             currentPassword: z.string().optional(),
             avatar: z.string().nullish(),
             quickLinks: userQuickLinksSchema.optional(),
-            acceptResilPolicy: z.literal(RESIL_POLICY_VERSION).optional(),
             view: z
               .object({
                 content: z.string().nullish(),
@@ -133,10 +159,6 @@ export default typedPlugin(
         const embed = !view.discordComponentEmbed?.enabled && !!view.embed;
 
         const data: UserUpdate = {
-          ...(req.body.acceptResilPolicy &&
-            req.user.resilPolicyAcceptance?.version !== RESIL_POLICY_VERSION && {
-              resilPolicyAcceptance: { version: RESIL_POLICY_VERSION, acceptedAt: new Date().toISOString() },
-            }),
           ...(req.body.username && { username: req.body.username }),
           ...(req.body.password && { password: await hashPassword(req.body.password) }),
           ...(req.body.avatar !== undefined && { avatar: req.body.avatar || null }),

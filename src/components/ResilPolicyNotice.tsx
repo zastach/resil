@@ -1,29 +1,29 @@
-import type { User } from '@/lib/db/models/user';
-import { fetchApi } from '@/lib/fetchApi';
-import { RESIL_POLICY_VERSION } from '@/lib/resil-policy';
+import { RESIL_POLICY_ACCEPTANCE_PATH, RESIL_POLICY_VERSION } from '@/lib/resil-policy';
 import { Alert, Anchor, Button, Checkbox, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function ResilPolicyNotice({
-  user,
+  logout,
   refreshUser,
 }: {
-  user: User;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<unknown>;
 }) {
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  if (user.resilPolicyAcceptance?.version === RESIL_POLICY_VERSION) return null;
-
   async function accept() {
     setSaving(true);
     setError('');
     try {
-      const { error } = await fetchApi('/api/user', 'PATCH', { acceptResilPolicy: RESIL_POLICY_VERSION });
-      if (error) throw error;
+      const response = await fetch(RESIL_POLICY_ACCEPTANCE_PATH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: RESIL_POLICY_VERSION }),
+      });
+      if (!response.ok) throw new Error('Policy acceptance failed');
       await refreshUser();
     } catch {
       setError('Your acceptance could not be saved. Try again.');
@@ -57,7 +57,10 @@ export default function ResilPolicyNotice({
           </Text>
         )}
         <Button size='xs' disabled={!checked} loading={saving} onClick={accept}>
-          Confirm
+          Accept and continue
+        </Button>
+        <Button variant='subtle' size='xs' onClick={logout}>
+          Sign out
         </Button>
       </Stack>
     </Alert>

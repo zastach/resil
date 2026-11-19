@@ -1,4 +1,4 @@
-import { discordRolePolicy } from '@/lib/oauth/discord-roles';
+import { hasAcceptedResilPolicy } from '@/lib/resil-policy';
 import { requireDiscordRole } from './discord-roles';
 import { isAdministrator } from '@/lib/role';
 import { config } from '@/lib/config';
@@ -43,20 +43,10 @@ export function parseUserToken(
   return token;
 }
 
-export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
+export async function authenticateUser(req: FastifyRequest, res: FastifyReply) {
   const path = req.url.toLowerCase().split('?')[0];
   const upload = ['/api/upload', '/api/upload/partial'].includes(path);
   const leanUpload = upload && !config.discord?.onUpload && !config.httpWebhook.onUpload;
-
-  const anonFolderUpload =
-    req.headers['x-zipline-folder'] &&
-    upload &&
-    !req.headers.authorization &&
-    !req.cookies['zipline_session'];
-  if (anonFolderUpload) {
-    if (discordRolePolicy()) throw new ApiError(2002);
-    return;
-  }
 
   const authorization = req.headers.authorization;
 
@@ -66,7 +56,7 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
     let user;
     if (leanUpload) {
       user = await db.query.users.findFirst({
-        columns: { id: true, username: true, role: true },
+        columns: { id: true, username: true, role: true, resilPolicyAcceptance: true },
         where: { token },
         with: { quota: true },
       });
@@ -90,7 +80,7 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
   let user;
   if (leanUpload) {
     user = await db.query.users.findFirst({
-      columns: { id: true, username: true, role: true },
+      columns: { id: true, username: true, role: true, resilPolicyAcceptance: true },
       where: { sessions: { id: session.sessionId } },
       with: { quota: true },
     });
@@ -101,4 +91,9 @@ export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
 
   await requireDiscordRole(user);
   req.user = user as User;
+}
+
+export async function userMiddleware(req: FastifyRequest, res: FastifyReply) {
+  await authenticateUser(req, res);
+  if (!hasAcceptedResilPolicy(req.user)) throw new ApiError(3020);
 }

@@ -1,3 +1,4 @@
+import { hasAcceptedResilPolicy } from '@/lib/resil-policy';
 import ResilBrand from './ResilBrand';
 import type { Response } from '@/lib/api/response';
 import useAvatar from '@/lib/client/hooks/useAvatar';
@@ -12,6 +13,9 @@ import {
   Burger,
   Button,
   Divider,
+  Container,
+  Loader,
+  Center,
   Group,
   Menu,
   NavLink,
@@ -249,6 +253,22 @@ export default function Layout() {
     setOpened(false);
   }
 
+  if (!user)
+    return (
+      <Center mih='100dvh'>
+        <Loader aria-label='Loading account' />
+      </Center>
+    );
+
+  if (!hasAcceptedResilPolicy(user)) {
+    return (
+      <Container component='main' size='sm' py='xl'>
+        <ResilBrand large />
+        <ResilPolicyNotice key={user.id} refreshUser={mutate} logout={logout} />
+      </Container>
+    );
+  }
+
   return (
     <ConfigProvider data={loaderData}>
       <DashboardUpload>
@@ -410,7 +430,6 @@ export default function Layout() {
 
           <AppShell.Main>
             <Paper withBorder m='md' p='xs' radius='md'>
-              {user && <ResilPolicyNotice user={user} refreshUser={mutate} />}
               <Outlet />
             </Paper>
           </AppShell.Main>
