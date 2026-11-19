@@ -15,6 +15,9 @@ import {
   Grid,
   Group,
   Kbd,
+  Image,
+  Modal,
+  SimpleGrid,
   Paper,
   Progress,
   Radio,
@@ -36,6 +39,28 @@ import DropzoneFile from './DropzoneFile';
 
 const initialVisible = 24;
 
+function PreviewImage({ file, label }: { file: File; label: string }) {
+  const [url, setUrl] = useState<string>();
+
+  useEffect(() => {
+    const preview = URL.createObjectURL(file);
+    setUrl(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [file]);
+
+  return (
+    <Stack gap='xs'>
+      <Text size='sm' fw={600}>
+        {label}
+      </Text>
+      {url && <Image src={url} alt={file.name} fit='contain' h={260} />}
+      <Text size='xs' c='dimmed' style={{ overflowWrap: 'anywhere' }}>
+        {file.name} · {bytes(file.size)}
+      </Text>
+    </Stack>
+  );
+}
+
 export default function UploadFile({ title, folder }: { title?: string; folder?: string }) {
   const { t } = useTranslation('upload');
   const theme = useMantineTheme();
@@ -49,6 +74,9 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const [sign, setSign] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState('');
+  const [preview, setPreview] = useState<{ sign: string; pairs: { original: File; copy: File }[] } | null>(
+    null,
+  );
   const preset = getSignPreset(sign);
   const busy = loading || preparing;
   const [visibleCount, setVisibleCount] = useState(initialVisible);
@@ -61,6 +89,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const aggSize = files.reduce((acc, file) => acc + file.size, 0);
 
   useEffect(() => {
+    if (busy || preview) return;
     const handlePaste = (event: ClipboardEvent) => {
       const files = getPastedContent(event)?.files.filter((file) => file.type.startsWith('image/')) ?? [];
       if (files.length === 0) return;
@@ -78,7 +107,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
 
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
-  }, [setFiles, t]);
+  }, [busy, preview, setFiles, t]);
 
   if (!config) return null;
 
@@ -93,12 +122,15 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         throw new Error(
           `"${oversized.name}" exceeds the ${formatResilFileLimit(limit, bytes(limit))} file limit.`,
         );
-      const batch: File[] = [];
-      for (const file of files) {
-        batch.push(file);
-        if (purpose === 'sign' && preset) batch.push(await makeSignCopy(file, preset, limit));
+      if (purpose === 'sign' && preset) {
+        const pairs: { original: File; copy: File }[] = [];
+        for (const original of files) {
+          pairs.push({ original, copy: await makeSignCopy(original, preset, limit) });
+        }
+        setPreview({ sign: preset[0], pairs });
+      } else {
+        await upload(files);
       }
-      await upload(batch);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
     } finally {
@@ -108,6 +140,42 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
 
   return (
     <>
+      <Modal
+        opened={preview !== null}
+        onClose={() => setPreview(null)}
+        title='Preview sign copies'
+        size='xl'
+        centered
+      >
+        {preview && (
+          <Stack>
+            <Text size='sm'>
+              Review the {preview.sign} copy. Both the original and the sign copy will be uploaded.
+            </Text>
+            {preview.pairs.map(({ original, copy }, index) => (
+              <Paper key={index} withBorder p='sm'>
+                <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                  <PreviewImage file={original} label='Original' />
+                  <PreviewImage file={copy} label='Sign copy' />
+                </SimpleGrid>
+              </Paper>
+            ))}
+            <Group justify='flex-end'>
+              <Button variant='default' onClick={() => setPreview(null)}>
+                Back
+              </Button>
+              <Button
+                onClick={() => {
+                  setPreview(null);
+                  void upload(preview.pairs.flatMap(({ original, copy }) => [original, copy]));
+                }}
+              >
+                Upload originals and sign copies
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
       <Group gap='sm'>
         <Title order={1}>{title ?? t('file.title')}</Title>
 
@@ -316,7 +384,9 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           loading={busy}
           onClick={() => void uploadSelection()}
         >
-          {t('actions.upload', { count: files.length, size: bytes(aggSize) })}
+          {purpose === 'sign'
+            ? 'Preview sign copies'
+            : t('actions.upload', { count: files.length, size: bytes(aggSize) })}
         </Button>
       </Group>
     </>
