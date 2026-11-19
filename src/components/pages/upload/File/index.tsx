@@ -43,7 +43,7 @@ import { Dropzone } from '@mantine/dropzone';
 import { useColorScheme } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { IconFiles, IconTrashFilled, IconUpload, IconX } from '@tabler/icons-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -59,6 +59,8 @@ import SignReadability from './SignReadability';
 type SignCopy = Awaited<ReturnType<typeof makeSignCopy>>;
 
 const initialVisible = 24;
+const directUpload = 'direct-upload';
+const uploadOptions = [{ value: directUpload, label: "I'll do it myself, just upload it" }, ...signOptions];
 
 function PreviewBitmap({
   file,
@@ -212,6 +214,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     adjusted?.preview === preview && adjusted?.adjustments === adjustments ? adjusted : null;
   const adjusting = adjustments !== defaultSignAdjustments && !currentAdjustment;
   const preset = getSignPreset(sign);
+  const uploadImmediately = purpose === 'sign' && sign === directUpload;
   const busy = loading || preparing;
   const [visibleCount, setVisibleCount] = useState(initialVisible);
 
@@ -245,8 +248,58 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     return () => controller.abort();
   }, [edit, setFiles]);
 
+  async function uploadSelection(batchFiles = files, selectedSign = sign) {
+    const selectedPreset = getSignPreset(selectedSign);
+    if (
+      !config ||
+      busy ||
+      creatingFolder ||
+      !batchFiles.length ||
+      (purpose === 'sign' && selectedSign !== directUpload && !selectedPreset)
+    )
+      return;
+    setPreparing(true);
+    setError('');
+    try {
+      const limit = bytes(config.files.maxFileSize);
+      if (purpose === 'sign' && selectedPreset) {
+        const pairs: NonNullable<typeof preview>['pairs'] = [];
+        for (const original of batchFiles) {
+          const copy = await makeSignCopy(original, selectedPreset, limit);
+          const saved = original === editSource ? null : await fitImageToUploadLimit(original, limit);
+          pairs.push({ original, saved, copy });
+        }
+        setShowAdjustments(false);
+        setAdjustments(defaultSignAdjustments);
+        setAdjusted(null);
+        setActualSize(false);
+        setPreview({ preset: selectedPreset, limit, pairs });
+      } else {
+        const replacements = new Map<File, File>();
+        const batch: File[] = [];
+        for (const file of batchFiles) {
+          const saved = await fitImageToUploadLimit(file, limit);
+          if (saved !== file) replacements.set(file, saved);
+          batch.push(saved);
+        }
+        if (replacements.size) {
+          showNotification({ message: 'Large images were compressed to fit the upload limit.' });
+        }
+        await upload(batch, replacements, destinationId);
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
+    } finally {
+      setPreparing(false);
+    }
+  }
+
+  const uploadPastedFiles = useEffectEvent((pasted: File[]) => {
+    if (uploadImmediately) void uploadSelection([...files, ...pasted], directUpload);
+  });
+
   useEffect(() => {
-    if (busy || preview) return;
+    if (busy || preview || creatingFolder) return;
     const handlePaste = (event: ClipboardEvent) => {
       const files = getPastedContent(event)?.files.filter((file) => file.type.startsWith('image/')) ?? [];
       if (files.length === 0) return;
@@ -254,6 +307,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
       event.preventDefault();
       setFiles((prev) => [...prev, ...files]);
       setVisibleCount(initialVisible);
+      uploadPastedFiles(files);
       for (const file of files) {
         showNotification({
           message: t('file.notifications.pasted.message', { name: file.name }),
@@ -264,7 +318,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
 
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
-  }, [busy, preview, setFiles, t]);
+  }, [busy, creatingFolder, preview, setFiles, t]);
 
   useEffect(() => {
     if (!preview || debouncedAdjustments === defaultSignAdjustments) return;
@@ -315,44 +369,6 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
       setFolderError(error instanceof Error ? error.message : 'Could not create the folder.');
     } finally {
       setSavingFolder(false);
-    }
-  }
-
-  async function uploadSelection() {
-    if (busy || !files.length || (purpose === 'sign' && !preset)) return;
-    setPreparing(true);
-    setError('');
-    try {
-      const limit = bytes(config.files.maxFileSize);
-      if (purpose === 'sign' && preset) {
-        const pairs: NonNullable<typeof preview>['pairs'] = [];
-        for (const original of files) {
-          const copy = await makeSignCopy(original, preset, limit);
-          const saved = original === editSource ? null : await fitImageToUploadLimit(original, limit);
-          pairs.push({ original, saved, copy });
-        }
-        setShowAdjustments(false);
-        setAdjustments(defaultSignAdjustments);
-        setAdjusted(null);
-        setActualSize(false);
-        setPreview({ preset, limit, pairs });
-      } else {
-        const replacements = new Map<File, File>();
-        const batch: File[] = [];
-        for (const file of files) {
-          const saved = await fitImageToUploadLimit(file, limit);
-          if (saved !== file) replacements.set(file, saved);
-          batch.push(saved);
-        }
-        if (replacements.size) {
-          showNotification({ message: 'Large images were compressed to fit the upload limit.' });
-        }
-        await upload(batch, replacements, destinationId);
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
-    } finally {
-      setPreparing(false);
     }
   }
 
@@ -592,15 +608,20 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 <Select
                   label='Choose the in-game item'
                   placeholder='Search signs, frames, and canvases'
-                  data={signOptions}
+                  data={uploadOptions}
                   value={sign}
-                  onChange={setSign}
+                  onChange={(value) => {
+                    setSign(value);
+                    if (value === directUpload) void uploadSelection(files, value);
+                  }}
                   disabled={busy}
                   required
                   searchable
                 />
                 <Text size='sm' c='dimmed'>
-                  Preview how it fits before uploading.{' '}
+                  {uploadImmediately
+                    ? 'Images upload as soon as you add them. Choose the folder first.'
+                    : 'Preview how it fits before uploading.'}{' '}
                   <Anchor component={Link} to='/auth/image-guide' target='_blank' rel='noopener noreferrer'>
                     View sign dimensions
                   </Anchor>
@@ -674,10 +695,11 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           onDrop={(f) => {
             setFiles((prev) => [...f, ...prev]);
             setVisibleCount(initialVisible);
+            if (uploadImmediately) void uploadSelection([...f, ...files], directUpload);
           }}
           my='sm'
           loading={busy}
-          disabled={busy}
+          disabled={busy || creatingFolder}
           style={{ zIndex: 1 }}
         >
           <Group justify='center' gap='md' style={{ minHeight: rem(108), pointerEvents: 'none' }}>
@@ -801,11 +823,13 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           <Button
             variant='filled'
             leftSection={<IconUpload size='1rem' />}
-            disabled={files.length === 0 || creatingFolder || (purpose === 'sign' && !preset)}
+            disabled={
+              files.length === 0 || creatingFolder || (purpose === 'sign' && !uploadImmediately && !preset)
+            }
             loading={busy}
             onClick={() => void uploadSelection()}
           >
-            {purpose === 'sign'
+            {purpose === 'sign' && !uploadImmediately
               ? 'Preview sign copies'
               : t('actions.upload', { count: files.length, size: bytes(aggSize) })}
           </Button>
