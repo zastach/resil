@@ -437,6 +437,12 @@ export default function Layout() {
               <ScrollArea mah='auto'>
                 <Box>
                   <NavLink
+                    label='Rust Image Optimizer'
+                    component={Link}
+                    to='/dashboard/image-optimizer'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
                     label='Rust Image Guide'
                     component={Link}
                     to='/auth/image-guide'

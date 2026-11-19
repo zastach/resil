@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
               { path: 'auth/terms', lazy: () => import('./pages/auth/resil-info') },
               { path: 'auth/privacy', lazy: () => import('./pages/auth/resil-info') },
               { path: 'auth/contact', lazy: () => import('./pages/auth/resil-info') },
-              { path: 'auth/image-guide', lazy: () => import('./pages/auth/resil-info') },
+              { path: 'auth/image-guide', lazy: () => import('./pages/auth/image-guide') },
               { path: 'auth/tos', lazy: () => import('./pages/auth/tos') },
             ],
           },
@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
                   { path: 'folders/*', lazy: () => import('./pages/dashboard/folders') },
                   { path: 'urls', lazy: () => import('./pages/dashboard/urls') },
                   { path: 'upload/file', lazy: () => import('./pages/dashboard/upload/file') },
+                  { path: 'image-optimizer', lazy: () => import('./pages/dashboard/image-optimizer') },
                   { path: 'upload/text', lazy: () => import('./pages/dashboard/upload/text') },
 
                   // admin routes

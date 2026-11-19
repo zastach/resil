@@ -139,13 +139,13 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
       </Dropzone>
       <Anchor
         component={Link}
-        to='/auth/image-guide'
+        to='/dashboard/image-optimizer'
         target='_blank'
         rel='noopener noreferrer'
         size='sm'
         mt='xs'
       >
-        Rust image guide and optimizer
+        Rust Image Optimizer
       </Anchor>
 
       <Collapse expanded={progress.percent > 0 && progress.percent < 100}>

@@ -1,4 +1,3 @@
-import RustImageOptimizer from '@/components/RustImageOptimizer';
 import Markdown from '@/components/render/Markdown';
 import { useTitle } from '@/lib/client/hooks/useTitle';
 import { Anchor, Container, Group } from '@mantine/core';
@@ -6,7 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const privacy = `# Privacy Policy
 
-We collect only what we need to run RE /sil. That includes your account details, Discord information used to check access, and the files you upload. We do not collect your birthday. Our hosting provider stores and serves the files and data needed to operate the service.
+We collect only what we need to run RE /sil. That includes your account details, Discord information used to check access, and the files you upload. Our hosting provider stores and serves the files and data needed to operate the service.
 
 Anyone with a public image link can view that image. Only upload work you are comfortable sharing through a public link.
 
@@ -14,7 +13,7 @@ RE Owners and service administrators may see your work while operating or modera
 
 Contact [privacy@resil.me](mailto:privacy@resil.me) with privacy questions or requests to access or delete your data.
 
-we built this service as a convenience for our players, not to profit off of them, or train AI.`;
+We built this service as a convenience for our players, not to profit off of them, or train AI.`;
 
 export const resilTerms = `# Terms of Service
 
@@ -35,19 +34,10 @@ const contact = `# Contact Us
 - [legal@resil.me](mailto:legal@resil.me) for legal inquiries
 - [abuse@resil.me](mailto:abuse@resil.me) to report an upload or misuse. Include the link if you have it.`;
 
-const imageGuide = `# Rust Image Guide
-
-1. Export your image as a PNG or JPEG. PNG is a good choice for sharp lettering and transparent artwork. JPEG works well for photos.
-2. Crop the image to match the proportions of the sign you plan to use. Each file can be up to 999,999 bytes for /sil. Each account can store up to 1 GB.
-3. Upload the image, copy the **/sil** command from the result, then look at your sign in Rust and paste the command into chat.
-
-If an image fails to load in Rust, check that the direct image URL opens while signed out. A dashboard link requires a login and cannot be used by the game.`;
-
 const pages = {
   '/auth/terms': { title: 'Terms of Service', body: resilTerms },
   '/auth/privacy': { title: 'Privacy Policy', body: privacy },
   '/auth/contact': { title: 'Contact Us', body: contact },
-  '/auth/image-guide': { title: 'Rust Image Guide', body: imageGuide },
 };
 
 export function Component() {
@@ -73,7 +63,6 @@ export function Component() {
         </Anchor>
       </Group>
       <Markdown md={page.body} />
-      {page.body === imageGuide && <RustImageOptimizer />}
     </Container>
   );
 }
