@@ -289,7 +289,7 @@ export default function Login() {
               </>
             )}
             <Divider />
-            <Text size='xs' ta='center' c='dimmed'><Anchor href='mailto:support@resil.me'>Help &amp; Support</Anchor> · <Anchor href='https://rustempires.com/' target='_blank' rel='noopener noreferrer'>Rust Empires</Anchor></Text>
+            <Text size='xs' ta='center' c='dimmed'><Anchor href='mailto:support@resil.me'>Help &amp; Support</Anchor> · <Anchor href='mailto:privacy@resil.me'>Privacy inquiries</Anchor> · <Anchor href='mailto:legal@resil.me'>Legal</Anchor> · <Anchor href='mailto:abuse@resil.me'>Abuse</Anchor> · <Anchor href='https://rustempires.com/' target='_blank' rel='noopener noreferrer'>Rust Empires</Anchor></Text>
           </Stack>
         </Paper>
       </Center>

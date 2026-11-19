@@ -1,3 +1,4 @@
+import { copyRustImage } from '@/lib/client/copyRustImage';
 import SafeTrans from '@/components/SafeTrans';
 import { Response } from '@/lib/api/response';
 import { UploadOptionsStore } from '@/lib/client/store/uploadOptions';
@@ -155,6 +156,11 @@ export function showUploadModal(
                 </Anchor>
               </Group>
               <Group justify='right'>
+                {file.type.startsWith('image/') && !file.pending && (
+                  <Button size='xs' disabled={file.size === undefined || file.size > 1000000 || !['image/png', 'image/jpeg'].includes(file.type)} onClick={() => copyRustImage(file.name, clipboard)}>
+                    {file.size === undefined ? 'Check in My Images' : file.size > 1000000 ? 'Optimization required' : !['image/png', 'image/jpeg'].includes(file.type) ? 'Format not verified' : 'Copy /sil'}
+                  </Button>
+                )}
                 <Tooltip label={i18n.t('upload:modal.open')}>
                   <ActionIcon onClick={() => open(i)} variant='filled' color={actionIconColor}>
                     <IconExternalLink size='1rem' />

@@ -38,6 +38,7 @@ export type ApiUploadResponse = {
     name: string;
     type: string;
     url: string;
+    size?: number;
     pending?: boolean;
     removedGps?: boolean;
     compressed?: Omit<CompressResult, 'buffer'>;
@@ -77,6 +78,7 @@ export default typedPlugin(
                     name: z.string(),
                     type: z.string(),
                     url: z.string(),
+                    size: z.number().optional(),
                     pending: z.boolean().optional(),
                     removedGps: z.boolean().optional(),
                     compressed: z
@@ -340,6 +342,7 @@ export default typedPlugin(
             name: fileUpload.name,
             type: fileUpload.type,
             url: responseUrl,
+            size: fileUpload.size,
             removedGps: removedGps || undefined,
             compressed: compressedResponse,
           };

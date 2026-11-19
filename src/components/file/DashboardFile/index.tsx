@@ -32,7 +32,7 @@ export default function DashboardFile({
       <FileContextMenu file={file} reduce={reduce} user={id} onView={handleView}>
         <Card shadow='md' radius='md' p={0} onClick={handleView} className={styles.file}>
           <DashboardFileType key={file.id} file={file} />
-          {file.type.startsWith('image/') && <Button fullWidth size='xs' disabled={file.size > 1000000 || !['image/png','image/jpeg'].includes(file.type)} onClick={(event) => { event.stopPropagation(); copyRustImage(file.name, clipboard); }}>{file.size > 1000000 ? 'Optimization required' : 'Copy /sil'}</Button>}
+          {file.type.startsWith('image/') && <Button fullWidth size='xs' disabled={file.size > 1000000 || !['image/png','image/jpeg'].includes(file.type)} onClick={(event) => { event.stopPropagation(); copyRustImage(file.name, clipboard); }}>{file.size > 1000000 ? 'Optimization required' : !['image/png', 'image/jpeg'].includes(file.type) ? 'Format not verified' : 'Copy /sil'}</Button>}
         </Card>
       </FileContextMenu>
     </>
