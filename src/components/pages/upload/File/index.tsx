@@ -305,18 +305,33 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                   ['y', 'Move up or down', -50, 50],
                   ['sharpness', 'Sharpness', 0, 100],
                   ['contrast', 'Contrast', -30, 50],
-                  ...(isNeonSign(preview.preset[0]) ? [['darkness', 'Neon darkness', 0, 90] as const] : []),
+                  ...(isNeonSign(preview.preset[0]) ? [['brightness', 'Brightness', 10, 100] as const] : []),
                 ] as const
               ).map(([key, label, min, max]) => (
                 <div key={key}>
-                  <Text size='sm' fw={600}>
-                    {label} · {adjustments[key]}%
-                  </Text>
+                  <Group justify='space-between' gap='xs' mb={4}>
+                    <Text size='sm' fw={600}>
+                      {label} · {adjustments[key]}%
+                    </Text>
+                    <Button
+                      variant='subtle'
+                      size='compact-xs'
+                      aria-label={`Reset ${label.toLowerCase()} to default`}
+                      disabled={adjustments[key] === defaultSignAdjustments[key]}
+                      onClick={() =>
+                        setAdjustments((previous) => ({ ...previous, [key]: defaultSignAdjustments[key] }))
+                      }
+                    >
+                      Reset to default
+                    </Button>
+                  </Group>
                   <Slider
                     aria-label={label}
                     min={min}
                     max={max}
                     value={adjustments[key]}
+                    marks={key === 'brightness' ? [{ value: 50, label: 'Recommended · 50%' }] : undefined}
+                    mb={key === 'brightness' ? 'md' : undefined}
                     label={(value) => `${value}%`}
                     onChange={(value) => setAdjustments((previous) => ({ ...previous, [key]: value }))}
                   />
@@ -330,7 +345,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 onChange={(event) => setActualSize(event.currentTarget.checked)}
               />
               <Button variant='subtle' size='xs' onClick={() => setAdjustments(defaultSignAdjustments)}>
-                Reset adjustments
+                Reset all to default
               </Button>
             </Group>
             <Text size='sm' c='dimmed'>
@@ -339,7 +354,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
             </Text>
             {isNeonSign(preview.preset[0]) && (
               <Text size='sm' c='dimmed'>
-                Increase darkness if your neon sign looks too bright in-game.
+                Lower brightness if your neon sign looks too bright in-game.
               </Text>
             )}
             {currentAdjustment?.error && (

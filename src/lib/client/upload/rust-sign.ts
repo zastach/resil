@@ -13,7 +13,7 @@ export function getSignPreset(name: string | null) {
   return presets.find(([label]) => label === name);
 }
 
-export const defaultSignAdjustments = { zoom: 100, x: 0, y: 0, darkness: 0, contrast: 0, sharpness: 0 };
+export const defaultSignAdjustments = { zoom: 100, x: 0, y: 0, brightness: 100, contrast: 0, sharpness: 0 };
 
 export function isNeonSign(name: string) {
   return name.includes('Neon Sign');
@@ -102,7 +102,7 @@ export async function makeSignCopy(
     const neon = isNeonSign(name);
     context.fillStyle = neon ? '#000' : '#fff';
     context.fillRect(0, 0, width, height);
-    const brightness = neon ? 100 - adjustments.darkness : 100;
+    const brightness = neon ? adjustments.brightness : 100;
     if (brightness !== 100 || adjustments.contrast !== 0)
       context.filter = `contrast(${100 + adjustments.contrast}%) brightness(${brightness}%)`;
     context.imageSmoothingQuality = 'high';
