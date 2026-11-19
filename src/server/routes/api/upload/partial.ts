@@ -206,7 +206,7 @@ export default typedPlugin(
           const fileUpload = await db.transaction(async (tx) => {
             await lockFiles(tx);
 
-            if (quotaUser?.quota) {
+            if (quotaUser) {
               await tx.select({ id: users.id }).from(users).where(eq(users.id, quotaUser.id)).for('update');
 
               const quotaCheck = await checkQuota(quotaUser, total, 1, tx);

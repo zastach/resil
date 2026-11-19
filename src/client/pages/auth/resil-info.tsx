@@ -38,7 +38,7 @@ const contact = `# Contact Us
 const imageGuide = `# Rust Image Guide
 
 1. Export your image as a PNG or JPEG. PNG is a good choice for sharp lettering and transparent artwork. JPEG works well for photos.
-2. Crop the image to match the proportions of the sign you plan to use. Export at a smaller size if it exceeds the limit shown on the upload screen.
+2. Crop the image to match the proportions of the sign you plan to use. Each file can be up to 999,999 bytes for /sil. Each account can store up to 1 GB.
 3. Upload the image, copy the **/sil** command from the result, then look at your sign in Rust and paste the command into chat.
 
 If an image fails to load in Rust, check that the direct image URL opens while signed out. A dashboard link requires a login and cannot be used by the game.`;

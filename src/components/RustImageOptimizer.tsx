@@ -1,4 +1,5 @@
 import { Alert, Button, FileInput, Group, NumberInput, Select, Stack, Title } from '@mantine/core';
+import { RESIL_MAX_FILE_BYTES } from '@/lib/resil-upload-limits';
 import { useState } from 'react';
 
 export default function RustImageOptimizer() {
@@ -37,6 +38,13 @@ export default function RustImageOptimizer() {
 
       const result = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, 0.9));
       if (!result) throw new Error('Image export failed');
+
+      if (result.size > RESIL_MAX_FILE_BYTES) {
+        setError(
+          'This image is still over the 999,999-byte limit. Reduce its dimensions or try JPEG for photos.',
+        );
+        return;
+      }
 
       const url = URL.createObjectURL(result);
       const download = document.createElement('a');

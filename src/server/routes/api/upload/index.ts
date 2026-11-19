@@ -249,6 +249,9 @@ export default typedPlugin(
         const uploads = prepared.map((item) => {
           const { file, extension, mimetype, size, compressed, removedGps, originalName } = item;
 
+          if (size > bytes(config.files.maxFileSize))
+            throw new ApiError(5001, 'The processed file exceeds the maximum upload size');
+
           const data: Omit<FileInsert, 'name'> = {
             size,
             type: mimetype,
@@ -272,7 +275,7 @@ export default typedPlugin(
         const fileUploads = await db.transaction(async (tx) => {
           await lockFiles(tx);
 
-          if (quotaUser?.quota) {
+          if (quotaUser) {
             await tx.select({ id: users.id }).from(users).where(eq(users.id, quotaUser.id)).for('update');
 
             const quotaCheck = await checkQuota(
