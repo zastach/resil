@@ -25,5 +25,7 @@ test('Discord donor policy rejects missing roles and accepts any configured role
   response = new Response(null, { status: 401 });
   assert.equal(await discordMembership('test'), 'expired');
   response = new Response(null, { status: 429 });
-  await assert.rejects(discordMembership('test'));
+  await assert.rejects(discordMembership('test'), /Discord is rate limiting membership checks/);
+  response = new Response(null, { status: 502 });
+  await assert.rejects(discordMembership('test'), /Discord membership verification unavailable/);
 });
