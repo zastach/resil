@@ -1,3 +1,4 @@
+import ResilBrand from './ResilBrand';
 import type { Response } from '@/lib/api/response';
 import useAvatar from '@/lib/client/hooks/useAvatar';
 import useLogin from '@/lib/client/hooks/useLogin';
@@ -18,7 +19,6 @@ import {
   NavLink,
   Paper,
   ScrollArea,
-  Title,
   useMantineColorScheme,
   useMantineTheme,
 } from '@mantine/core';
@@ -32,7 +32,6 @@ import {
   IconClipboardCopy,
   IconExternalLink,
   IconFileText,
-  IconFileUpload,
   IconFiles,
   IconFolder,
   IconGraph,
@@ -69,14 +68,15 @@ type NavLinks = {
 
 // built at render time so labels follow the active language
 const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): NavLinks[] => [
+  { label: 'Upload Images', icon: <IconUpload size='1rem' />, active: (path) => path === '/dashboard/upload/file', href: '/dashboard/upload/file' },
   {
-    label: t('nav.home'),
+    label: 'Dashboard',
     icon: <IconHome size='1rem' />,
     active: (path: string) => path === '/dashboard',
     href: '/dashboard',
   },
   {
-    label: t('nav.metrics'),
+    label: 'Statistics',
     icon: <IconGraph size='1rem' />,
     active: (path: string) => path === '/dashboard/metrics',
     href: '/dashboard/metrics',
@@ -85,41 +85,28 @@ const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): Na
       (config.features.metrics.adminOnly ? isAdministrator(user?.role) : true),
   },
   {
-    label: t('nav.files'),
+    label: 'My Images',
     icon: <IconFiles size='1rem' />,
     active: (path: string) => path === '/dashboard/files',
     href: '/dashboard/files',
   },
   {
-    label: t('nav.folders'),
+    label: 'My Folders',
     icon: <IconFolder size='1rem' />,
     active: (path: string) => path === '/dashboard/folders',
     href: '/dashboard/folders',
   },
   {
-    label: t('nav.upload'),
-    icon: <IconUpload size='1rem' />,
-    active: (path: string) => path.startsWith('/dashboard/upload'),
-    links: [
-      {
-        label: t('nav.uploadFile'),
-        icon: <IconFileUpload size='1rem' />,
-        active: (path: string) => path === '/dashboard/upload/file',
-        href: '/dashboard/upload/file',
-      },
-      {
-        label: t('nav.uploadText'),
-        icon: <IconFileText size='1rem' />,
-        active: (path: string) => path === '/dashboard/upload/text',
-        href: '/dashboard/upload/text',
-      },
-    ],
+    label: 'Account Settings', icon: <IconSettingsFilled size='1rem' />,
+    active: (path) => path === '/dashboard/settings', href: '/dashboard/settings',
   },
   {
-    label: t('nav.urls'),
-    icon: <IconLink size='1rem' />,
-    active: (path: string) => path === '/dashboard/urls',
-    href: '/dashboard/urls',
+    label: 'Advanced', icon: <IconAdjustments size='1rem' />,
+    active: (path) => path === '/dashboard/upload/text' || path.startsWith('/dashboard/urls'),
+    links: [
+      { label: t('nav.uploadText'), icon: <IconFileText size='1rem' />, active: (path) => path === '/dashboard/upload/text', href: '/dashboard/upload/text' },
+      { label: t('nav.urls'), icon: <IconLink size='1rem' />, active: (path) => path === '/dashboard/urls', href: '/dashboard/urls' },
+    ],
   },
   {
     label: t('nav.administrator'),
@@ -330,19 +317,7 @@ export default function Layout() {
                 bdrs='md'
               />
 
-              {config.website.titleLogo && (
-                <Avatar
-                  src={config.website.titleLogo}
-                  alt={t('header.logoAlt')}
-                  radius='sm'
-                  size='md'
-                  mr='md'
-                />
-              )}
-
-              <Title visibleFrom='sm' lineClamp={1} size={32}>
-                {config.website.title.trim()}
-              </Title>
+              <ResilBrand />
 
               <Group gap='xs' wrap='nowrap' style={{ marginLeft: 'auto' }}>
                 <LanguageSelect />
@@ -421,10 +396,7 @@ export default function Layout() {
           </AppShell.Header>
 
           <AppShell.Navbar hidden={!opened} zIndex={90}>
-            <Title hiddenFrom='sm' size={24} m='sm' style={{ marginBottom: 20 }}>
-              {config.website.title.trim()}
-            </Title>
-            <Divider hiddenFrom='sm' />
+
 
             <ScrollArea mah='calc(100vh - 200px)'>
               {renderLinks(
@@ -443,6 +415,9 @@ export default function Layout() {
 
               <ScrollArea mah='auto'>
                 <Box>
+                  <NavLink label='Help & Support' component='a' href='mailto:support@resil.me' leftSection={<IconExternalLink size='1rem' />} />
+                  <NavLink label='Rust Empires' component='a' href='https://rustempires.com/' target='_blank' rel='noopener noreferrer' leftSection={<IconExternalLink size='1rem' />} />
+                  <NavLink label='Sign Out' onClick={logout} leftSection={<IconLogout size='1rem' />} />
                   {config.website.externalLinks.map(({ name, url }, i) => (
                     <NavLink
                       key={i}
