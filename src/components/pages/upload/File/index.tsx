@@ -17,6 +17,7 @@ import {
   Kbd,
   Paper,
   Progress,
+  Radio,
   Text,
   Title,
   Tooltip,
@@ -123,6 +124,54 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         )}
       </Group>
 
+      <Paper
+        withBorder
+        p='md'
+        my='md'
+        style={{ borderInlineStart: '3px solid var(--mantine-primary-color-filled)' }}
+      >
+        <Stack gap='sm'>
+          <Radio.Group
+            label='What will you use this image for?'
+            description='Required before uploading.'
+            value={purpose ?? ''}
+            onChange={setPurpose}
+            required
+            styles={{ label: { fontSize: 'var(--mantine-font-size-lg)', fontWeight: 700 } }}
+          >
+            <Group mt='sm' gap='lg'>
+              <Radio value='general' label='General image or link' disabled={busy} />
+              <Radio value='sign' label='Rust sign or frame (/sil)' disabled={busy} />
+            </Group>
+          </Radio.Group>
+          {purpose === 'sign' && (
+            <>
+              <Select
+                label='Rust sign or frame'
+                placeholder='Choose the sign or frame'
+                data={signOptions}
+                value={sign}
+                onChange={setSign}
+                disabled={busy}
+                required
+                searchable
+              />
+              <Text size='sm' c='dimmed'>
+                Resil saves the original and a separate JPEG cropped to fit the selected sign.{' '}
+                <Anchor component={Link} to='/auth/image-guide' target='_blank' rel='noopener noreferrer'>
+                  View sign dimensions
+                </Anchor>
+              </Text>
+            </>
+          )}
+          {error && (
+            <Alert color='red' role='alert'>
+              {error}
+            </Alert>
+          )}
+        </Stack>
+      </Paper>
+
       <Dropzone
         onDrop={(f) => {
           setFiles((prev) => [...f, ...prev]);
@@ -179,44 +228,6 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           </div>
         </Group>
       </Dropzone>
-      <Stack gap='sm' mt='md'>
-        <Select
-          label='What will you use this image for?'
-          placeholder='Choose a use'
-          value={purpose}
-          onChange={setPurpose}
-          disabled={busy}
-          data={[
-            { value: 'general', label: 'General image or link' },
-            { value: 'sign', label: 'Rust sign or frame (/sil)' },
-          ]}
-        />
-        {purpose === 'sign' && (
-          <>
-            <Select
-              label='Rust sign or frame'
-              placeholder='Choose the sign or frame'
-              data={signOptions}
-              value={sign}
-              onChange={setSign}
-              disabled={busy}
-              searchable
-            />
-            <Text size='sm' c='dimmed'>
-              Resil saves the original and a separate JPEG cropped to fit the selected sign.{' '}
-              <Anchor component={Link} to='/auth/image-guide' target='_blank' rel='noopener noreferrer'>
-                View sign dimensions
-              </Anchor>
-            </Text>
-          </>
-        )}
-        {error && (
-          <Alert color='red' role='alert'>
-            {error}
-          </Alert>
-        )}
-      </Stack>
-
       <Collapse expanded={progress.percent > 0 && progress.percent < 100}>
         {progress.percent > 0 && progress.percent < 100 && (
           <Progress.Root my='sm' size='xl'>
