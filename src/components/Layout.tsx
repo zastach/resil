@@ -53,6 +53,7 @@ import { Link, NavigateFunction, Outlet, useLoaderData, useLocation, useNavigate
 import type { dashboardLoader } from '../client/routes';
 import ConfigProvider from './ConfigProvider';
 import LanguageSelect from './LanguageSelect';
+import ResilPolicyNotice from './ResilPolicyNotice';
 import VersionBadge from './VersionBadge';
 import DashboardUpload from './upload/DashboardUpload';
 import { SETTINGS_EXTERNAL_LINKS } from './pages/serverSettings';
@@ -68,7 +69,12 @@ type NavLinks = {
 
 // built at render time so labels follow the active language
 const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): NavLinks[] => [
-  { label: 'Upload Images', icon: <IconUpload size='1rem' />, active: (path) => path === '/dashboard/upload/file', href: '/dashboard/upload/file' },
+  {
+    label: 'Upload Images',
+    icon: <IconUpload size='1rem' />,
+    active: (path) => path === '/dashboard/upload/file',
+    href: '/dashboard/upload/file',
+  },
   {
     label: 'Dashboard',
     icon: <IconHome size='1rem' />,
@@ -97,15 +103,28 @@ const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): Na
     href: '/dashboard/folders',
   },
   {
-    label: 'Account Settings', icon: <IconSettingsFilled size='1rem' />,
-    active: (path) => path === '/dashboard/settings', href: '/dashboard/settings',
+    label: 'Account Settings',
+    icon: <IconSettingsFilled size='1rem' />,
+    active: (path) => path === '/dashboard/settings',
+    href: '/dashboard/settings',
   },
   {
-    label: 'Advanced', icon: <IconAdjustments size='1rem' />,
+    label: 'Advanced',
+    icon: <IconAdjustments size='1rem' />,
     active: (path) => path === '/dashboard/upload/text' || path.startsWith('/dashboard/urls'),
     links: [
-      { label: t('nav.uploadText'), icon: <IconFileText size='1rem' />, active: (path) => path === '/dashboard/upload/text', href: '/dashboard/upload/text' },
-      { label: t('nav.urls'), icon: <IconLink size='1rem' />, active: (path) => path === '/dashboard/urls', href: '/dashboard/urls' },
+      {
+        label: t('nav.uploadText'),
+        icon: <IconFileText size='1rem' />,
+        active: (path) => path === '/dashboard/upload/text',
+        href: '/dashboard/upload/text',
+      },
+      {
+        label: t('nav.urls'),
+        icon: <IconLink size='1rem' />,
+        active: (path) => path === '/dashboard/urls',
+        href: '/dashboard/urls',
+      },
     ],
   },
   {
@@ -353,19 +372,21 @@ export default function Layout() {
                         : user?.username}
                     </Menu.Label>
 
-                    {isAdministrator(user?.role) && <>
-                    <Menu.Item leftSection={<IconClipboardCopy size='1rem' />} onClick={copyToken}>
-                      {t('userMenu.copyToken')}
-                    </Menu.Item>
-                    <Menu.Item
-                      color='red'
-                      leftSection={<IconRefreshDot size='1rem' />}
-                      onClick={refreshToken}
-                    >
-                      {t('userMenu.refreshToken')}
-                    </Menu.Item>
-                    <Menu.Divider />
-                    </>}
+                    {isAdministrator(user?.role) && (
+                      <>
+                        <Menu.Item leftSection={<IconClipboardCopy size='1rem' />} onClick={copyToken}>
+                          {t('userMenu.copyToken')}
+                        </Menu.Item>
+                        <Menu.Item
+                          color='red'
+                          leftSection={<IconRefreshDot size='1rem' />}
+                          onClick={refreshToken}
+                        >
+                          {t('userMenu.refreshToken')}
+                        </Menu.Item>
+                        <Menu.Divider />
+                      </>
+                    )}
 
                     <Menu.Item
                       leftSection={<IconSettingsFilled size='1rem' />}
@@ -398,8 +419,6 @@ export default function Layout() {
           </AppShell.Header>
 
           <AppShell.Navbar hidden={!opened} zIndex={90}>
-
-
             <ScrollArea mah='calc(100vh - 200px)'>
               {renderLinks(
                 buildNavLinks(t),
@@ -417,8 +436,38 @@ export default function Layout() {
 
               <ScrollArea mah='auto'>
                 <Box>
-                  <NavLink label='Help & Support' component='a' href='mailto:support@resil.me' leftSection={<IconExternalLink size='1rem' />} />
-                  <NavLink label='Rust Empires' component='a' href='https://rustempires.com/' target='_blank' rel='noopener noreferrer' leftSection={<IconExternalLink size='1rem' />} />
+                  <NavLink
+                    label='Rust Image Guide'
+                    component={Link}
+                    to='/auth/image-guide'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Terms of Service'
+                    component={Link}
+                    to='/auth/terms'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Privacy Policy'
+                    component={Link}
+                    to='/auth/privacy'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Contact Us'
+                    component={Link}
+                    to='/auth/contact'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Rust Empires'
+                    component='a'
+                    href='https://rustempires.com/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
                   <NavLink label='Sign Out' onClick={logout} leftSection={<IconLogout size='1rem' />} />
                   {config.website.externalLinks.map(({ name, url }, i) => (
                     <NavLink
@@ -438,6 +487,7 @@ export default function Layout() {
 
           <AppShell.Main>
             <Paper withBorder m='md' p='xs' radius='md'>
+              {user && <ResilPolicyNotice user={user} refreshUser={mutate} />}
               <Outlet />
             </Paper>
           </AppShell.Main>

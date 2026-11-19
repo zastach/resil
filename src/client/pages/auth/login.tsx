@@ -211,7 +211,8 @@ export default function Login() {
         )}
 
         <Paper
-          w='420px' maw='calc(100% - 32px)'
+          w='420px'
+          maw='calc(100% - 32px)'
           p='xl'
           shadow='xl'
           withBorder
@@ -222,15 +223,35 @@ export default function Login() {
           }}
         >
           <ResilBrand large />
-          <Text ta='center' c='dimmed' size='sm' mb='xl'>Image hosting for the Rust Empires community.</Text>
+          <Text ta='center' c='dimmed' size='sm' mb='xl'>
+            Image hosting for the Rust Empires community.
+          </Text>
 
           <Stack>
             {config.oauthEnabled.discord && (
               <>
-                <Button component='a' href='/api/auth/oauth/discord' className='resil-discord-button' color='#5865F2' variant='filled' fullWidth leftSection={<IconBrandDiscordFilled size='1.2rem' />}>
+                <Button
+                  component='a'
+                  href='/api/auth/oauth/discord'
+                  className='resil-discord-button'
+                  color='#5865F2'
+                  variant='filled'
+                  fullWidth
+                  leftSection={<IconBrandDiscordFilled size='1.2rem' />}
+                >
                   Continue with Discord
                 </Button>
-                <Text ta='center' size='xs' c='dimmed'>Requires an eligible Rust Empires <Anchor href='https://rustempires.com/index.php/donate/' target='_blank' rel='noopener noreferrer'>donator role</Anchor>.</Text>
+                <Text ta='center' size='xs' c='dimmed'>
+                  Requires an eligible Rust Empires{' '}
+                  <Anchor
+                    href='https://rustempires.com/index.php/donate/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    donator role
+                  </Anchor>
+                  .
+                </Text>
                 {showLocalLogin && <Divider label='Invited members and administrators' />}
               </>
             )}
@@ -289,7 +310,23 @@ export default function Login() {
               </>
             )}
             <Divider />
-            <Text size='xs' ta='center' c='dimmed'><Anchor href='mailto:support@resil.me'>Help &amp; Support</Anchor> · <Anchor href='mailto:privacy@resil.me'>Privacy inquiries</Anchor> · <Anchor href='mailto:legal@resil.me'>Legal</Anchor> · <Anchor href='mailto:abuse@resil.me'>Abuse</Anchor> · <Anchor href='https://rustempires.com/' target='_blank' rel='noopener noreferrer'>Rust Empires</Anchor></Text>
+            <Group justify='center' gap='sm'>
+              <Anchor component={Link} to='/auth/terms' size='xs'>
+                Terms of Service
+              </Anchor>
+              <Anchor component={Link} to='/auth/privacy' size='xs'>
+                Privacy Policy
+              </Anchor>
+              <Anchor component={Link} to='/auth/contact' size='xs'>
+                Contact Us
+              </Anchor>
+              <Anchor component={Link} to='/auth/image-guide' size='xs'>
+                Rust Image Guide
+              </Anchor>
+              <Anchor href='https://rustempires.com/' target='_blank' rel='noopener noreferrer' size='xs'>
+                Rust Empires
+              </Anchor>
+            </Group>
           </Stack>
         </Paper>
       </Center>

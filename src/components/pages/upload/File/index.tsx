@@ -5,6 +5,7 @@ import { bytes } from '@/lib/bytes';
 import { getPastedContent } from '@/lib/client/upload/paste';
 import { humanizeDuration } from '@/lib/relativeTime';
 import {
+  Anchor,
   Button,
   Collapse,
   Grid,
@@ -136,6 +137,16 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
           </div>
         </Group>
       </Dropzone>
+      <Anchor
+        component={Link}
+        to='/auth/image-guide'
+        target='_blank'
+        rel='noopener noreferrer'
+        size='sm'
+        mt='xs'
+      >
+        Rust image guide and optimizer
+      </Anchor>
 
       <Collapse expanded={progress.percent > 0 && progress.percent < 100}>
         {progress.percent > 0 && progress.percent < 100 && (

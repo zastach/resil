@@ -13,6 +13,7 @@ import { users, userSessions } from '@/lib/db/schema';
 import { discordComponentEmbedSchema } from '@/lib/discord';
 import { log } from '@/lib/logger';
 import { secondlyRatelimit } from '@/lib/ratelimits';
+import { RESIL_POLICY_VERSION } from '@/lib/resil-policy';
 import { zStringTrimmed } from '@/lib/validation';
 import { userMiddleware } from '@/server/middleware/user';
 import { getSession, saveSession } from '@/server/session';
@@ -61,6 +62,7 @@ export default typedPlugin(
             currentPassword: z.string().optional(),
             avatar: z.string().nullish(),
             quickLinks: userQuickLinksSchema.optional(),
+            acceptResilPolicy: z.literal(RESIL_POLICY_VERSION).optional(),
             view: z
               .object({
                 content: z.string().nullish(),
@@ -133,6 +135,10 @@ export default typedPlugin(
         const embed = !view.discordComponentEmbed?.enabled && !!view.embed;
 
         const data: UserUpdate = {
+          ...(req.body.acceptResilPolicy &&
+            req.user.resilPolicyAcceptance?.version !== RESIL_POLICY_VERSION && {
+              resilPolicyAcceptance: { version: RESIL_POLICY_VERSION, acceptedAt: new Date().toISOString() },
+            }),
           ...(req.body.username && { username: req.body.username }),
           ...(req.body.password && { password: await hashPassword(req.body.password) }),
           ...(req.body.avatar !== undefined && { avatar: req.body.avatar || null }),

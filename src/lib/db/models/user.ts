@@ -46,6 +46,7 @@ const userScalarSchema = createSelectSchema(users, { view: userViewSchema }).pic
 });
 
 export const userSchema = userScalarSchema.partial({ avatar: true }).extend({
+  resilPolicyAcceptance: z.object({ version: z.string(), acceptedAt: z.iso.datetime() }).nullish(),
   quickLinks: userQuickLinksSchema,
   sessions: z.array(userSessionSchema),
   oauthProviders: z.array(oauthProviderSchema),
@@ -54,13 +55,16 @@ export const userSchema = userScalarSchema.partial({ avatar: true }).extend({
   quota: userQuotaSchema.nullable().optional(),
 });
 
-export const limitedUserSchema = userSchema.omit({
-  quickLinks: true,
-  oauthProviders: true,
-  totpEnabled: true,
-  passkeys: true,
-  sessions: true,
-}).extend({ manualInviteAccess: z.boolean().optional() });
+export const limitedUserSchema = userSchema
+  .omit({
+    resilPolicyAcceptance: true,
+    quickLinks: true,
+    oauthProviders: true,
+    totpEnabled: true,
+    passkeys: true,
+    sessions: true,
+  })
+  .extend({ manualInviteAccess: z.boolean().optional() });
 
 export type User = z.infer<typeof userSchema>;
 export type LimitedUser = z.infer<typeof limitedUserSchema>;
@@ -86,6 +90,7 @@ const publicUserColumnsWithAvatar = {
 
 const authenticatedUserColumns = {
   ...publicUserColumns,
+  resilPolicyAcceptance: true,
   quickLinks: true,
 } as const;
 
@@ -173,7 +178,10 @@ export async function listUsers(
 ): Promise<LimitedUser[]> {
   if (options.roles?.length === 0) return [];
   const rows = await client.query.users.findMany({
-    columns: { ...(options.avatar ? publicUserColumnsWithAvatar : publicUserColumns), manualInviteAccess: true },
+    columns: {
+      ...(options.avatar ? publicUserColumnsWithAvatar : publicUserColumns),
+      manualInviteAccess: true,
+    },
     where:
       options.roles || options.excludeId
         ? {
