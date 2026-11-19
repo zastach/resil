@@ -36,13 +36,16 @@ export default typedPlugin(
       async (req, res) => {
         const current = await getSession(req, res);
 
-        const [deletedSession] = current.id && current.sessionId ? await db
-          .delete(userSessions)
-          .where(and(eq(userSessions.userId, current.id), eq(userSessions.id, current.sessionId)))
-          .returning({
-            oauthProvider: userSessions.oauthProvider,
-            oidcIdToken: userSessions.oidcIdToken,
-          }) : [];
+        const [deletedSession] =
+          current.id && current.sessionId
+            ? await db
+                .delete(userSessions)
+                .where(and(eq(userSessions.userId, current.id), eq(userSessions.id, current.sessionId)))
+                .returning({
+                  oauthProvider: userSessions.oauthProvider,
+                  oidcIdToken: userSessions.oidcIdToken,
+                })
+            : [];
 
         current.destroy();
 

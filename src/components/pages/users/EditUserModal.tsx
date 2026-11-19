@@ -149,7 +149,9 @@ export default function EditUserModal({
       ...(values.password && { password: values.password }),
       ...(values.role !== user.role && { role: values.role }),
       ...(avatar64 && { avatar: avatar64 }),
-      ...(values.manualInviteAccess !== user.manualInviteAccess && { manualInviteAccess: values.manualInviteAccess }),
+      ...(values.manualInviteAccess !== user.manualInviteAccess && {
+        manualInviteAccess: values.manualInviteAccess,
+      }),
       quota: finalQuota,
     });
 

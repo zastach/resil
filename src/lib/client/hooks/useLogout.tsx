@@ -17,16 +17,16 @@ export function useLogout() {
     });
 
     try {
-    const res = await fetch('/api/auth/logout', { cache: 'no-store' });
-    if (res.ok) {
-      const data: Response['/api/auth/logout'] = await res.json();
-      setUser(null);
-      await mutate('/api/user', null, false);
-      if (data.redirectUrl) window.location.href = data.redirectUrl;
-      else window.location.replace('/auth/login?logged_out=true');
-    } else {
-      throw new Error(`Logout failed (HTTP ${res.status})`);
-    }
+      const res = await fetch('/api/auth/logout', { cache: 'no-store' });
+      if (res.ok) {
+        const data: Response['/api/auth/logout'] = await res.json();
+        setUser(null);
+        await mutate('/api/user', null, false);
+        if (data.redirectUrl) window.location.href = data.redirectUrl;
+        else window.location.replace('/auth/login?logged_out=true');
+      } else {
+        throw new Error(`Logout failed (HTTP ${res.status})`);
+      }
     } catch (error) {
       showNotification({ color: 'red', message: error instanceof Error ? error.message : 'Logout failed' });
     }

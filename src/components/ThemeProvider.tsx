@@ -80,8 +80,30 @@ export default function ThemeProvider({
     headings: { ...theme.headings, fontFamily: 'Sora, Archivo, Arial, sans-serif', fontWeight: '600' },
     colors: {
       ...theme.colors,
-      dark: ['#ffffff', '#d9dada', '#b9bcbc', '#969b9b', '#626767', '#3c4040', '#292c2c', '#1a1b1b', '#151616', '#111212'],
-      empire: ['#fff0ed', '#ffdad5', '#ffb4ab', '#ff8a80', '#ff6860', '#ff4c4c', '#f03d3e', '#eb1b0c', '#ca190e', '#a9160d'],
+      dark: [
+        '#ffffff',
+        '#d9dada',
+        '#b9bcbc',
+        '#969b9b',
+        '#626767',
+        '#3c4040',
+        '#292c2c',
+        '#1a1b1b',
+        '#151616',
+        '#111212',
+      ],
+      empire: [
+        '#fff0ed',
+        '#ffdad5',
+        '#ffb4ab',
+        '#ff8a80',
+        '#ff6860',
+        '#ff4c4c',
+        '#f03d3e',
+        '#eb1b0c',
+        '#ca190e',
+        '#a9160d',
+      ],
     },
   };
 

@@ -14,7 +14,6 @@ export default function SettingsDashboard() {
     { value: 'upload', label: t('dashboard.uploadBehavior.upload') },
   ];
 
-
   return (
     <Paper withBorder p='sm'>
       <Title order={2}>{t('dashboard.title')}</Title>
@@ -24,7 +23,6 @@ export default function SettingsDashboard() {
 
       <SimpleGrid type='container' cols={{ base: 1, md: 2 }} spacing='xl' mt='md'>
         <Stack gap='lg'>
-
           <Stack gap='sm'>
             <Title order={3} size='h4'>
               {t('dashboard.sections.uploads')}
