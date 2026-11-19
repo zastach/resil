@@ -39,7 +39,6 @@ import { ApiUserActivityResponse } from '@/server/routes/api/user/activity';
 import { ApiUserStatsResponse } from '@/server/routes/api/user/stats';
 import { ApiUserTagsResponse } from '@/server/routes/api/user/tags';
 import { ApiUserTagsIdResponse } from '@/server/routes/api/user/tags/[id]';
-import { ApiUserTokenResponse } from '@/server/routes/api/user/token';
 import { ApiUserUrlsResponse } from '@/server/routes/api/user/urls';
 import { ApiUserUrlsIdResponse } from '@/server/routes/api/user/urls/[id]';
 import { ApiUserUrlsIdPasswordResponse } from '@/server/routes/api/user/urls/[id]/password';
@@ -76,7 +75,6 @@ export type Response = {
   '/api/user/stats': ApiUserStatsResponse;
   '/api/user/activity': ApiUserActivityResponse;
   '/api/user/recent': ApiUserRecentResponse;
-  '/api/user/token': ApiUserTokenResponse;
   '/api/user/export': ApiUserExportResponse;
   '/api/users': ApiUsersResponse;
   '/api/users/[id]': ApiUsersIdResponse;

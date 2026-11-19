@@ -1,3 +1,4 @@
+import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import SafeTrans from '@/components/SafeTrans';
 import { Response } from '@/lib/api/response';
 import { bytes } from '@/lib/bytes';
@@ -41,7 +42,13 @@ export async function uploadFileBatch(
           <SafeTrans
             ns='upload'
             i18nKey='file.notifications.mayFail.message'
-            values={{ size: bytes(size), limit: bytes(bytes(config.files.maxFileSize)) }}
+            values={{
+              size: bytes(size),
+              limit: formatResilFileLimit(
+                bytes(config.files.maxFileSize),
+                bytes(bytes(config.files.maxFileSize)),
+              ),
+            }}
             components={{ b: <b /> }}
           />
         ),

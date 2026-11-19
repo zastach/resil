@@ -3,40 +3,23 @@ import { ApiError } from '@/lib/api/errors';
 import { Response } from '@/lib/api/response';
 import { fetchApi } from '@/lib/fetchApi';
 import { useUserStore } from '@/lib/client/store/user';
-import {
-  ActionIcon,
-  Button,
-  CopyButton,
-  Paper,
-  PasswordInput,
-  ScrollArea,
-  Text,
-  TextInput,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Button, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import {
   IconAsteriskSimple,
   IconCheck,
-  IconCopy,
   IconDeviceFloppy,
-  IconKey,
   IconUser,
   IconUserCancel,
 } from '@tabler/icons-react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
-import useSWR from 'swr';
 import { useShallow } from 'zustand/shallow';
 
 export default function SettingsUser() {
   const { t } = useTranslation('settings');
   const [user, setUser] = useUserStore(useShallow((state) => [state.user, state.setUser]));
-
-  const { data: tokenPayload } = useSWR<Response['/api/user/token']>('/api/user/token');
 
   if (!user) {
     return (
@@ -49,12 +32,11 @@ export default function SettingsUser() {
     );
   }
 
-  return <Form user={user} setUser={setUser} token={tokenPayload?.token ?? ''} />;
+  return <Form user={user} setUser={setUser} />;
 }
 
-function Form({ user, setUser, token }: { user: User; setUser: (u: User) => void; token: string }) {
+function Form({ user, setUser }: { user: User; setUser: (u: User) => void }) {
   const { t } = useTranslation(['settings', 'common']);
-  const [tokenShown, setTokenShown] = useState(false);
 
   const form = useForm({
     initialValues: {
@@ -107,7 +89,6 @@ function Form({ user, setUser, token }: { user: User; setUser: (u: User) => void
     form.setFieldValue('currentPassword', '');
 
     mutate('/api/user');
-    mutate('/api/user/token');
     setUser(data.user);
     notifications.show({
       message: t('user.notifications.updated.message'),
@@ -124,27 +105,6 @@ function Form({ user, setUser, token }: { user: User; setUser: (u: User) => void
       </Text>
 
       <form onSubmit={form.onSubmit(onSubmit)}>
-        <TextInput
-          rightSection={
-            <CopyButton value={token} timeout={1000}>
-              {({ copied, copy }) => (
-                <Tooltip label={t('user.tokenCopyTooltip')}>
-                  <ActionIcon onClick={copy} variant='subtle' color='gray'>
-                    {copied ? <IconCheck color='green' size='1rem' /> : <IconCopy size='1rem' />}
-                  </ActionIcon>
-                </Tooltip>
-              )}
-            </CopyButton>
-          }
-          // @ts-ignore this works trust
-          component='span'
-          label={t('user.tokenLabel')}
-          onClick={() => setTokenShown(true)}
-          leftSection={<IconKey size='1rem' />}
-        >
-          <ScrollArea scrollbarSize={5}>{tokenShown ? token : t('user.tokenHidden')}</ScrollArea>
-        </TextInput>
-
         <TextInput
           label={t('user.form.username.label')}
           {...form.getInputProps('username')}

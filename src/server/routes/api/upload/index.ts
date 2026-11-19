@@ -1,3 +1,4 @@
+import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import { ApiError } from '@/lib/api/errors';
 import {
   checkQuota,
@@ -171,7 +172,7 @@ export default typedPlugin(
           if (file.file.bytesRead > bytes(config.files.maxFileSize))
             throw new ApiError(
               5001,
-              `file[${i}]: File size is too large. Maximum file size is ${bytes(config.files.maxFileSize)} bytes`,
+              `file[${i}]: File size is too large. Maximum file size is ${formatResilFileLimit(bytes(config.files.maxFileSize), config.files.maxFileSize)}`,
             );
 
           // determine mimetype

@@ -3,9 +3,7 @@ import type { Response } from '@/lib/api/response';
 import useAvatar from '@/lib/client/hooks/useAvatar';
 import useLogin from '@/lib/client/hooks/useLogin';
 import { useLogout } from '@/lib/client/hooks/useLogout';
-import { useUserStore } from '@/lib/client/store/user';
 import type { SafeConfig } from '@/lib/config/safe';
-import { fetchApi } from '@/lib/fetchApi';
 import { isAdministrator } from '@/lib/role';
 import {
   AppShell,
@@ -22,14 +20,10 @@ import {
   useMantineColorScheme,
   useMantineTheme,
 } from '@mantine/core';
-import { useClipboard } from '@mantine/hooks';
-import { useModals } from '@mantine/modals';
-import { showNotification } from '@mantine/notifications';
 import {
   IconAdjustments,
   IconChevronDown,
   IconChevronRight,
-  IconClipboardCopy,
   IconExternalLink,
   IconFileText,
   IconFiles,
@@ -38,7 +32,6 @@ import {
   IconHome,
   IconLink,
   IconLogout,
-  IconRefreshDot,
   IconSettingsFilled,
   IconShieldLockFilled,
   IconStopwatch,
@@ -240,9 +233,6 @@ export default function Layout() {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const [opened, setOpened] = useState(false);
-  const modals = useModals();
-  const clipboard = useClipboard();
-  const setUser = useUserStore((s) => s.setUser);
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useLogout();
@@ -258,63 +248,6 @@ export default function Layout() {
     setPrev(location.pathname);
     setOpened(false);
   }
-
-  const copyToken = () => {
-    modals.openConfirmModal({
-      title: t('token.copy.title'),
-      children: t('token.copy.message'),
-      labels: { confirm: t('common:actions.copy'), cancel: t('token.cancel') },
-      onConfirm: async () => {
-        const { data, error } = await fetchApi<Response['/api/user/token']>('/api/user/token');
-        if (error) {
-          showNotification({
-            title: t('common:status.error'),
-            message: error.error,
-            color: 'red',
-            icon: <IconClipboardCopy size='1rem' />,
-          });
-        } else {
-          clipboard.copy(data?.token ?? '');
-          showNotification({
-            title: t('token.copied.title'),
-            message: t('token.copied.message'),
-            color: 'green',
-            icon: <IconClipboardCopy size='1rem' />,
-          });
-        }
-      },
-    });
-  };
-
-  const refreshToken = () => {
-    modals.openConfirmModal({
-      title: t('token.refresh.title'),
-
-      children: t('token.refresh.message'),
-      labels: { confirm: t('common:actions.refresh'), cancel: t('token.cancel') },
-      onConfirm: async () => {
-        const { data, error } = await fetchApi<Response['/api/user/token']>('/api/user/token', 'PATCH');
-        if (error) {
-          showNotification({
-            title: t('common:status.error'),
-            message: error.error,
-            color: 'red',
-            icon: <IconRefreshDot size='1rem' />,
-          });
-        } else {
-          setUser(data?.user);
-          mutate(data as Response['/api/user']);
-
-          showNotification({
-            title: t('token.refreshed.title'),
-            message: t('token.refreshed.message'),
-            color: 'green',
-            icon: <IconRefreshDot size='1rem' />,
-          });
-        }
-      },
-    });
-  };
 
   return (
     <ConfigProvider data={loaderData}>
@@ -371,22 +304,6 @@ export default function Layout() {
                         ? t('userMenu.administratorLabel', { username: user?.username })
                         : user?.username}
                     </Menu.Label>
-
-                    {isAdministrator(user?.role) && (
-                      <>
-                        <Menu.Item leftSection={<IconClipboardCopy size='1rem' />} onClick={copyToken}>
-                          {t('userMenu.copyToken')}
-                        </Menu.Item>
-                        <Menu.Item
-                          color='red'
-                          leftSection={<IconRefreshDot size='1rem' />}
-                          onClick={refreshToken}
-                        >
-                          {t('userMenu.refreshToken')}
-                        </Menu.Item>
-                        <Menu.Divider />
-                      </>
-                    )}
 
                     <Menu.Item
                       leftSection={<IconSettingsFilled size='1rem' />}

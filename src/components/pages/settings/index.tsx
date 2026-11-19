@@ -1,5 +1,3 @@
-import useUser from '@/lib/client/hooks/useUser';
-import { isAdministrator } from '@/lib/role';
 import { useConfig } from '@/components/ConfigProvider';
 import { eitherTrue } from '@/lib/primitive';
 import { Box, Center, Loader, Stack, Tabs, Title } from '@mantine/core';
@@ -12,7 +10,6 @@ const SettingsAvatar = lazy(() => import('./parts/SettingsAvatar'));
 const SettingsDashboard = lazy(() => import('./parts/SettingsDashboard'));
 const SettingsQuickLinks = lazy(() => import('./parts/SettingsQuickLinks'));
 const SettingsFileView = lazy(() => import('./parts/SettingsFileView'));
-const SettingsGenerators = lazy(() => import('./parts/SettingsGenerators'));
 const SettingsMfa = lazy(() => import('./parts/SettingsMfa'));
 const SettingsUser = lazy(() => import('./parts/SettingsUser'));
 const SettingsExports = lazy(() => import('./parts/SettingsExports'));
@@ -29,7 +26,6 @@ const DASHBOARD_SETTINGS_TABS = [
 
 export default function DashboardSettings() {
   const config = useConfig();
-  const { user } = useUser();
   const { t } = useTranslation('settings');
 
   const [currTab, setCurrTab] = useQueryState(
@@ -98,7 +94,6 @@ export default function DashboardSettings() {
 
             <Tabs.Panel value='tools'>
               <Stack gap='md'>
-                {user && isAdministrator(user.role) && <SettingsGenerators />}
                 <SettingsExports />
               </Stack>
             </Tabs.Panel>

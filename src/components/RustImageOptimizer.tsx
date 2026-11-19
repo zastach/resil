@@ -27,7 +27,7 @@ async function encode(canvas: HTMLCanvasElement, format: string, limit: number) 
 
   throw new Error(
     format === 'image/png'
-      ? 'This PNG is too large for /sil. Try JPEG, which fills transparent areas with white.'
+      ? 'This PNG exceeds the /sil file size limit. Try JPEG, which fills transparent areas with white.'
       : 'This JPEG is still too large for the current upload limit.',
   );
 }

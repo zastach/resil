@@ -34,11 +34,10 @@ export default typedPlugin(
       PATH,
       {
         schema: {
-          description: 'Get the currently authenticated user and their token.',
+          description: 'Get the currently authenticated user.',
           response: {
             200: z.object({
               user: userSchema.optional(),
-              token: z.string().optional(),
             }),
           },
           tags: ['auth'],
@@ -46,7 +45,7 @@ export default typedPlugin(
         preHandler: [userMiddleware],
       },
       async (req, res) => {
-        return res.send({ user: req.user, token: req.cookies.zipline_token });
+        return res.send({ user: req.user });
       },
     );
 
@@ -86,7 +85,6 @@ export default typedPlugin(
           response: {
             200: z.object({
               user: userSchema.optional(),
-              token: z.string().optional(),
             }),
           },
           tags: ['auth'],
@@ -211,7 +209,7 @@ export default typedPlugin(
           updated: Object.keys(req.body),
         });
 
-        return res.send({ user, token: req.cookies.zipline_token });
+        return res.send({ user });
       },
     );
   },

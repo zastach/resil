@@ -1,3 +1,4 @@
+import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import { useConfig } from '@/components/ConfigProvider';
 import SafeTrans from '@/components/SafeTrans';
 import { useFileUpload } from '@/components/upload/FileUploadProvider';
@@ -130,7 +131,12 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
               <SafeTrans
                 t={t}
                 i18nKey='file.dropzone.limit'
-                values={{ size: bytes(bytes(config.files.maxFileSize)) }}
+                values={{
+                  size: formatResilFileLimit(
+                    bytes(config.files.maxFileSize),
+                    bytes(bytes(config.files.maxFileSize)),
+                  ),
+                }}
                 components={{ b: <b /> }}
               />
             </Text>
