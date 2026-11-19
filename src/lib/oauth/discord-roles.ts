@@ -33,9 +33,18 @@ export async function discordMembership(accessToken: string): Promise<'allowed' 
       retryAfter: response.headers.get('retry-after'),
     });
     if (response.status === 429)
-      throw new ApiError(6008, 'Discord is rate limiting membership checks. Try again shortly.', 503);
+      throw new ApiError(
+        6008,
+        'Discord is rate limiting membership checks. Try again shortly. Please try logging out and back in.',
+        503,
+      );
   }
-  if (!response?.ok) throw new ApiError(6008, 'Discord membership verification unavailable.', 503);
+  if (!response?.ok)
+    throw new ApiError(
+      6008,
+      'Discord membership verification unavailable. Please try logging out and back in.',
+      503,
+    );
   const member = await response.json().catch(() => null);
   if (!Array.isArray(member?.roles)) throw new ApiError(6008, 'Invalid Discord membership response.', 503);
   return policy.roles.some((role) => member.roles.includes(role)) ? 'allowed' : 'denied';
