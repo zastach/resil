@@ -4,26 +4,37 @@ import { createWorker, PSM } from 'tesseract.js';
 
 import { gradeSignReadability } from './sign-readability-grade';
 
-async function prepareForRecognition(file: File) {
+export type SignTextRegion = { x: number; y: number; width: number; height: number };
+
+async function prepareForRecognition(file: File, region?: SignTextRegion) {
   const bitmap = await createImageBitmap(file);
   try {
-    const largestEdge = Math.max(bitmap.width, bitmap.height);
-    const scale = Math.min(4, Math.max(768, Math.min(largestEdge, 1800)) / largestEdge);
+    const x = region ? Math.min(bitmap.width - 1, Math.floor(region.x * bitmap.width)) : 0;
+    const y = region ? Math.min(bitmap.height - 1, Math.floor(region.y * bitmap.height)) : 0;
+    const right = region ? Math.ceil((region.x + region.width) * bitmap.width) : bitmap.width;
+    const bottom = region ? Math.ceil((region.y + region.height) * bitmap.height) : bitmap.height;
+    const width = Math.max(1, Math.min(bitmap.width, right) - x);
+    const height = Math.max(1, Math.min(bitmap.height, bottom) - y);
+    const largestEdge = Math.max(width, height);
+    const scale = Math.min(region ? 6 : 4, Math.max(768, Math.min(largestEdge, 1800)) / largestEdge);
+    const padding = region ? 12 : 0;
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const scaledWidth = Math.max(1, Math.round(width * scale));
+    const scaledHeight = Math.max(1, Math.round(height * scale));
+    canvas.width = scaledWidth + 2 * padding;
+    canvas.height = scaledHeight + 2 * padding;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Could not prepare the text preview.');
     context.fillStyle = '#fff';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, x, y, width, height, padding, padding, scaledWidth, scaledHeight);
     return { canvas, scale };
   } finally {
     bitmap.close();
   }
 }
 
-export async function checkSignReadability(original: File, sign: File) {
+export async function checkSignReadability(original: File, sign: File, region?: SignTextRegion) {
   const worker = await createWorker('eng', 1, {
     workerPath,
     corePath,
@@ -32,10 +43,11 @@ export async function checkSignReadability(original: File, sign: File) {
     errorHandler: () => {},
   });
   try {
-    await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
-    const { canvas: sourceCanvas } = await prepareForRecognition(original);
-    const { data: source } = await worker.recognize(sourceCanvas);
-    const { canvas: signCanvas, scale } = await prepareForRecognition(sign);
+    await worker.setParameters({ tessedit_pageseg_mode: region ? PSM.SINGLE_BLOCK : PSM.AUTO });
+    const source = region
+      ? { text: '', confidence: 0 }
+      : (await worker.recognize((await prepareForRecognition(original)).canvas)).data;
+    const { canvas: signCanvas, scale } = await prepareForRecognition(sign, region);
     const { data: output } = await worker.recognize(signCanvas, {}, { blocks: true });
     const wordHeights = (output.blocks ?? [])
       .flatMap((block) => block.paragraphs)
