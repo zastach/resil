@@ -550,13 +550,16 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 disabled={adjusting || !!currentAdjustment?.error}
                 onClick={() => {
                   const replacements = new Map<File, File>();
+                  const labels = new Map<File, string>();
                   const batch = preview.pairs.flatMap(({ original, saved, copy }, index) => {
                     const signFile = (currentAdjustment?.copies?.[index] ?? copy).file;
                     replacements.set(original, saved ?? signFile);
+                    labels.set(signFile, 'Sign-ready copy');
+                    if (saved) labels.set(saved, saved === original ? 'Original' : 'Compressed original');
                     return saved ? [saved, signFile] : [signFile];
                   });
                   setPreview(null);
-                  void upload(batch, replacements, destinationId);
+                  void upload(batch, replacements, destinationId, labels);
                 }}
               >
                 {preview.pairs.every(({ saved }) => !saved)

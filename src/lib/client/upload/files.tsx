@@ -22,7 +22,12 @@ const FILES_PER_REQUEST = 500;
 
 export async function uploadFileBatch(
   files: File[],
-  { config, ...context }: UploadContextHandlers & UploadHeadersOptions & { config: SafeConfig },
+  {
+    config,
+    labels,
+    ...context
+  }: UploadContextHandlers &
+    UploadHeadersOptions & { config: SafeConfig; labels?: ReadonlyMap<File, string> },
 ) {
   const maxBytes = config.chunks.enabled && bytes(config.chunks.max);
   const partialUploads = maxBytes ? files.filter((file) => file.size >= maxBytes) : [];
@@ -71,7 +76,12 @@ export async function uploadFileBatch(
 
   const allFiles = [...(uploadedNormal?.files ?? []), ...(uploadedPartial?.files ?? [])];
   if (allFiles.length > 0) {
+    const resultLabels = labels && [
+      ...(uploadedNormal?.files.map((_, i) => labels.get(normalUploads[i])) ?? []),
+      ...(uploadedPartial?.files.map((_, i) => labels.get(partialUploads[i])) ?? []),
+    ];
     showUploadModal(allFiles, {
+      labels: resultLabels,
       clipboard: context.clipboard,
       clearEphemeral: () => {
         if (allFiles.length === files.length) context.clearEphemeral();

@@ -5,7 +5,7 @@ import { Response } from '@/lib/api/response';
 import { UploadOptionsStore } from '@/lib/client/store/uploadOptions';
 import i18n from '@/lib/i18n';
 import { ErrorBody } from '@/lib/response';
-import { ActionIcon, Anchor, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Anchor, Badge, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
@@ -113,11 +113,13 @@ export function showUploadModal(
     clearEphemeral,
     showCopyAll = false,
     actionIconColor,
+    labels,
   }: {
     clipboard: ReturnType<typeof useClipboard>;
     clearEphemeral: () => void;
     showCopyAll?: boolean;
     actionIconColor?: string;
+    labels?: (string | undefined)[];
   },
 ) {
   const open = (i: number) => window.open(files[i].url, '_blank');
@@ -147,6 +149,11 @@ export function showUploadModal(
           {files.map((file, i) => (
             <Group key={i} justify='space-between'>
               <Group justify='left' gap='xs'>
+                {labels?.[i] && (
+                  <Badge color={labels[i] === 'Sign-ready copy' ? undefined : 'gray'} variant='light'>
+                    {labels[i]}
+                  </Badge>
+                )}
                 <Anchor
                   component={Link}
                   to={file.url}
@@ -162,7 +169,7 @@ export function showUploadModal(
                   file.size <= RESIL_MAX_FILE_BYTES &&
                   ['image/png', 'image/jpeg'].includes(file.type) && (
                     <Button size='xs' onClick={() => copyRustImage(file.name, clipboard)}>
-                      Copy /sil
+                      {labels?.[i] === 'Sign-ready copy' ? 'Copy sign /sil' : 'Copy /sil'}
                     </Button>
                   )}
                 <Tooltip label={i18n.t('upload:modal.open')}>
