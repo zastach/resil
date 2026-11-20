@@ -1,3 +1,4 @@
+import type { ImageOrganization } from '@/lib/image-organization';
 import { useConfig } from '@/components/ConfigProvider';
 import { defaultEphemeralOptions, defaultUploadOptions } from '@/lib/client/store/uploadOptions';
 import { uploadFileBatch } from '@/lib/client/upload/files';
@@ -17,6 +18,7 @@ type FileUploadContextType = {
     replacements?: ReadonlyMap<File, File>,
     destination?: string,
     labels?: ReadonlyMap<File, string>,
+    organization?: ReadonlyMap<File, ImageOrganization>,
   ) => Promise<void>;
 };
 
@@ -50,6 +52,7 @@ export default function FileUploadProvider({
       replacements?: ReadonlyMap<File, File>,
       destination?: string,
       labels?: ReadonlyMap<File, string>,
+      organization?: ReadonlyMap<File, ImageOrganization>,
     ) => {
       if (batch.length === 0) return Promise.resolve();
 
@@ -60,6 +63,7 @@ export default function FileUploadProvider({
           await uploadFileBatch(batch, {
             config,
             labels,
+            organization,
             options: { ...defaultUploadOptions, addOriginalName: true },
             ephemeral: defaultEphemeralOptions,
             folder: folder ?? destination,

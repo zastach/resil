@@ -1,3 +1,4 @@
+import { imageOrganizationSchema } from '@/lib/image-organization';
 import { config } from '@/lib/config';
 import { db, type DbClient } from '@/lib/db';
 import { files } from '@/lib/db/schema';
@@ -86,6 +87,7 @@ export const fileSchema = createSelectSchema(files, {
   createdAt: (schema) => z.union([schema, z.string()]),
   updatedAt: (schema) => z.union([schema, z.string()]),
   deletesAt: (schema) => z.union([schema, z.string()]),
+  organization: imageOrganizationSchema.nullish(),
   maxViews: (schema) => schema.optional(),
   password: z.boolean().nullable().optional(),
   anonymous: (schema) => schema.optional(),

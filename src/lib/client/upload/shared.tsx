@@ -1,3 +1,4 @@
+import type { ImageOrganization } from '@/lib/image-organization';
 import { RESIL_MAX_FILE_BYTES } from '@/lib/resil-upload-limits';
 import { copyRustImage } from '@/lib/client/copyRustImage';
 import SafeTrans from '@/components/SafeTrans';
@@ -19,6 +20,7 @@ export type UploadHeadersOptions = {
   ephemeral: UploadOptionsStore['ephemeral'];
   folder?: string;
   partials?: number;
+  organization?: ReadonlyMap<File, ImageOrganization>;
 };
 
 export type UploadHandlers = {

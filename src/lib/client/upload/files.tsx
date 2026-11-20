@@ -137,6 +137,7 @@ export async function uploadFiles(
     ephemeral,
     folder,
     partials,
+    organization,
     showResult = true,
   }: UploadContextHandlers & UploadHeadersOptions & { showResult?: boolean },
 ): Promise<{ files: Response['/api/upload']['files'] } | null> {
@@ -165,6 +166,11 @@ export async function uploadFiles(
   const uploadBatch = async (batchFiles: File[], completedBytes: number) =>
     new Promise<Response['/api/upload']>((resolve, reject) => {
       const body = new FormData();
+      if (organization)
+        body.append(
+          'resil-organization',
+          JSON.stringify(batchFiles.map((file) => organization.get(file) ?? null)),
+        );
       const batchBytes = batchFiles.reduce((acc, file) => acc + file.size, 0);
 
       for (let i = 0; i !== batchFiles.length; ++i) body.append('file', batchFiles[i]);

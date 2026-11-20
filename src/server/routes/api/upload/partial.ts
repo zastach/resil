@@ -1,3 +1,4 @@
+import { readUploadOrganization } from '@/lib/api/image-organization';
 import { ApiError } from '@/lib/api/errors';
 import {
   claimPartial,
@@ -198,7 +199,11 @@ export default typedPlugin(
           if (options.maxViews) data.maxViews = options.maxViews;
           if (options.discordPreviewMode) data.discordPreviewMode = options.discordPreviewMode;
           if (options.discordComponentEmbed) data.discordComponentEmbed = options.discordComponentEmbed;
-          if (folder) data.folderId = folder.id;
+          if (folder) {
+            data.folderId = folder.id;
+            if (mimetype.startsWith('image/'))
+              data.organization = readUploadOrganization(file.fields, 1)?.[0];
+          }
           if (options.addOriginalName) {
             const sanitizedOG = sanitizeFilename(options.partial.filename);
             if (!sanitizedOG) throw new ApiError(1008);

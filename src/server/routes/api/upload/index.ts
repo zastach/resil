@@ -1,3 +1,4 @@
+import { readUploadOrganization } from '@/lib/api/image-organization';
 import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import { ApiError } from '@/lib/api/errors';
 import {
@@ -132,6 +133,7 @@ export default typedPlugin(
 
         if (!multipartFiles.length) throw new ApiError(1062);
 
+        const organization = readUploadOrganization(multipartFiles[0].fields, multipartFiles.length);
         const totalFileSize = multipartFiles.reduce((acc, x) => acc + x.file.bytesRead, 0);
 
         // use quota of user if anonymous
@@ -251,7 +253,7 @@ export default typedPlugin(
 
         let password: string | undefined;
         if (options.password) password = await hashPassword(options.password);
-        const uploads = prepared.map((item) => {
+        const uploads = prepared.map((item, index) => {
           const { file, extension, mimetype, size, compressed, removedGps, originalName } = item;
 
           if (size > bytes(config.files.maxFileSize))
@@ -273,6 +275,7 @@ export default typedPlugin(
           if (password) data.password = password;
           if (folder) data.folderId = folder.id;
           if (originalName) data.originalName = originalName;
+          if (folder && mimetype.startsWith('image/')) data.organization = organization?.[index];
 
           data.deletesAt = options.deletesAt && options.deletesAt !== 'never' ? options.deletesAt : null;
 

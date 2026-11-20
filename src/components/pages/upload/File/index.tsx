@@ -1,3 +1,4 @@
+import { suggestImageName, type ImageOrganization } from '@/lib/image-organization';
 import { formatRootUrl } from '@/lib/url';
 import { useFolders } from '@/lib/client/hooks/useFolders';
 import type { Folder } from '@/lib/db/models/folder';
@@ -175,10 +176,18 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const location = useLocation();
   const edit = (
     location.state as {
-      signSource?: { name: string; originalName?: string | null; folderId?: string | null };
+      signSource?: {
+        id: string;
+        name: string;
+        originalName?: string | null;
+        folderId?: string | null;
+        organization?: ImageOrganization | null;
+      };
     } | null
   )?.signSource;
   const [editSource, setEditSource] = useState<File>();
+  const [displayNames, setDisplayNames] = useState<ReadonlyMap<File, string>>(new Map());
+  const groupIds = useRef(new WeakMap<File, string>());
   const [destination, setDestination] = useState(edit?.folderId ?? 'root');
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [savingFolder, setSavingFolder] = useState(false);
@@ -248,6 +257,29 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     return () => controller.abort();
   }, [edit, setFiles]);
 
+  function organizationFor(file: File, variant: string | null): ImageOrganization {
+    if (edit && file === editSource && edit.folderId === destinationId) {
+      const sourceName = edit.organization?.sourceName ?? file.name;
+      return {
+        groupId: edit.organization?.groupId ?? edit.id,
+        displayName: edit.organization?.displayName ?? suggestImageName(sourceName),
+        sourceName,
+        variant,
+      };
+    }
+    let groupId = groupIds.current.get(file);
+    if (!groupId) {
+      groupId = crypto.randomUUID();
+      groupIds.current.set(file, groupId);
+    }
+    return {
+      groupId,
+      displayName: displayNames.get(file)?.trim() || suggestImageName(file.name),
+      sourceName: file.name.slice(0, 512),
+      variant,
+    };
+  }
+
   async function uploadSelection(batchFiles = files, selectedSign = sign) {
     const selectedPreset = getSignPreset(selectedSign);
     if (
@@ -276,16 +308,25 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         setPreview({ preset: selectedPreset, limit, pairs });
       } else {
         const replacements = new Map<File, File>();
+        const organization = new Map<File, ImageOrganization>();
         const batch: File[] = [];
         for (const file of batchFiles) {
           const saved = await fitImageToUploadLimit(file, limit);
           if (saved !== file) replacements.set(file, saved);
+          if (destinationId && saved.type.startsWith('image/'))
+            organization.set(saved, organizationFor(file, null));
           batch.push(saved);
         }
         if (replacements.size) {
           showNotification({ message: 'Large images were compressed to fit the upload limit.' });
         }
-        await upload(batch, replacements, destinationId);
+        await upload(
+          batch,
+          replacements,
+          destinationId,
+          undefined,
+          organization.size ? organization : undefined,
+        );
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not prepare the upload.');
@@ -551,15 +592,27 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                 onClick={() => {
                   const replacements = new Map<File, File>();
                   const labels = new Map<File, string>();
+                  const organization = new Map<File, ImageOrganization>();
                   const batch = preview.pairs.flatMap(({ original, saved, copy }, index) => {
                     const signFile = (currentAdjustment?.copies?.[index] ?? copy).file;
                     replacements.set(original, saved ?? signFile);
                     labels.set(signFile, 'Sign-ready copy');
+                    if (destinationId) {
+                      const metadata = organizationFor(original, preview.preset[0]);
+                      organization.set(signFile, metadata);
+                      if (saved) organization.set(saved, { ...metadata, variant: null });
+                    }
                     if (saved) labels.set(saved, saved === original ? 'Original' : 'Compressed original');
                     return saved ? [saved, signFile] : [signFile];
                   });
                   setPreview(null);
-                  void upload(batch, replacements, destinationId, labels);
+                  void upload(
+                    batch,
+                    replacements,
+                    destinationId,
+                    labels,
+                    organization.size ? organization : undefined,
+                  );
                 }}
               >
                 {preview.pairs.every(({ saved }) => !saved)
@@ -809,6 +862,36 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
             </Tooltip>
           </Group>
         )}
+
+        {destinationId &&
+          !uploadImmediately &&
+          files.some((file) => file !== editSource && file.type.startsWith('image/')) && (
+            <Paper withBorder p='sm' my='sm'>
+              <Stack gap='xs'>
+                <Text fw={600}>
+                  Name your images{' '}
+                  <Text component='span' size='sm' c='dimmed'>
+                    (optional)
+                  </Text>
+                </Text>
+                {files
+                  .filter((file) => file !== editSource && file.type.startsWith('image/'))
+                  .map((file, index) => (
+                    <TextInput
+                      key={index}
+                      label={file.name}
+                      value={displayNames.get(file) ?? suggestImageName(file.name)}
+                      maxLength={120}
+                      disabled={busy}
+                      onChange={(event) => {
+                        const name = event.currentTarget.value;
+                        setDisplayNames((current) => new Map(current).set(file, name));
+                      }}
+                    />
+                  ))}
+              </Stack>
+            </Paper>
+          )}
 
         <Group justify='right' gap='sm' my='md'>
           <Button
