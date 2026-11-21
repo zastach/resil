@@ -35,6 +35,26 @@ async function encodeJpeg(canvas: HTMLCanvasElement, limit: number) {
   return null;
 }
 
+async function encodeSignPng(canvas: HTMLCanvasElement, limit: number) {
+  // Sign Artist can pass through an exact-size upload as a PNG texture without converting it.
+  const smaller = document.createElement('canvas');
+  for (let scale = 1; scale >= 0.125; scale *= 0.8) {
+    let output = canvas;
+    if (scale < 1) {
+      smaller.width = Math.max(1, Math.round(canvas.width * scale));
+      smaller.height = Math.max(1, Math.round(canvas.height * scale));
+      const context = smaller.getContext('2d');
+      if (!context) throw new Error('This browser could not resize the sign copy.');
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(canvas, 0, 0, smaller.width, smaller.height);
+      output = smaller;
+    }
+    const blob = await new Promise<Blob | null>((resolve) => output.toBlob(resolve, 'image/png'));
+    if (blob?.type === 'image/png' && blob.size <= limit) return blob;
+  }
+  return null;
+}
+
 async function decodeImage(file: File) {
   return createImageBitmap(file).catch(() => {
     throw new Error(`Could not read "${file.name}" as an image.`);
@@ -133,7 +153,7 @@ export async function makeSignCopy(
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/-$/, '');
-  const blob = await encodeJpeg(canvas, limit);
-  if (blob) return { file: new File([blob], `${stem}-${suffix}.jpeg`, { type: blob.type }), clipped };
+  const blob = await encodeSignPng(canvas, limit);
+  if (blob) return { file: new File([blob], `${stem}-${suffix}.png`, { type: blob.type }), clipped };
   throw new Error(`The sign copy of "${file.name}" exceeds the upload limit.`);
 }
