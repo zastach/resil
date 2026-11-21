@@ -1,6 +1,11 @@
 import { rustSignGroups } from '@/lib/rust-sign-sizes';
 
-type SignPreset = readonly [name: string, width: number, height: number];
+type SignPreset = readonly [
+  name: string,
+  width: number,
+  height: number,
+  options?: { resizeInSignArtist: boolean },
+];
 
 export const signOptions = rustSignGroups.map(({ name, sizes }) => ({
   group: name,
@@ -35,12 +40,14 @@ async function encodeJpeg(canvas: HTMLCanvasElement, limit: number) {
   return null;
 }
 
-async function encodeSignPng(canvas: HTMLCanvasElement, limit: number) {
+async function encodeSignPng(canvas: HTMLCanvasElement, limit: number, resizeInSignArtist: boolean) {
   // Sign Artist can pass through an exact-size upload as a PNG texture without converting it.
   const smaller = document.createElement('canvas');
-  for (let scale = 1; scale >= 0.125; scale *= 0.8) {
+  // The spinning wheel needs Sign Artist to place the artwork inside a larger texture.
+  const initialScale = resizeInSignArtist ? (canvas.width + 1) / canvas.width : 1;
+  for (let scale = initialScale; scale >= 0.125; scale *= 0.8) {
     let output = canvas;
-    if (scale < 1) {
+    if (scale !== 1) {
       smaller.width = Math.max(1, Math.round(canvas.width * scale));
       smaller.height = Math.max(1, Math.round(canvas.height * scale));
       const context = smaller.getContext('2d');
@@ -115,7 +122,7 @@ function sharpenSign(context: CanvasRenderingContext2D, width: number, height: n
 
 export async function makeSignCopy(
   file: File,
-  [name, width, height]: SignPreset,
+  [name, width, height, options]: SignPreset,
   limit: number,
   adjustments = defaultSignAdjustments,
 ) {
@@ -153,7 +160,7 @@ export async function makeSignCopy(
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/-$/, '');
-  const blob = await encodeSignPng(canvas, limit);
+  const blob = await encodeSignPng(canvas, limit, options?.resizeInSignArtist ?? false);
   if (blob) return { file: new File([blob], `${stem}-${suffix}.png`, { type: blob.type }), clipped };
   throw new Error(`The sign copy of "${file.name}" exceeds the upload limit.`);
 }
