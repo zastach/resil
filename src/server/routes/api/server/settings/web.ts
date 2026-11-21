@@ -1,7 +1,7 @@
 import { config } from '@/lib/config';
 import { safeConfig } from '@/lib/config/safe';
 import { log } from '@/lib/logger';
-import { userMiddleware } from '@/server/middleware/user';
+import { authenticateUser } from '@/server/middleware/user';
 import typedPlugin from '@/server/typedPlugin';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
@@ -29,7 +29,7 @@ export default typedPlugin(
             200: z.custom<ApiServerSettingsWebResponse>(),
           },
         },
-        preHandler: [userMiddleware],
+        preHandler: [authenticateUser],
       },
       async (_, res) => {
         const webConfig = safeConfig(config);

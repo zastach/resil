@@ -67,6 +67,7 @@ export default typedPlugin(
             password: zStringTrimmed.optional(),
             avatar: z.url().optional(),
             role: z.enum(Role).optional(),
+            manualInviteAccess: z.boolean().optional(),
             quota: z
               .object({
                 filesType: z.enum(['BY_BYTES', 'BY_FILES', 'NONE']).optional(),
@@ -88,7 +89,7 @@ export default typedPlugin(
         if (!user) throw new ApiError(4009);
         if (!canInteract(req.user.role, user.role)) throw new ApiError(3019);
 
-        const { username, password, avatar, role, quota } = req.body;
+        const { username, password, avatar, role, quota, manualInviteAccess } = req.body;
         if (role && !canInteract(req.user.role, role)) throw new ApiError(3007);
 
         let finalQuota:
@@ -128,6 +129,7 @@ export default typedPlugin(
           ...(password && { password: await hashPassword(password) }),
           ...(role !== undefined && { role: role || 'USER' }),
           ...(avatar && { avatar }),
+          ...(manualInviteAccess !== undefined && { manualInviteAccess }),
         };
 
         const updatedUser = await db.transaction(async (tx) => {

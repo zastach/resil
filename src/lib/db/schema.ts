@@ -1,3 +1,4 @@
+import type { ImageOrganization } from '@/lib/image-organization';
 import type { DiscordComponentEmbed, DiscordFilePreviewMode, DiscordUrlPreviewMode } from '@/lib/discord';
 import type { QuickLinkId } from '@/lib/quickLinks';
 import { createId } from '@paralleldrive/cuid2';
@@ -206,6 +207,8 @@ export const users = pgTable(
     avatar: text(),
     token: text().notNull(),
     role: role().default('USER').notNull(),
+    resilPolicyAcceptance: jsonb().$type<{ version: string; acceptedAt: string }>(),
+    manualInviteAccess: boolean().default(false).notNull(),
     view: jsonb().$type<Record<string, Json | undefined>>().default({}).notNull(),
     quickLinks: jsonb().$type<QuickLinkId[]>().default([]).notNull(),
     totpSecret: text(),
@@ -224,6 +227,7 @@ export const folders = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     name: text().notNull(),
+    imageOrder: jsonb().$type<string[]>(),
     public: boolean().default(false).notNull(),
     allowUploads: boolean().default(false).notNull(),
     parentId: text().references((): AnyPgColumn => folders.id, {
@@ -255,6 +259,7 @@ export const files = pgTable(
     deletesAt: timestamp({ precision: 3, mode: 'date', withTimezone: true }),
     name: text().notNull(),
     originalName: text(),
+    organization: jsonb().$type<ImageOrganization>(),
     size: bigint({ mode: 'number' }).notNull(),
     type: text().notNull(),
     views: integer().default(0).notNull(),

@@ -1,3 +1,4 @@
+import ResilBrand from '@/components/ResilBrand';
 import LanguageSelect from '@/components/LanguageSelect';
 import ExternalAuthButton from '@/components/pages/login/ExternalAuthButton';
 import LocalLogin from '@/components/pages/login/LocalLogin';
@@ -13,6 +14,7 @@ import { useTitle } from '@/lib/client/hooks/useTitle';
 import {
   Anchor,
   Box,
+  Button,
   Center,
   Divider,
   Group,
@@ -21,7 +23,6 @@ import {
   Paper,
   Stack,
   Text,
-  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { showNotification } from '@mantine/notifications';
@@ -196,7 +197,7 @@ export default function Login() {
         </Box>
       )}
 
-      <Center h='100vh'>
+      <Center mih='100dvh' py='xl'>
         {hasBg && (
           <Image
             src={config.website.loginBackground}
@@ -210,7 +211,8 @@ export default function Login() {
         )}
 
         <Paper
-          w='350px'
+          w='420px'
+          maw='calc(100% - 32px)'
           p='xl'
           shadow='xl'
           withBorder
@@ -220,11 +222,39 @@ export default function Login() {
             backdropFilter: hasBg ? 'blur(35px)' : undefined,
           }}
         >
-          <Title order={1} ta='center' mb='md'>
-            <b>{config.website.title ?? 'Zipline'}</b>
-          </Title>
+          <ResilBrand large />
+          <Text ta='center' c='dimmed' size='sm' mb='xl'>
+            Image hosting for the Rust Empires community.
+          </Text>
 
           <Stack>
+            {config.oauthEnabled.discord && (
+              <>
+                <Button
+                  component='a'
+                  href='/api/auth/oauth/discord'
+                  className='resil-discord-button'
+                  color='#5865F2'
+                  variant='filled'
+                  fullWidth
+                  leftSection={<IconBrandDiscordFilled size='1.2rem' />}
+                >
+                  Continue with Discord
+                </Button>
+                <Text ta='center' size='xs' c='dimmed'>
+                  Requires an eligible Rust Empires{' '}
+                  <Anchor
+                    href='https://rustempires.com/index.php/donate/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    donator role
+                  </Anchor>
+                  .
+                </Text>
+                {showLocalLogin && <Divider label='Invited members and administrators' />}
+              </>
+            )}
             {showLocalLogin && (
               <LocalLogin
                 form={form}
@@ -236,7 +266,6 @@ export default function Login() {
 
             {eitherTrue(
               config.mfa.passkeys && browserSupportsWebAuthn(),
-              config.oauthEnabled.discord,
               config.oauthEnabled.github,
               config.oauthEnabled.google,
               config.oauthEnabled.oidc,
@@ -250,12 +279,6 @@ export default function Login() {
                 )}
 
                 <Group grow>
-                  {config.oauthEnabled.discord && (
-                    <ExternalAuthButton
-                      provider='Discord'
-                      leftSection={<IconBrandDiscordFilled stroke={4} size='1.1rem' />}
-                    />
-                  )}
                   {config.oauthEnabled.github && (
                     <ExternalAuthButton
                       provider='GitHub'
@@ -286,6 +309,24 @@ export default function Login() {
                 )}
               </>
             )}
+            <Divider />
+            <Group justify='center' gap='sm'>
+              <Anchor component={Link} to='/auth/terms' size='xs'>
+                Terms of Service
+              </Anchor>
+              <Anchor component={Link} to='/auth/privacy' size='xs'>
+                Privacy Policy
+              </Anchor>
+              <Anchor component={Link} to='/auth/contact' size='xs'>
+                Contact Us
+              </Anchor>
+              <Anchor component={Link} to='/auth/image-guide' size='xs'>
+                Rust Image Guide
+              </Anchor>
+              <Anchor href='https://rustempires.com/' target='_blank' rel='noopener noreferrer' size='xs'>
+                Rust Empires
+              </Anchor>
+            </Group>
           </Stack>
         </Paper>
       </Center>

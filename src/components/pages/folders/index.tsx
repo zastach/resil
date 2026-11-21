@@ -1,3 +1,4 @@
+import FolderImageEntries from './FolderImageEntries';
 import GridTableSwitcher from '@/components/GridTableSwitcher';
 import { Response } from '@/lib/api/response';
 import { Folder } from '@/lib/db/models/folder';
@@ -43,6 +44,7 @@ export default function DashboardFolders() {
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
+  const [individualFiles, setIndividualFiles] = useState(false);
   const [filesOpen, setFilesOpen] = useState(true);
 
   const folderPath = useMemo(() => {
@@ -251,13 +253,23 @@ export default function DashboardFolders() {
               : t('page.folderFiles', { name: currentFolder.name })}
           </Text>
           <Collapse expanded={filesOpen}>
-            {view === 'grid' ? (
-              <Paper withBorder p='sm'>
-                <FilesGridView folderId={currentFolderId} />
-              </Paper>
-            ) : (
-              <FilesTableView folderId={currentFolderId} />
-            )}
+            {currentFolderId && <FolderImageEntries key={currentFolderId} folderId={currentFolderId} />}
+            <Button
+              mt='sm'
+              size='compact-sm'
+              variant='subtle'
+              onClick={() => setIndividualFiles((open) => !open)}
+            >
+              {individualFiles ? 'Hide individual files' : 'Manage individual files'}
+            </Button>
+            {individualFiles &&
+              (view === 'grid' ? (
+                <Paper withBorder p='sm'>
+                  <FilesGridView folderId={currentFolderId} />
+                </Paper>
+              ) : (
+                <FilesTableView folderId={currentFolderId} />
+              ))}
           </Collapse>
         </Box>
       )}

@@ -1,9 +1,12 @@
+import type { ImageOrganization } from '@/lib/image-organization';
+import { RESIL_MAX_FILE_BYTES } from '@/lib/resil-upload-limits';
+import { copyRustImage } from '@/lib/client/copyRustImage';
 import SafeTrans from '@/components/SafeTrans';
 import { Response } from '@/lib/api/response';
 import { UploadOptionsStore } from '@/lib/client/store/uploadOptions';
 import i18n from '@/lib/i18n';
 import { ErrorBody } from '@/lib/response';
-import { ActionIcon, Anchor, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Anchor, Badge, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
@@ -17,6 +20,7 @@ export type UploadHeadersOptions = {
   ephemeral: UploadOptionsStore['ephemeral'];
   folder?: string;
   partials?: number;
+  organization?: ReadonlyMap<File, ImageOrganization>;
 };
 
 export type UploadHandlers = {
@@ -111,11 +115,13 @@ export function showUploadModal(
     clearEphemeral,
     showCopyAll = false,
     actionIconColor,
+    labels,
   }: {
     clipboard: ReturnType<typeof useClipboard>;
     clearEphemeral: () => void;
     showCopyAll?: boolean;
     actionIconColor?: string;
+    labels?: (string | undefined)[];
   },
 ) {
   const open = (i: number) => window.open(files[i].url, '_blank');
@@ -136,7 +142,7 @@ export function showUploadModal(
 
   const pendingCount = files.filter((file) => file.pending).length;
 
-  modals.open({
+  const modalId = modals.open({
     title: i18n.t('upload:modal.title', { count: files.length }),
     size: 'auto',
     children: (
@@ -145,16 +151,29 @@ export function showUploadModal(
           {files.map((file, i) => (
             <Group key={i} justify='space-between'>
               <Group justify='left' gap='xs'>
+                {labels?.[i] && (
+                  <Badge color={labels[i] === 'Sign-ready copy' ? undefined : 'gray'} variant='light'>
+                    {labels[i]}
+                  </Badge>
+                )}
                 <Anchor
                   component={Link}
                   to={file.url}
                   target='_blank'
                   c={file.pending ? 'dimmed' : undefined}
                 >
-                  {file.url}
+                  {file.originalName ?? file.url}
                 </Anchor>
               </Group>
               <Group justify='right'>
+                {!file.pending &&
+                  file.size !== undefined &&
+                  file.size <= RESIL_MAX_FILE_BYTES &&
+                  ['image/png', 'image/jpeg'].includes(file.type) && (
+                    <Button size='xs' onClick={() => copyRustImage(file.name, clipboard)}>
+                      {labels?.[i] === 'Sign-ready copy' ? 'Copy sign /sil' : 'Copy /sil'}
+                    </Button>
+                  )}
                 <Tooltip label={i18n.t('upload:modal.open')}>
                   <ActionIcon onClick={() => open(i)} variant='filled' color={actionIconColor}>
                     <IconExternalLink size='1rem' />
@@ -212,6 +231,24 @@ export function showUploadModal(
             </Tooltip>
           </Group>
         )}
+        <Group mt='md' gap='sm' grow>
+          <Button
+            component={Link}
+            to='/dashboard/upload/file'
+            variant='light'
+            onClick={() => modals.close(modalId)}
+          >
+            Upload another
+          </Button>
+          <Button
+            component={Link}
+            to='/dashboard/files'
+            variant='outline'
+            onClick={() => modals.close(modalId)}
+          >
+            View My Images
+          </Button>
+        </Group>
       </>
     ),
   });

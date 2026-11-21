@@ -35,7 +35,8 @@ export async function registerPlugins(server: FastifyInstance) {
   await server.register(fastifyMultipart, {
     limits: {
       fileSize: bytes(config.files.maxFileSize),
-      parts: config.files.maxFilesPerUpload,
+      files: config.files.maxFilesPerUpload,
+      parts: config.files.maxFilesPerUpload + 1,
     },
   });
 

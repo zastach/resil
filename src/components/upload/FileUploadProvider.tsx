@@ -1,5 +1,6 @@
+import type { ImageOrganization } from '@/lib/image-organization';
 import { useConfig } from '@/components/ConfigProvider';
-import { useUploadOptionsStore } from '@/lib/client/store/uploadOptions';
+import { defaultEphemeralOptions, defaultUploadOptions } from '@/lib/client/store/uploadOptions';
 import { uploadFileBatch } from '@/lib/client/upload/files';
 import { initialState, useProgress, type UploadProgress } from '@/lib/client/upload/useProgress';
 import { useClipboard } from '@mantine/hooks';
@@ -12,7 +13,13 @@ type FileUploadContextType = {
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   progress: UploadProgress;
   loading: boolean;
-  upload: (files: File[]) => Promise<void>;
+  upload: (
+    files: File[],
+    replacements?: ReadonlyMap<File, File>,
+    destination?: string,
+    labels?: ReadonlyMap<File, string>,
+    organization?: ReadonlyMap<File, ImageOrganization>,
+  ) => Promise<void>;
 };
 
 const FileUploadContext = createContext<FileUploadContextType | null>(null);
@@ -40,26 +47,37 @@ export default function FileUploadProvider({
   const queue = useRef(Promise.resolve());
 
   const upload = useCallback(
-    (batch: File[]) => {
+    (
+      batch: File[],
+      replacements?: ReadonlyMap<File, File>,
+      destination?: string,
+      labels?: ReadonlyMap<File, string>,
+      organization?: ReadonlyMap<File, ImageOrganization>,
+    ) => {
       if (batch.length === 0) return Promise.resolve();
 
-      const { options, ephemeral } = useUploadOptionsStore.getState();
       setPendingUploads((count) => count + 1);
 
       const next = queue.current.then(async () => {
         try {
           await uploadFileBatch(batch, {
             config,
-            options,
-            ephemeral,
-            folder,
+            labels,
+            organization,
+            options: { ...defaultUploadOptions, addOriginalName: true },
+            ephemeral: defaultEphemeralOptions,
+            folder: folder ?? destination,
             clipboard,
-            setFiles,
+            setFiles: replacements
+              ? (update) =>
+                  setFiles((previous) => {
+                    const submitted = previous.map((file) => replacements.get(file) ?? file);
+                    const remaining = new Set(typeof update === 'function' ? update(submitted) : update);
+                    return previous.filter((file) => remaining.has(replacements.get(file) ?? file));
+                  })
+              : setFiles,
             setProgress,
-            clearEphemeral: () => {
-              const state = useUploadOptionsStore.getState();
-              if (state.ephemeral === ephemeral) state.clearEphemeral();
-            },
+            clearEphemeral: () => {},
           });
         } catch (error) {
           showNotification({

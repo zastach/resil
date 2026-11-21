@@ -13,8 +13,13 @@ import { users, userSessions } from '@/lib/db/schema';
 import { discordComponentEmbedSchema } from '@/lib/discord';
 import { log } from '@/lib/logger';
 import { secondlyRatelimit } from '@/lib/ratelimits';
+import {
+  hasAcceptedResilPolicy,
+  RESIL_POLICY_ACCEPTANCE_PATH,
+  RESIL_POLICY_VERSION,
+} from '@/lib/resil-policy';
 import { zStringTrimmed } from '@/lib/validation';
-import { userMiddleware } from '@/server/middleware/user';
+import { authenticateUser, userMiddleware } from '@/server/middleware/user';
 import { getSession, saveSession } from '@/server/session';
 import typedPlugin from '@/server/typedPlugin';
 import { and, eq, ne } from 'drizzle-orm';
@@ -33,19 +38,41 @@ export default typedPlugin(
       PATH,
       {
         schema: {
-          description: 'Get the currently authenticated user and their token.',
+          description: 'Get the currently authenticated user.',
           response: {
             200: z.object({
               user: userSchema.optional(),
-              token: z.string().optional(),
             }),
           },
           tags: ['auth'],
         },
-        preHandler: [userMiddleware],
+        preHandler: [authenticateUser],
       },
       async (req, res) => {
-        return res.send({ user: req.user, token: req.cookies.zipline_token });
+        return res.send({ user: req.user });
+      },
+    );
+
+    server.post(
+      RESIL_POLICY_ACCEPTANCE_PATH,
+      {
+        schema: {
+          description: 'Accept the current Resil policies.',
+          body: z.strictObject({ version: z.literal(RESIL_POLICY_VERSION) }),
+          response: { 204: z.undefined() },
+          tags: ['auth'],
+        },
+        preHandler: [authenticateUser],
+      },
+      async (req, res) => {
+        if (req.headers.authorization) throw new ApiError(2004);
+        if (!hasAcceptedResilPolicy(req.user)) {
+          const updated = await updateUser(req.user.id, {
+            resilPolicyAcceptance: { version: req.body.version, acceptedAt: new Date().toISOString() },
+          });
+          if (!updated) throw new ApiError(1068);
+        }
+        return res.code(204).send();
       },
     );
 
@@ -84,7 +111,6 @@ export default typedPlugin(
           response: {
             200: z.object({
               user: userSchema.optional(),
-              token: z.string().optional(),
             }),
           },
           tags: ['auth'],
@@ -205,7 +231,7 @@ export default typedPlugin(
           updated: Object.keys(req.body),
         });
 
-        return res.send({ user, token: req.cookies.zipline_token });
+        return res.send({ user });
       },
     );
   },

@@ -56,6 +56,7 @@ export async function uploadPartialFiles(
     ephemeral,
     config,
     folder,
+    organization,
   }: UploadHandlers &
     UploadHeadersOptions & {
       config: SafeConfig;
@@ -95,6 +96,8 @@ export async function uploadPartialFiles(
           const end = Math.min(start + chunkSize, file.size);
           const chunk = file.slice(start, end);
           const body = new FormData();
+          if (organization)
+            body.append('resil-organization', JSON.stringify([organization.get(file) ?? null]));
           body.append('file', chunk);
 
           notifications.update({

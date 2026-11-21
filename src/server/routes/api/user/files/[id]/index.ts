@@ -111,6 +111,8 @@ export default typedPlugin(
           data.maxViews = req.body.maxViews;
         }
 
+        if (req.body.password && (file.type.startsWith('image/') || data.type?.startsWith('image/')))
+          throw new ApiError(1001, 'Images cannot be password-protected.');
         if (req.body.password !== undefined) {
           if (req.body.password === null || req.body.password === '') {
             data.password = null;

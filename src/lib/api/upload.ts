@@ -1,6 +1,7 @@
 import { db, type DbClient } from '@/lib/db';
 import { files } from '@/lib/db/schema';
 import { User } from '@/lib/db/models/user';
+import { RESIL_USER_STORAGE_BYTES } from '@/lib/resil-upload-limits';
 import { bytes } from '@/lib/bytes';
 import { count, eq, sum } from 'drizzle-orm';
 import { config } from '../config';
@@ -28,7 +29,7 @@ export async function checkQuota(
   fileCount: number,
   client?: DbClient,
 ): Promise<true | string> {
-  if (!user?.quota) return true;
+  if (!user) return true;
 
   const rows = await (client ?? db)
     .select({ count: count(), size: sum(files.size) })
@@ -36,14 +37,12 @@ export async function checkQuota(
     .where(eq(files.userId, user.id));
 
   const usage = { count: rows[0]?.count ?? 0, size: Number(rows[0]?.size ?? 0) };
-  if (user.quota.filesQuota === 'BY_BYTES') {
-    if (usage.size + newSize > bytes(user.quota.maxBytes!))
-      return `uploading will exceed your storage quota of ${user.quota.maxBytes}`;
+  if (usage.size + newSize > RESIL_USER_STORAGE_BYTES) return 'uploading will exceed your 1 GB storage quota';
 
-    return true;
-  }
+  if (user.quota?.filesQuota === 'BY_BYTES' && usage.size + newSize > bytes(user.quota.maxBytes!))
+    return `uploading will exceed your storage quota of ${user.quota.maxBytes}`;
 
-  if (usage.count + fileCount > user.quota.maxFiles!)
+  if (user.quota?.filesQuota === 'BY_FILES' && usage.count + fileCount > user.quota.maxFiles!)
     return `uploading will exceed your file count quota of ${user.quota.maxFiles} files`;
 
   return true;

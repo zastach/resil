@@ -10,7 +10,6 @@ const SettingsAvatar = lazy(() => import('./parts/SettingsAvatar'));
 const SettingsDashboard = lazy(() => import('./parts/SettingsDashboard'));
 const SettingsQuickLinks = lazy(() => import('./parts/SettingsQuickLinks'));
 const SettingsFileView = lazy(() => import('./parts/SettingsFileView'));
-const SettingsGenerators = lazy(() => import('./parts/SettingsGenerators'));
 const SettingsMfa = lazy(() => import('./parts/SettingsMfa'));
 const SettingsUser = lazy(() => import('./parts/SettingsUser'));
 const SettingsExports = lazy(() => import('./parts/SettingsExports'));
@@ -95,7 +94,6 @@ export default function DashboardSettings() {
 
             <Tabs.Panel value='tools'>
               <Stack gap='md'>
-                <SettingsGenerators />
                 <SettingsExports />
               </Stack>
             </Tabs.Panel>

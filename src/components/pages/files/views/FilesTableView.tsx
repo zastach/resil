@@ -1,5 +1,11 @@
 import RelativeDate from '@/components/RelativeDate';
-import { addMultipleToFolder, copyFile, deleteFile, downloadFile } from '@/components/file/actions';
+import {
+  addMultipleToFolder,
+  copyFile,
+  deleteFile,
+  downloadFile,
+  editSignLink,
+} from '@/components/file/actions';
 import FolderComboboxOptions from '@/components/folders/FolderComboboxOptions';
 import { Response } from '@/lib/api/response';
 import { bytes } from '@/lib/bytes';
@@ -37,6 +43,7 @@ import {
   IconDownload,
   IconExternalLink,
   IconFile,
+  IconPencil,
   IconStar,
   IconTrashFilled,
 } from '@tabler/icons-react';
@@ -573,6 +580,19 @@ export default function FileTable({
                       </ActionIcon>
                     </Link>
                   </Tooltip>
+
+                  {!file.password && file.type.startsWith('image/') && (
+                    <Tooltip label='Edit for a Rust sign'>
+                      <ActionIcon
+                        component={Link}
+                        {...editSignLink(file)}
+                        aria-label='Edit for a Rust sign'
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <IconPencil size='1rem' />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
 
                   <Tooltip label={t('table.actions.copy')}>
                     <ActionIcon

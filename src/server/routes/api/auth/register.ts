@@ -1,4 +1,5 @@
 import { ziplineClientParseSchema } from '@/lib/api/detect';
+import { discordRolePolicy } from '@/lib/oauth/discord-roles';
 import { ApiError } from '@/lib/api/errors';
 import { config } from '@/lib/config';
 import { createToken, hashPassword } from '@/lib/crypto';
@@ -48,6 +49,7 @@ export default typedPlugin(
 
         const { username, password, code } = req.body;
 
+        if (discordRolePolicy() && !code) throw new ApiError(1037);
         if (code && !config.invites.enabled) throw new ApiError(1036);
         if (!code && !config.features.userRegistration) throw new ApiError(1037);
 
@@ -81,6 +83,7 @@ export default typedPlugin(
               username,
               password: hashedPassword,
               role: 'USER',
+              manualInviteAccess: Boolean(inviteId),
               token,
             },
             tx,
