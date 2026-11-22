@@ -62,7 +62,10 @@ async function discordOauth(
   if (typeof json.access_token !== 'string' || !json.access_token) throw new ApiError(6005);
 
   if ((await discordMembership(json.access_token)) !== 'allowed')
-    throw new ApiError(3017, 'An eligible Rust Empires Discord member role is required.');
+    throw new ApiError(
+      3017,
+      'Discord sign-in is available to Verified Members of the Rust Empires Discord server.',
+    );
 
   const userJson = await discordUser({
     accessToken: json.access_token,

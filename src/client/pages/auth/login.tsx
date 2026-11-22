@@ -242,7 +242,7 @@ export default function Login() {
                   Continue with Discord
                 </Button>
                 <Text ta='center' size='xs' c='dimmed'>
-                  Open to members of the Rust Empires Discord server.
+                  Available to Verified Members of the Rust Empires Discord server.
                 </Text>
                 {showLocalLogin && <Divider label='Invited members and administrators' />}
               </>

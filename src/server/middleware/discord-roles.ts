@@ -49,5 +49,9 @@ export async function requireDiscordRole(user: Pick<User, 'id' | 'role'>) {
     }
     return membership === 'allowed';
   });
-  if (!allowed) throw new ApiError(3017, 'An eligible Rust Empires Discord member role is required.');
+  if (!allowed)
+    throw new ApiError(
+      3017,
+      'Discord sign-in is available to Verified Members of the Rust Empires Discord server.',
+    );
 }
