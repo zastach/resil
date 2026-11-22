@@ -57,6 +57,7 @@ import {
 } from '@/lib/client/upload/rust-sign';
 import DropzoneFile from './DropzoneFile';
 import SignReadability from './SignReadability';
+type UploadVersion = 'both' | 'original' | 'sign';
 type SignCopy = Awaited<ReturnType<typeof makeSignCopy>>;
 
 const initialVisible = 24;
@@ -207,8 +208,10 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   const [preview, setPreview] = useState<{
     preset: NonNullable<ReturnType<typeof getSignPreset>>;
     limit: number;
-    pairs: { original: File; saved: File | null; copy: SignCopy }[];
+    pairs: { original: File; copy: SignCopy }[];
   } | null>(null);
+  const [uploadVersion, setUploadVersion] = useState<UploadVersion>('both');
+  const [previewUploadError, setPreviewUploadError] = useState('');
   const [showAdjustments, setShowAdjustments] = useState(false);
   const [adjustments, setAdjustments] = useState(defaultSignAdjustments);
   const [debouncedAdjustments] = useDebouncedValue(adjustments, 150);
@@ -258,7 +261,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
   }, [edit, setFiles]);
 
   function organizationFor(file: File, variant: string | null): ImageOrganization {
-    if (edit && file === editSource && edit.folderId === destinationId) {
+    if (edit && file === editSource) {
       const sourceName = edit.organization?.sourceName ?? file.name;
       return {
         groupId: edit.organization?.groupId ?? edit.id,
@@ -298,9 +301,10 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         const pairs: NonNullable<typeof preview>['pairs'] = [];
         for (const original of batchFiles) {
           const copy = await makeSignCopy(original, selectedPreset, limit);
-          const saved = original === editSource ? null : await fitImageToUploadLimit(original, limit);
-          pairs.push({ original, saved, copy });
+          pairs.push({ original, copy });
         }
+        setUploadVersion(pairs.every(({ original }) => original === editSource) ? 'sign' : 'both');
+        setPreviewUploadError('');
         setShowAdjustments(false);
         setAdjustments(defaultSignAdjustments);
         setAdjusted(null);
@@ -313,8 +317,7 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
         for (const file of batchFiles) {
           const saved = await fitImageToUploadLimit(file, limit);
           if (saved !== file) replacements.set(file, saved);
-          if (destinationId && saved.type.startsWith('image/'))
-            organization.set(saved, organizationFor(file, null));
+          if (saved.type.startsWith('image/')) organization.set(saved, organizationFor(file, null));
           batch.push(saved);
         }
         if (replacements.size) {
@@ -413,19 +416,64 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
     }
   }
 
+  const allSourcesSaved = preview?.pairs.every(({ original }) => original === editSource);
+  const needsSignCopy = uploadVersion !== 'original';
+
+  async function uploadPreview(version: UploadVersion) {
+    if (!preview || busy || (version !== 'original' && (adjusting || currentAdjustment?.error))) return;
+    setPreparing(true);
+    setPreviewUploadError('');
+    try {
+      const replacements = new Map<File, File>();
+      const labels = new Map<File, string>();
+      const organization = new Map<File, ImageOrganization>();
+      const batch: File[] = [];
+
+      for (const [index, { original, copy }] of preview.pairs.entries()) {
+        const source =
+          version !== 'sign' && original !== editSource
+            ? await fitImageToUploadLimit(original, preview.limit)
+            : undefined;
+        const signFile =
+          version !== 'original' ? (currentAdjustment?.copies?.[index] ?? copy).file : undefined;
+        const submitted = source ?? signFile;
+        if (submitted) replacements.set(original, submitted);
+        if (source) {
+          batch.push(source);
+          labels.set(source, source === original ? 'Original' : 'Compressed original');
+          organization.set(source, organizationFor(original, null));
+        }
+        if (signFile) {
+          batch.push(signFile);
+          labels.set(signFile, '/sil-ready copy');
+          organization.set(signFile, organizationFor(original, preview.preset[0]));
+        }
+      }
+
+      setPreview(null);
+      await upload(batch, replacements, destinationId, labels, organization);
+    } catch (error) {
+      setPreviewUploadError(error instanceof Error ? error.message : 'Could not prepare the upload.');
+    } finally {
+      setPreparing(false);
+    }
+  }
+
   return (
     <>
       <Modal
         opened={preview !== null}
-        onClose={() => setPreview(null)}
+        onClose={() => {
+          if (!busy) setPreview(null);
+        }}
         title='Preview sign copies'
         size='min(1040px, calc(100vw - 2rem))'
         centered
       >
         {preview && (
           <Stack>
-            {preview.pairs.some(({ saved }) => !saved) && (
-              <Text size='sm'>The saved source stays in My Images. This creates a new sign copy.</Text>
+            {preview.pairs.some(({ original }) => original === editSource) && (
+              <Text size='sm'>Your original is already saved. You can add a new /sil-ready copy.</Text>
             )}
             <Text size='sm'>
               {preview.preset[0]} · {preview.preset[1]} × {preview.preset[2]} pixels. Changes apply to all
@@ -437,8 +485,8 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
               </Text>
             )}
             <Text size='sm' c='dimmed'>
-              The default preview estimates how /sil stretches the whole image to fill this sign. The server's
-              actual rendering can vary.
+              The /sil-ready preview shows how your image is expected to look on the selected sign in Rust.
+              Your server’s rendering may vary.
             </Text>
             <Group gap='sm'>
               <Button
@@ -555,14 +603,14 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                   </Button>
                 </Alert>
               )}
-            {preview.pairs.map(({ original, saved, copy }, index) => (
+            {preview.pairs.map(({ original, copy }, index) => (
               <Paper key={index} withBorder p='sm'>
                 <SimpleGrid cols={{ base: 1, sm: 2 }}>
                   <PreviewImage file={original} label='Original' />
                   <Stack gap='xs'>
                     <PreviewImage
                       file={(currentAdjustment?.copies?.[index] ?? copy).file}
-                      label='Sign copy'
+                      label='/sil-ready preview'
                       magnify
                       actualSize={actualSize}
                     />
@@ -574,50 +622,37 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
                     )}
                   </Stack>
                 </SimpleGrid>
-                {saved && saved !== original && (
+                {original !== editSource && original.size > preview.limit && (
                   <Text size='sm' mt='xs' c='dimmed'>
-                    The source image is over the upload limit. Resil will save a compressed source copy and
-                    the sign copy.
+                    If you upload the original, Resil will compress it to fit the upload limit.
                   </Text>
                 )}
               </Paper>
             ))}
+            {!allSourcesSaved && (
+              <Radio.Group
+                label='What would you like to upload?'
+                value={uploadVersion}
+                onChange={(value) => setUploadVersion(value as UploadVersion)}
+              >
+                <Group gap='sm' mt='xs'>
+                  <Radio value='both' label='Original and /sil-ready copy' disabled={busy} />
+                  <Radio value='original' label='Original only' disabled={busy} />
+                  <Radio value='sign' label='/sil-ready copy only' disabled={busy} />
+                </Group>
+              </Radio.Group>
+            )}
+            {previewUploadError && <Alert color='red'>{previewUploadError}</Alert>}
             <Group justify='flex-end'>
-              <Button variant='default' onClick={() => setPreview(null)}>
+              <Button variant='default' disabled={busy} onClick={() => setPreview(null)}>
                 Back
               </Button>
               <Button
-                loading={adjusting}
-                disabled={adjusting || !!currentAdjustment?.error}
-                onClick={() => {
-                  const replacements = new Map<File, File>();
-                  const labels = new Map<File, string>();
-                  const organization = new Map<File, ImageOrganization>();
-                  const batch = preview.pairs.flatMap(({ original, saved, copy }, index) => {
-                    const signFile = (currentAdjustment?.copies?.[index] ?? copy).file;
-                    replacements.set(original, saved ?? signFile);
-                    labels.set(signFile, 'Sign-ready copy');
-                    if (destinationId) {
-                      const metadata = organizationFor(original, preview.preset[0]);
-                      organization.set(signFile, metadata);
-                      if (saved) organization.set(saved, { ...metadata, variant: null });
-                    }
-                    if (saved) labels.set(saved, saved === original ? 'Original' : 'Compressed original');
-                    return saved ? [saved, signFile] : [signFile];
-                  });
-                  setPreview(null);
-                  void upload(
-                    batch,
-                    replacements,
-                    destinationId,
-                    labels,
-                    organization.size ? organization : undefined,
-                  );
-                }}
+                loading={busy || (needsSignCopy && adjusting)}
+                disabled={busy || (needsSignCopy && (!!currentAdjustment?.error || adjusting))}
+                onClick={() => void uploadPreview(allSourcesSaved ? 'sign' : uploadVersion)}
               >
-                {preview.pairs.every(({ saved }) => !saved)
-                  ? 'Save new sign copy'
-                  : 'Upload images and sign copies'}
+                {allSourcesSaved ? 'Save /sil-ready copy' : 'Upload selected versions'}
               </Button>
             </Group>
           </Stack>
