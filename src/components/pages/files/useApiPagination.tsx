@@ -7,6 +7,7 @@ type ApiPaginationOptions = {
   filter?: string;
   perpage?: number;
   favorite?: boolean;
+  grouped?: boolean;
   sort?:
     | 'name'
     | 'id'
@@ -48,6 +49,7 @@ const fetcher = async <T,>(
     if (options.search.field) searchParams.append('searchField', options.search.field);
     searchParams.append('searchQuery', options.search.query);
   }
+  if (options.grouped) searchParams.set('grouped', 'true');
   if (options.folderId) searchParams.append('folder', options.folderId);
 
   const res = await fetch(`${route}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);

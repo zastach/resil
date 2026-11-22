@@ -9,7 +9,7 @@ import { canInteract, canManage } from '@/lib/role';
 import { paginationQs } from '@/lib/validation';
 import { userMiddleware } from '@/server/middleware/user';
 import typedPlugin from '@/server/typedPlugin';
-import { and, eq, inArray, like, ne, notInArray, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, like, ne, notInArray, or, sql } from 'drizzle-orm';
 import z from 'zod';
 
 const searchFieldSchema = z.enum(['name', 'originalName', 'type', 'tags', 'id']);
@@ -21,6 +21,7 @@ const responseSchema = z.object({
       query: z.union([z.string(), z.array(z.string())]),
     })
     .optional(),
+  variants: z.record(z.string(), z.array(fileSchema)).optional(),
   total: z.number().optional(),
   pages: z.number().optional(),
 });
@@ -42,6 +43,7 @@ export default typedPlugin(
             searchQuery: z.string().optional(),
             id: z.string().optional(),
             folder: z.string().optional(),
+            grouped: z.literal('true').optional(),
           }),
           response: {
             200: responseSchema,
@@ -105,14 +107,33 @@ export default typedPlugin(
             searchQuery && searchField !== 'tags' ? containsText(file[searchField], searchQuery) : undefined,
           )!;
 
+        // Select one representative before pagination, preferring the original when it exists.
+        const groupKey = sql<string>`coalesce(${files.organization}->>'groupId', ${files.id})`;
+        const grouped = req.query.grouped && !searchQuery && !favorite;
+        const representatives = db
+          .selectDistinctOn([groupKey], { id: files.id })
+          .from(files)
+          .where(fileFilter(files))
+          .orderBy(
+            groupKey,
+            sql`(${files.organization}->>'variant') is not null`,
+            asc(files.createdAt),
+            asc(files.id),
+          );
+        const pageFilter = (file: typeof files) =>
+          grouped ? and(fileFilter(file), inArray(file.id, representatives))! : fileFilter(file);
+
         const fileRows = await db.query.files.findMany({
           columns: fileColumns,
           extras: searchQuery ? undefined : filePasswordExtra,
           where: {
-            RAW: fileFilter,
+            RAW: pageFilter,
             AND: tagIds.map((id) => ({ tags: { id } })),
           },
-          orderBy: (file, { asc, desc }) => (order === 'asc' ? asc(file[sortBy]) : desc(file[sortBy])),
+          orderBy: (file, { asc, desc }) => [
+            order === 'asc' ? asc(file[sortBy]) : desc(file[sortBy]),
+            asc(file.id),
+          ],
           offset: (page - 1) * perpage,
           limit: perpage,
           with: fileRelations,
@@ -128,10 +149,40 @@ export default typedPlugin(
             },
           });
 
-        const total = await db.$count(files, fileFilter(files));
+        const variants: Record<string, typeof filePage> = {};
+        if (grouped && filePage.length) {
+          const parentsByGroup = new Map(
+            filePage.map((file) => [file.organization?.groupId ?? file.id, file.id]),
+          );
+          const children = await db.query.files.findMany({
+            columns: fileColumns,
+            extras: filePasswordExtra,
+            where: {
+              RAW: (file) =>
+                and(
+                  fileFilter(file),
+                  inArray(sql<string>`${file.organization}->>'groupId'`, [...parentsByGroup.keys()]),
+                  notInArray(
+                    file.id,
+                    filePage.map(({ id }) => id),
+                  ),
+                )!,
+            },
+            orderBy: (file, { asc }) => [asc(file.createdAt), asc(file.id)],
+            with: fileRelations,
+          });
+
+          for (const child of formatFiles(children)) {
+            const parentId = child.organization && parentsByGroup.get(child.organization.groupId);
+            if (parentId) (variants[parentId] ??= []).push(child);
+          }
+        }
+
+        const total = await db.$count(files, pageFilter(files));
 
         return res.send({
           page: filePage,
+          ...(grouped && { variants }),
           total,
           pages: Math.ceil(total / perpage),
         });
