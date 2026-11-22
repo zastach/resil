@@ -49,5 +49,5 @@ export async function requireDiscordRole(user: Pick<User, 'id' | 'role'>) {
     }
     return membership === 'allowed';
   });
-  if (!allowed) throw new ApiError(3017, 'An eligible Discord donator role is required.');
+  if (!allowed) throw new ApiError(3017, 'An eligible Rust Empires Discord member role is required.');
 }

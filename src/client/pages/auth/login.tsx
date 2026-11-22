@@ -242,15 +242,7 @@ export default function Login() {
                   Continue with Discord
                 </Button>
                 <Text ta='center' size='xs' c='dimmed'>
-                  Requires an eligible Rust Empires{' '}
-                  <Anchor
-                    href='https://rustempires.com/index.php/donate/'
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    donator role
-                  </Anchor>
-                  .
+                  Open to members of the Rust Empires Discord server.
                 </Text>
                 {showLocalLogin && <Divider label='Invited members and administrators' />}
               </>
