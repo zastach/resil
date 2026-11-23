@@ -247,6 +247,8 @@ namespace Oxide.Plugins
         {
             public List<Placement> Placements = new List<Placement>();
             public int NextShortId = 1;
+            // One-time dialogue completions, keyed by player and placement.
+            public Dictionary<ulong, List<ulong>> CompletedConversations = new Dictionary<ulong, List<ulong>>();
         }
 
         private class DefinitionFile
@@ -262,6 +264,7 @@ namespace Oxide.Plugins
             public int Revision;
             public float Health = 100f;
             public bool Invulnerable = true;
+            public bool Repeatable = true;
             public List<Equipment> Clothing = new List<Equipment>();
             public string StartNode = "start";
             public List<DialogueNode> Dialogue = new List<DialogueNode>();
@@ -427,6 +430,7 @@ namespace Oxide.Plugins
                         npc.Name = (string)item["name"];
                         npc.Revision = (int?)item["revision"] ?? 0;
                         npc.Invulnerable = !((bool?)definition["killable"] ?? false);
+                        npc.Repeatable = (bool?)definition["repeatable"] ?? true;
                         npc.Health = (float?)definition["hp"] ?? 100f;
                         // The editor requires a start node; preserve it as the entry point.
                         npc.StartNode = "start";
@@ -521,6 +525,7 @@ namespace Oxide.Plugins
             Config.WriteObject(config, true);
             data = Interface.Oxide.DataFileSystem.ReadObject<StoredData>(Name) ?? new StoredData();
             if (data.Placements == null) data.Placements = new List<Placement>();
+            if (data.CompletedConversations == null) data.CompletedConversations = new Dictionary<ulong, List<ulong>>();
             data.Placements.RemoveAll(p => p == null);
             if (data.NextShortId < 1) data.NextShortId = 1;
             // Migrate existing placements without changing their original persistent IDs.
@@ -1173,6 +1178,13 @@ namespace Oxide.Plugins
                 var definition = GetPlacementDefinition(placement);
                 if (definition != null)
                 {
+                    List<ulong> completed;
+                    if (!definition.Repeatable && data.CompletedConversations.TryGetValue(player.userID, out completed) &&
+                        completed != null && completed.Contains(placement.Id))
+                    {
+                        player.ChatMessage("You have already completed this conversation.");
+                        return;
+                    }
                     conversationPlacement[player.userID] = placement.Id;
                     OpenDialogue(player, null, definition);
                 }
@@ -1291,7 +1303,22 @@ namespace Oxide.Plugins
                 int index;
                 if (node == null || !int.TryParse(choice, out index) || index < 0 || index >= node.Choices.Count || index >= 4) return;
                 var next = node.Choices[index].Next;
-                if (string.IsNullOrEmpty(next)) { CloseDialogue(player); return; }
+                if (string.IsNullOrEmpty(next))
+                {
+                    ulong placementId;
+                    if (!d.Repeatable && conversationPlacement.TryGetValue(player.userID, out placementId))
+                    {
+                        List<ulong> completed;
+                        if (!data.CompletedConversations.TryGetValue(player.userID, out completed) || completed == null)
+                        {
+                            completed = new List<ulong>();
+                            data.CompletedConversations[player.userID] = completed;
+                        }
+                        if (!completed.Contains(placementId)) { completed.Add(placementId); Save(); }
+                    }
+                    CloseDialogue(player);
+                    return;
+                }
                 StopVoice(player);
                 conversationNode[player.userID] = next;
                 OpenDialogue(player);
