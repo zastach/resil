@@ -23,6 +23,13 @@
     ]
   },
   {
+    "shortname": "attire.bunnyears",
+    "name": "Attire Bunnyears",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
     "shortname": "attire.egg.suit",
     "name": "Attire Egg Suit",
     "slots": [
@@ -271,6 +278,34 @@
     ]
   },
   {
+    "shortname": "cocoknight.armor.gloves",
+    "name": "Cocoknight Armor Gloves",
+    "slots": [
+      "Hands"
+    ]
+  },
+  {
+    "shortname": "cocoknight.armor.helmet",
+    "name": "Cocoknight Armor Helmet",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "cocoknight.armor.pants",
+    "name": "Cocoknight Armor Pants",
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "cocoknight.armor.torso",
+    "name": "Cocoknight Armor Torso",
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
     "shortname": "coffeecan.helmet",
     "name": "Coffee Can Helmet",
     "itemId": -803263829,
@@ -351,6 +386,69 @@
     ]
   },
   {
+    "shortname": "frankensteins.monster.01.head",
+    "name": "Frankensteins Monster 01 Head",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.01.legs",
+    "name": "Frankensteins Monster 01 Legs",
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.01.torso",
+    "name": "Frankensteins Monster 01 Torso",
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.02.head",
+    "name": "Frankensteins Monster 02 Head",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.02.legs",
+    "name": "Frankensteins Monster 02 Legs",
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.02.torso",
+    "name": "Frankensteins Monster 02 Torso",
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.03.head",
+    "name": "Frankensteins Monster 03 Head",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.03.legs",
+    "name": "Frankensteins Monster 03 Legs",
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "frankensteins.monster.03.torso",
+    "name": "Frankensteins Monster 03 Torso",
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
     "shortname": "boots.frog",
     "name": "Frog Boots",
     "itemId": -1000573653,
@@ -371,6 +469,13 @@
     "name": "Gingerbreadsuit",
     "slots": [
       "Chest"
+    ]
+  },
+  {
+    "shortname": "gloweyes",
+    "name": "Gloweyes",
+    "slots": [
+      "Head"
     ]
   },
   {
@@ -666,6 +771,13 @@
     ]
   },
   {
+    "shortname": "knightsarmour.helmet",
+    "name": "Knightsarmour Helmet",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
     "shortname": "knightsarmour.skirt",
     "name": "Knightsarmour Skirt",
     "slots": [
@@ -769,10 +881,31 @@
     ]
   },
   {
+    "shortname": "movembermoustache",
+    "name": "Movembermoustache",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
     "shortname": "mummymask",
     "name": "Mummymask",
     "slots": [
       "Head"
+    ]
+  },
+  {
+    "shortname": "nightvisiongoggles",
+    "name": "Nightvisiongoggles",
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "oubreak_scientist",
+    "name": "Oubreak_scientist",
+    "slots": [
+      "Chest"
     ]
   },
   {
@@ -842,6 +975,13 @@
     "name": "Roadsign Gloves",
     "slots": [
       "Hands"
+    ]
+  },
+  {
+    "shortname": "santabeard",
+    "name": "Santabeard",
+    "slots": [
+      "Head"
     ]
   },
   {
