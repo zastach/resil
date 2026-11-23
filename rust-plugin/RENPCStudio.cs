@@ -223,19 +223,19 @@ namespace Oxide.Plugins
         {
             if (syncInProgress)
             {
-                player.ChatMessage("NPC Studio sync already in progress.");
+                if (player != null && player.IsConnected) player.ChatMessage("NPC Studio sync already in progress.");
                 return;
             }
             if (string.IsNullOrWhiteSpace(config.StudioUrl) ||
                 !Uri.IsWellFormedUriString(config.StudioUrl, UriKind.Absolute) ||
                 !config.StudioUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
-                player.ChatMessage("StudioUrl must be an absolute HTTPS URL.");
+                if (player != null && player.IsConnected) player.ChatMessage("StudioUrl must be an absolute HTTPS URL.");
                 return;
             }
             if (string.IsNullOrWhiteSpace(config.RuntimeToken) || config.RuntimeToken.Length < 32)
             {
-                player.ChatMessage("Set RuntimeToken (32+ characters) in the RENPCStudio server config.");
+                if (player != null && player.IsConnected) player.ChatMessage("Set RuntimeToken (32+ characters) in the RENPCStudio server config.");
                 return;
             }
             var headers = new Dictionary<string, string> { { "Authorization", "Bearer " + config.RuntimeToken } };
@@ -653,6 +653,11 @@ namespace Oxide.Plugins
             }
             if (!found) return;
             spawned.Remove(placementId);
+            // A destroyed temporary preview must never become a saved placement.
+            var abandonedOwners = new List<ulong>();
+            foreach (var preview in pendingPlacements)
+                if (preview.Value.Id == placementId) abandonedOwners.Add(preview.Key);
+            foreach (var owner in abandonedOwners) pendingPlacements.Remove(owner);
             if (data.Placements.RemoveAll(p => p.Id == placementId) > 0)
             {
                 Save();
@@ -677,6 +682,7 @@ namespace Oxide.Plugins
         private Placement FindPlacement(string token)
         {
             int number;
+            if (string.IsNullOrWhiteSpace(token)) return null;
             if (int.TryParse(token.TrimStart('#'), out number))
                 return data.Placements.Find(p => p.ShortId == number);
             ulong legacyId;
@@ -950,7 +956,7 @@ namespace Oxide.Plugins
 
         private void OnPlayerInput(BasePlayer player, InputState input)
         {
-            if (player == null || !player.IsConnected || !input.WasJustPressed(BUTTON.USE)) return;
+            if (player == null || !player.IsConnected || player.IsDead() || !input.WasJustPressed(BUTTON.USE)) return;
             if (conversations.Contains(player.userID)) return;
             if (IsLookingAtStudioNpc(player))
             {
@@ -988,6 +994,12 @@ namespace Oxide.Plugins
             CuiHelper.DestroyUi(player, UiName);
             CuiHelper.DestroyUi(player, PromptUiName);
             showingPrompt.Remove(player.userID);
+            // Test dialogue must not accidentally reuse the previous NPC session.
+            if (definition == null && !conversations.Contains(player.userID))
+            {
+                conversationDefinitions.Remove(player.userID);
+                conversationNode.Remove(player.userID);
+            }
             conversations.Add(player.userID);
             if (definition != null)
             {
@@ -1086,6 +1098,8 @@ namespace Oxide.Plugins
             conversationDefinitions.Remove(player.userID);
             conversationNode.Remove(player.userID);
             CuiHelper.DestroyUi(player, UiName);
+            CuiHelper.DestroyUi(player, PromptUiName);
+            showingPrompt.Remove(player.userID);
         }
 
         private void OnPlayerDisconnected(BasePlayer player, string reason)
