@@ -179,9 +179,11 @@ namespace Oxide.Plugins
                     }
                     var nodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var node in npc.Dialogue)
-                        if (node == null || string.IsNullOrWhiteSpace(node.Id) || !nodes.Add(node.Id) || node.Choices == null)
+                        if (node == null || string.IsNullOrWhiteSpace(node.Id) ||
+                            string.IsNullOrWhiteSpace(node.Text) || !nodes.Add(node.Id) ||
+                            node.Choices == null || node.Choices.Count > 4)
                         {
-                            message = "Invalid or duplicate dialogue node in " + npc.Id;
+                            message = "Invalid dialogue node, missing text, or more than four choices in " + npc.Id;
                             return false;
                         }
                     if (npc.Dialogue.Count > 0 && !nodes.Contains(npc.StartNode ?? ""))
@@ -191,7 +193,8 @@ namespace Oxide.Plugins
                     }
                     foreach (var node in npc.Dialogue)
                         foreach (var choice in node.Choices)
-                            if (choice == null || ( !string.IsNullOrEmpty(choice.Next) && !nodes.Contains(choice.Next)))
+                            if (choice == null || string.IsNullOrWhiteSpace(choice.Text) ||
+                                (!string.IsNullOrEmpty(choice.Next) && !nodes.Contains(choice.Next)))
                             {
                                 message = "Broken dialogue choice in " + npc.Id + "/" + node.Id;
                                 return false;
@@ -210,7 +213,8 @@ namespace Oxide.Plugins
                 player.ChatMessage("NPC Studio sync already in progress.");
                 return;
             }
-            if (!Uri.IsWellFormedUriString(config.StudioUrl, UriKind.Absolute) ||
+            if (string.IsNullOrWhiteSpace(config.StudioUrl) ||
+                !Uri.IsWellFormedUriString(config.StudioUrl, UriKind.Absolute) ||
                 !config.StudioUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
                 player.ChatMessage("StudioUrl must be an absolute HTTPS URL.");
