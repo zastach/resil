@@ -81,7 +81,7 @@ function validate(n:Npc) { const ids=n.dialogue.map(x=>x.id);if(!/^[a-z0-9][a-z0
 
 export function Component() {
  const [library,setLibrary]=useState<Npc[]>([]);
- const [legacyNpcs,setLegacyNpcs]=useState<Npc[]>(readLegacyNpcs);
+ const [legacyNpcs]=useState<Npc[]>(readLegacyNpcs);
  const [migrationBusy,setMigrationBusy]=useState(false);
  const [folders,setFolders]=useState<{id:string;name:string;parentId?:string|null}[]>([]);
  const [libraryReady,setLibraryReady]=useState(false);
