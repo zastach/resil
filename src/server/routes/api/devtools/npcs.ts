@@ -9,6 +9,7 @@ export const PATH = '/api/devtools/npcs';
 const id = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
 const folderBody = z.object({ id: id.optional(), name: z.string().trim().min(1).max(100), parentId: id.nullable().optional() });
 const npcBody = z.object({ id, name: z.string().trim().min(1).max(150), folderId: id.nullable().optional(), expectedRevision: z.number().int().min(0).optional(), definition: z.record(z.string(), z.unknown()) });
+const audioBody = z.object({ filename:z.string().min(1).max(200), contentType:z.enum(['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg']), data:z.string().min(1).max(11000000) });
 const guard = async (req: Parameters<typeof authenticateUser>[0], res: Parameters<typeof authenticateUser>[1]) => {
  await authenticateUser(req,res);
  if(!isAdministrator(req.user.role)) throw new Error('Administrator access required');
@@ -17,11 +18,33 @@ let initialized:Promise<void>|undefined;
 function setup(){
  initialized ??= (async()=>{
   await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_folders (id TEXT PRIMARY KEY, name TEXT NOT NULL, parent_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_audio (id TEXT PRIMARY KEY, filename TEXT NOT NULL, mime TEXT NOT NULL, content BYTEA NOT NULL, created_by TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_definitions (id TEXT PRIMARY KEY, name TEXT NOT NULL, folder_id TEXT, definition JSONB NOT NULL, revision INTEGER NOT NULL DEFAULT 1, created_by TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
  })().catch(e=>{initialized=undefined;throw e;});
  return initialized;
 }
 export default typedPlugin(async server=>{
+ server.post(PATH+'/audio',{preHandler:[guard],bodyLimit:12000000},async(req,res)=>{
+  const body=audioBody.parse(req.body);
+  const bytes=Buffer.from(body.data,'base64');
+  if(bytes.length===0||bytes.length>8*1024*1024)return res.code(413).send({error:'Audio file must be 8 MB or smaller'});
+  const mime=body.contentType==='audio/mp3'?'audio/mpeg':body.contentType==='audio/x-wav'?'audio/wav':body.contentType;
+  const mp3=bytes.subarray(0,3).toString()==='ID3'||(bytes[0]===0xff&&(bytes[1]&0xe0)===0xe0);
+  const wav=bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WAVE';
+  const ogg=bytes.subarray(0,4).toString()==='OggS';
+  if(!((mime==='audio/mpeg'&&mp3)||(mime==='audio/wav'&&wav)||(mime==='audio/ogg'&&ogg)))return res.code(400).send({error:'File contents do not match MP3, WAV, or OGG audio'});
+  await setup();
+  const audioId='voice-'+crypto.randomUUID();
+  await db.execute(sql`INSERT INTO resil_npc_audio(id,filename,mime,content,created_by) VALUES (${audioId},${body.filename},${mime},${bytes},${req.user.username})`);
+  return res.send({url:PATH+'/audio/'+audioId,id:audioId});
+ });
+ server.get(PATH+'/audio/:id',{preHandler:[guard]},async(req,res)=>{
+  const audioId=id.parse((req.params as {id:string}).id);await setup();
+  const result=await db.execute(sql`SELECT mime,content FROM resil_npc_audio WHERE id=${audioId}`);
+  if(!result.rows.length)return res.code(404).send({error:'Audio not found'});
+  const row=result.rows[0] as {mime:string;content:Buffer};
+  return res.header('Cache-Control','private, max-age=3600').header('X-Content-Type-Options','nosniff').type(row.mime).send(row.content);
+ });
  server.get(PATH,{preHandler:[guard]},async (_req,res)=>{
   await setup();
   const folders=await db.execute(sql`SELECT id,name,parent_id AS "parentId" FROM resil_npc_folders ORDER BY name`);
