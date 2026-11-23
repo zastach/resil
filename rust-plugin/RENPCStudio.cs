@@ -110,7 +110,8 @@ namespace Oxide.Plugins
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || !conversations.Contains(listener.userID)) return;
+                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed ||
+                    source.net == null) return;
                 if (code != 200 || string.IsNullOrWhiteSpace(response) || response.Length > 3000000)
                 {
                     PrintWarning("NPC voice unavailable for " + clipId + " (HTTP " + code + ").");
@@ -132,7 +133,9 @@ namespace Oxide.Plugins
                         decoded.Add(encoded);
                     }
                     // A voice clip can be reused by multiple NPC definitions.
-                    voiceClips[clipId] = decoded;
+                    // Keep remote audio bounded in memory. Native admin recordings
+                    // remain persisted separately in the data file.
+                    if (voiceClips.Count < 64) voiceClips[clipId] = decoded;
                     StartVoicePackets(listener, source, decoded, generation);
                 }
                 catch (Exception ex) { PrintWarning("NPC voice response invalid: " + ex.Message); }
