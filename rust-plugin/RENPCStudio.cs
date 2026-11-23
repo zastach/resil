@@ -339,6 +339,8 @@ namespace Oxide.Plugins
             config.NpcPrefab = DefaultPrefab;
             Config.WriteObject(config, true);
             data = Interface.Oxide.DataFileSystem.ReadObject<StoredData>(Name) ?? new StoredData();
+            if (data.Placements == null) data.Placements = new List<Placement>();
+            if (data.NextShortId < 1) data.NextShortId = 1;
             // Migrate existing placements without changing their original persistent IDs.
             var used = new HashSet<int>();
             foreach (var placement in data.Placements)
@@ -355,6 +357,9 @@ namespace Oxide.Plugins
                 placement.ShortId = data.NextShortId++;
                 used.Add(placement.ShortId);
             }
+            // Never reuse a previously assigned short ID after loading old saves.
+            foreach (var usedId in used)
+                if (data.NextShortId <= usedId) data.NextShortId = usedId + 1;
             // Older saved placements predate revision snapshots. Pin the currently
             // imported definition once at startup, without changing placed NPCs.
             if (used.Count > 0)
@@ -504,7 +509,7 @@ namespace Oxide.Plugins
                     }
                     var preview = new Placement
                     {
-                        Id = (ulong)DateTime.UtcNow.Ticks,
+                        Id = AllocatePlacementId(),
                         ShortId = data.NextShortId,
                         Position = GroundPosition(player.transform.position),
                         Yaw = player.eyes.rotation.eulerAngles.y,
@@ -626,6 +631,20 @@ namespace Oxide.Plugins
                 Save();
                 Puts("Removed saved placement for destroyed NPC " + placementId + ".");
             }
+        }
+
+        private ulong AllocatePlacementId()
+        {
+            ulong id = (ulong)DateTime.UtcNow.Ticks;
+            while (id == 0 || data.Placements.Exists(p => p.Id == id) || PendingIdExists(id)) id++;
+            return id;
+        }
+
+        private bool PendingIdExists(ulong id)
+        {
+            foreach (var pending in pendingPlacements.Values)
+                if (pending.Id == id) return true;
+            return false;
         }
 
         private Placement FindPlacement(string token)
@@ -1007,8 +1026,8 @@ namespace Oxide.Plugins
                 OpenDialogue(player);
                 return;
             }
-            if (choice == "1") OpenDialogue(player, "I was in the breakroom. The furnace wasn't running.");
-            else if (choice == "2") OpenDialogue(player, "No. I didn't see anyone.");
+            if (choice == "0") OpenDialogue(player, "I was in the breakroom. The furnace wasn't running.");
+            else if (choice == "1") OpenDialogue(player, "No. I didn't see anyone.");
         }
 
         [ConsoleCommand("re.npcstudio.close")]
