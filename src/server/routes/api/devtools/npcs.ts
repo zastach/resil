@@ -140,11 +140,12 @@ export default typedPlugin(async server=>{
     const piece=raw as Record<string,unknown>;
     if(typeof piece.shortname!=='string'||piece.shortname.length>100||
        (piece.shortname!==''&&!/^[a-zA-Z0-9_.-]+$/.test(piece.shortname))||
-       (piece.skinId!=null&&!/^(0|[1-9][0-9]*)$/.test(String(piece.skinId))))return res.code(400).send({error:'Invalid wearable or skin ID'});
+       (piece.skinId!=null&&(!/^(0|[1-9][0-9]*)$/.test(String(piece.skinId))||BigInt(String(piece.skinId))>18446744073709551615n)))return res.code(400).send({error:'Invalid wearable or skin ID'});
    }
   }
-  if(definition.hp!=null&&(typeof definition.hp!=='number'||!Number.isFinite(definition.hp)||definition.hp<1))return res.code(400).send({error:'NPC health must be positive'});
+  if(definition.hp!=null&&(typeof definition.hp!=='number'||!Number.isFinite(definition.hp)||definition.hp<1||definition.hp>100000))return res.code(400).send({error:'NPC health must be between 1 and 100000'});
   if(definition.killable!=null&&typeof definition.killable!=='boolean')return res.code(400).send({error:'Invalid NPC killable setting'});
+  if(definition.repeatable!=null&&typeof definition.repeatable!=='boolean')return res.code(400).send({error:'Invalid repeatable setting'});
   if(body.folderId){const f=await db.execute(sql`SELECT id FROM resil_npc_folders WHERE id=${body.folderId}`);if(!f.rows.length)return res.code(400).send({error:'Folder does not exist'});}
   const existing=await db.execute(sql`SELECT revision FROM resil_npc_definitions WHERE id=${npcId}`);
   if(!existing.rows.length){const count=await db.execute(sql`SELECT COUNT(*)::int AS total FROM resil_npc_definitions`);if(Number(count.rows[0]?.total??0)>=MAX_NPCS)return res.code(409).send({error:'NPC limit reached'});}
