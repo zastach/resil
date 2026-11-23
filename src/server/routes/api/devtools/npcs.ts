@@ -82,7 +82,23 @@ export default typedPlugin(async server=>{
   if(Buffer.byteLength(JSON.stringify(body.definition),'utf8')>MAX_DEFINITION_BYTES)return res.code(413).send({error:'NPC definition is too large'});
   const definition=body.definition;
   if(!Array.isArray(definition.dialogue)||definition.dialogue.length===0||definition.dialogue.length>128)return res.code(400).send({error:'NPC requires 1–128 dialogue nodes'});
-  if(!definition.dialogue.every((node:unknown)=>typeof node==='object'&&node!==null&&typeof (node as {id?:unknown}).id==='string'&&typeof (node as {text?:unknown}).text==='string'&&Array.isArray((node as {choices?:unknown}).choices)&&((node as {choices:unknown[]}).choices.length<=4)))return res.code(400).send({error:'Invalid dialogue node or more than four choices'});
+  const nodes=new Set<string>();
+  for(const rawNode of definition.dialogue){
+   if(!rawNode||typeof rawNode!=='object'||Array.isArray(rawNode))return res.code(400).send({error:'Invalid dialogue node'});
+   const node=rawNode as Record<string,unknown>;
+   if(typeof node.id!=='string'||!id.safeParse(node.id).success||nodes.has(node.id)||typeof node.text!=='string'||!node.text.trim()||node.text.length>4096||!Array.isArray(node.choices)||node.choices.length>4)return res.code(400).send({error:'Invalid or duplicate dialogue node'});
+   nodes.add(node.id);
+  }
+  for(const rawNode of definition.dialogue){
+   const node=rawNode as {choices:Array<{text?:unknown;next?:unknown;condition?:unknown}>};
+   for(const choice of node.choices){
+    if(!choice||typeof choice!=='object'||typeof choice.text!=='string'||!choice.text.trim()||choice.text.length>300||choice.condition)return res.code(400).send({error:'Invalid or unsupported conditional dialogue choice'});
+    if(choice.next!=null&&(typeof choice.next!=='string'||(choice.next.length>0&&!nodes.has(choice.next))))return res.code(400).send({error:'Dialogue choice points to a missing node'});
+   }
+  }
+  if(definition.equipment!=null&&(!Array.isArray(definition.equipment)||definition.equipment.length>32))return res.code(400).send({error:'Too many equipment entries'});
+  if(definition.hp!=null&&(typeof definition.hp!=='number'||!Number.isFinite(definition.hp)||definition.hp<1))return res.code(400).send({error:'NPC health must be positive'});
+  if(definition.killable!=null&&typeof definition.killable!=='boolean')return res.code(400).send({error:'Invalid NPC killable setting'});
   if(body.folderId){const f=await db.execute(sql`SELECT id FROM resil_npc_folders WHERE id=${body.folderId}`);if(!f.rows.length)return res.code(400).send({error:'Folder does not exist'});}
   const existing=await db.execute(sql`SELECT revision FROM resil_npc_definitions WHERE id=${npcId}`);
   if(!existing.rows.length){const count=await db.execute(sql`SELECT COUNT(*)::int AS total FROM resil_npc_definitions`);if(Number(count.rows[0]?.total??0)>=MAX_NPCS)return res.code(409).send({error:'NPC limit reached'});}
