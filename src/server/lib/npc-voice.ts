@@ -15,8 +15,15 @@ export async function encodeVoicePackets(input: Buffer): Promise<string[]> {
   const watchdog=setTimeout(()=>proc.kill('SIGKILL'),20000);
   proc.stdout.on('data',(b:Buffer)=>{length+=b.length;if(length>2_000_000)proc.kill('SIGKILL');else parts.push(b);});
   proc.stderr.on('data',(b:Buffer)=>{stderr+=b.toString().slice(0,1024);});
-  proc.on('error',e=>{clearTimeout(watchdog);reject(e);});
-  proc.on('close',code=>{clearTimeout(watchdog);if(code!==0)reject(Error('Audio transcoding failed: '+stderr.slice(0,300)));else resolve(Buffer.concat(parts));});
+  let settled=false;
+  const fail=(error:Error)=>{if(!settled){settled=true;clearTimeout(watchdog);reject(error);}};
+  proc.on('error',e=>fail(e));
+  proc.on('close',code=>{
+   if(settled)return;
+   clearTimeout(watchdog);
+   if(code!==0)return fail(Error('Audio transcoding failed: '+stderr.slice(0,300)));
+   settled=true;resolve(Buffer.concat(parts));
+  });
   proc.stdin.on('error',()=>{});
   proc.stdin.end(input);
  });
