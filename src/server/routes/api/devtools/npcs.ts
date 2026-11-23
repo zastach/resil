@@ -9,7 +9,7 @@ export const PATH = '/api/devtools/npcs';
 const id = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
 const folderBody = z.object({ id: id.optional(), name: z.string().trim().min(1).max(100), parentId: id.nullable().optional() });
 const npcBody = z.object({ id, name: z.string().trim().min(1).max(150), folderId: id.nullable().optional(), expectedRevision: z.number().int().min(0).optional(), definition: z.record(z.string(), z.unknown()) });
-const audioBody = z.object({ filename:z.string().min(1).max(200), contentType:z.enum(['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg']), data:z.string().min(1).max(11000000) });
+const audioBody = z.object({ filename:z.string().min(1).max(200), contentType:z.enum(['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg']), data:z.string().min(1).max(11200000) });
 const guard = async (req: Parameters<typeof authenticateUser>[0], res: Parameters<typeof authenticateUser>[1]) => {
  await authenticateUser(req,res);
  if(!isAdministrator(req.user.role)) throw new Error('Administrator access required');
@@ -26,6 +26,7 @@ function setup(){
 export default typedPlugin(async server=>{
  server.post(PATH+'/audio',{preHandler:[guard],bodyLimit:12000000},async(req,res)=>{
   const body=audioBody.parse(req.body);
+  if(!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(body.data))return res.code(400).send({error:'Invalid audio encoding'});
   const bytes=Buffer.from(body.data,'base64');
   if(bytes.length===0||bytes.length>8*1024*1024)return res.code(413).send({error:'Audio file must be 8 MB or smaller'});
   const mime=body.contentType==='audio/mp3'?'audio/mpeg':body.contentType==='audio/x-wav'?'audio/wav':body.contentType;
