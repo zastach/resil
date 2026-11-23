@@ -34,3 +34,13 @@ Replace the current hardcoded, incomplete item arrays with a versioned catalog d
 - Validate against the same canonical catalog in UI, JSON import/export, and server-side publishing; verify behavior in a Rust test server.
 - Explicitly distinguish verified equipable items from unknown/unsupported items and provide useful validation errors.
 - The current six-category editor and hand-maintained list are provisional and must not be represented as complete.
+
+### Located source for comprehensive catalog (2026-11-22)
+
+Rust dedicated-server clothing/armor item dump, 178 category entries (build 26431843, 2026-11-06): https://docs.cruciblegrounds.com/rust/items-clothing/
+
+Secondary cross-check: https://wiki.facepunch.com/rust/ and https://rust.wiki/items?category=attire
+
+**Verified shortname corrections:** glowing eyes = `gloweyes`; bunny costume = `bunny.suit`; bunny onesie = `attire.bunny.onesie`; BDU shirt = `bdu.shirt`; BDU pants = `bdu.pants`; metal chest plate = `metal.plate.torso`; burlap gloves = `burlap.gloves.new`; leather gloves = `burlap.gloves`; frog boots = `boots.frog`; small backpack = `smallbackpack`; large backpack = `largebackpack`.
+
+**Important:** The 178 attire-category entries are NOT all human wearable items (horse equipment, shields, mannequin, etc. appear). Do not blindly expose all 178 in NPC wearable dropdowns. Server-side `ItemModWearable` inspection and conflict validation remain required. External source data has not yet been imported into the editor.
