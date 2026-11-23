@@ -128,8 +128,23 @@ const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): Na
     label: t('nav.administrator'),
     icon: <IconShieldLockFilled size='1rem' />,
     if: (user) => isAdministrator(user?.role),
-    active: (path: string) => path.startsWith('/dashboard/admin'),
+    active: (path: string) => path.startsWith('/dashboard/admin') || path.startsWith('/devtools'),
     links: [
+      {
+        label: 'Developer Tools',
+        icon: <IconAdjustments size='1rem' />,
+        active: (path: string) => path.startsWith('/devtools'),
+        href: '/devtools',
+        if: (user) => user?.role === 'SUPERADMIN',
+        links: [
+          {
+            label: 'NPC Studio',
+            icon: <IconUsersGroup size='1rem' />,
+            active: (path: string) => path.startsWith('/devtools/npcstudio'),
+            href: '/devtools/npcstudio',
+          },
+        ],
+      },
       {
         label: t('nav.adminDashboard'),
         icon: <IconHome size='1rem' />,
