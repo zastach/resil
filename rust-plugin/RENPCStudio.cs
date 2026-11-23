@@ -59,13 +59,17 @@ namespace Oxide.Plugins
 
         // Record actual Rust voice packets, not PCM/MP3. The recording admin
         // speaks through their normal push-to-talk microphone.
-        private object OnPlayerVoice(BasePlayer player, byte[] packet)
+        private object OnPlayerVoice(BasePlayer player, ArraySegment<byte> packet)
         {
-            if (player == null || packet == null || packet.Length == 0) return null;
+            if (player == null || packet.Array == null || packet.Count == 0) return null;
             List<string> frames;
             if (!recordingFrames.TryGetValue(player.userID, out frames)) return null;
-            if (frames.Count < MaxVoiceFrames && packet.Length <= 4096)
-                frames.Add(Convert.ToBase64String(packet));
+            if (frames.Count < MaxVoiceFrames && packet.Count <= 4096)
+            {
+                var bytes = new byte[packet.Count];
+                Buffer.BlockCopy(packet.Array, packet.Offset, bytes, 0, packet.Count);
+                frames.Add(Convert.ToBase64String(bytes));
+            }
             return null;
         }
 
@@ -184,7 +188,10 @@ namespace Oxide.Plugins
                     if (Network.Net.sv.write.Start())
                     {
                         Network.Net.sv.write.PacketID(Network.Message.Type.VoiceData);
-                        Network.Net.sv.write.UInt32(source.net.ID);
+                        // Rust now exposes a NetworkableId struct; the legacy VoiceData
+                        // writer expects a 32-bit source ID. Verify the exact
+                        // wire format against the target Rust build before release.
+                        Network.Net.sv.write.UInt32(unchecked((uint)source.net.ID.Value));
                         Network.Net.sv.write.BytesWithSize(packet);
                         Network.Net.sv.write.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
                     }
