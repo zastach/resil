@@ -839,8 +839,15 @@ namespace Oxide.Plugins
             if (!Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return false;
             var entity = hit.GetEntity();
             if (entity == null || entity.net == null) return false;
-            foreach (var npc in spawned.Values)
-                if (npc != null && !npc.IsDestroyed && npc.net != null && npc.net.ID == entity.net.ID) return true;
+            // Temporary placement previews are not live NPCs: do not offer dialogue
+            // until their owner explicitly confirms the placement.
+            foreach (var placement in data.Placements)
+            {
+                BaseEntity npc;
+                if (spawned.TryGetValue(placement.Id, out npc) &&
+                    npc != null && !npc.IsDestroyed && npc.net != null &&
+                    npc.net.ID == entity.net.ID) return true;
+            }
             return false;
         }
 
@@ -955,6 +962,14 @@ namespace Oxide.Plugins
         private object OnEntityTakeDamage(BaseCombatEntity entity, HitInfo info)
         {
             if (entity == null) return null;
+            // Previews are never damageable: a bystander must not be able to
+            // destroy an unconfirmed placement before its owner accepts it.
+            foreach (var preview in pendingPlacements.Values)
+            {
+                BaseEntity temporary;
+                if (spawned.TryGetValue(preview.Id, out temporary) && temporary == entity)
+                    return true;
+            }
             foreach (var placement in data.Placements)
             {
                 BaseEntity npc;
