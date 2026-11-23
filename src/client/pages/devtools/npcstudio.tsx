@@ -14,7 +14,6 @@ const itemGroups: Record<string,string[]> = {"Head":["ballistic.helmet","mask.ba
 itemGroups.Chest.push(...fullBodyShortnames);
 // The six UI groups are an editor simplification, not the game's full layered wearable model.
 // Rust server ItemModWearable slot and conflict data must be checked before publishing.
-const items = [...new Set(Object.values(itemGroups).flat())];
 const itemSlots: Record<string,string[]> = {};
 for (const [slot, ids] of Object.entries(itemGroups)) for (const id of ids) (itemSlots[id] ||= []).push(slot);
 const allowedItemsForSlot=(slot:string)=>itemGroups[slot]||[];
