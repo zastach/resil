@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { encodeVoicePackets } from '@/server/lib/npc-voice';
 import { isAdministrator } from '@/lib/role';
 import { authenticateUser } from '@/server/middleware/user';
 import typedPlugin from '@/server/typedPlugin';
@@ -21,6 +22,7 @@ function setup(){
  initialized ??= (async()=>{
   await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_folders (id TEXT PRIMARY KEY, name TEXT NOT NULL, parent_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_audio (id TEXT PRIMARY KEY, filename TEXT NOT NULL, mime TEXT NOT NULL, content BYTEA NOT NULL, created_by TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_voice_frames (audio_id TEXT PRIMARY KEY, frames JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_npc_definitions (id TEXT PRIMARY KEY, name TEXT NOT NULL, folder_id TEXT, definition JSONB NOT NULL, revision INTEGER NOT NULL DEFAULT 1, created_by TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
  })().catch(e=>{initialized=undefined;throw e;});
  return initialized;
@@ -29,6 +31,12 @@ export default typedPlugin(async server=>{
  const runtimeGuard=async(req:Parameters<typeof authenticateUser>[0],res:Parameters<typeof authenticateUser>[1])=>{const secret=process.env.RESIL_NPC_RUNTIME_TOKEN;if(!secret||secret.length<32||req.headers.authorization!=='Bearer '+secret)return res.code(401).send({error:'Runtime authentication required'});};
  server.get(PATH+'/runtime',{preHandler:[runtimeGuard]},async(_req,res)=>{await setup();const npcs=await db.execute(sql`SELECT id,name,definition,revision FROM resil_npc_definitions ORDER BY name`);return res.header('Cache-Control','no-store').send({version:1,npcs:npcs.rows});});
  server.get(PATH+'/runtime/audio/:id',{preHandler:[runtimeGuard]},async(req,res)=>{const audioId=id.parse((req.params as {id:string}).id);await setup();const result=await db.execute(sql`SELECT mime,content FROM resil_npc_audio WHERE id=${audioId}`);if(!result.rows.length)return res.code(404).send({error:'Audio not found'});const row=result.rows[0] as {mime:string;content:Buffer};return res.header('Cache-Control','private, max-age=3600').header('X-Content-Type-Options','nosniff').type(row.mime).send(row.content);});
+ server.get(PATH+'/runtime/audio/:id/frames',{preHandler:[runtimeGuard]},async(req,res)=>{
+  const audioId=id.parse((req.params as {id:string}).id);await setup();
+  const result=await db.execute(sql`SELECT frames FROM resil_npc_voice_frames WHERE audio_id=${audioId}`);
+  if(!result.rows.length)return res.code(404).send({error:'Voice packets unavailable'});
+  return res.header('Cache-Control','no-store').send({version:1,codec:'opus',sampleRate:48000,frameDurationMs:20,frames:result.rows[0].frames});
+ });
  server.post(PATH+'/audio',{preHandler:[guard],bodyLimit:12000000},async(req,res)=>{
   const body=audioBody.parse(req.body);
   if(!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(body.data))return res.code(400).send({error:'Invalid audio encoding'});
@@ -39,9 +47,12 @@ export default typedPlugin(async server=>{
   const wav=bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WAVE';
   const ogg=bytes.subarray(0,4).toString()==='OggS';
   if(!((mime==='audio/mpeg'&&mp3)||(mime==='audio/wav'&&wav)||(mime==='audio/ogg'&&ogg)))return res.code(400).send({error:'File contents do not match MP3, WAV, or OGG audio'});
+  let frames:string[];
+  try{frames=await encodeVoicePackets(bytes);}catch(e){return res.code(422).send({error:'Unable to prepare Rust voice audio: '+String(e)});}
   await setup();
   const audioId='voice-'+crypto.randomUUID();
   await db.execute(sql`INSERT INTO resil_npc_audio(id,filename,mime,content,created_by) VALUES (${audioId},${body.filename},${mime},${bytes},${req.user.username})`);
+  await db.execute(sql`INSERT INTO resil_npc_voice_frames(audio_id,frames) VALUES (${audioId},${JSON.stringify(frames)}::jsonb)`);
   return res.send({url:PATH+'/audio/'+audioId,id:audioId});
  });
  server.get(PATH+'/audio/:id',{preHandler:[guard]},async(req,res)=>{
