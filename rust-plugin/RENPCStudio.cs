@@ -29,6 +29,89 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, Placement> pendingPlacements = new Dictionary<ulong, Placement>();
         private bool syncInProgress;
 
+        // Native voice packets are already encoded by the Rust client. Recording them
+        // avoids attempting to send unsupported MP3 bytes as VoiceData.
+        private readonly Dictionary<string, List<string>> voiceClips = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<ulong, List<string>> recordingFrames = new Dictionary<ulong, List<string>>();
+        private readonly Dictionary<ulong, string> recordingNames = new Dictionary<ulong, string>();
+        private readonly Dictionary<ulong, int> playbackGeneration = new Dictionary<ulong, int>();
+        private const string VoiceDataFile = "RENPCStudio_VoiceClips";
+        private const int MaxVoiceFrames = 1500; // 30 seconds at ~50 frames/sec
+
+        private void LoadVoiceClips()
+        {
+            try
+            {
+                var loaded = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<string, List<string>>>(VoiceDataFile);
+                voiceClips.Clear();
+                if (loaded != null)
+                    foreach (var entry in loaded)
+                        if (!string.IsNullOrWhiteSpace(entry.Key) && entry.Value != null && entry.Value.Count <= MaxVoiceFrames)
+                            voiceClips[entry.Key] = entry.Value;
+            }
+            catch (Exception ex) { PrintWarning("Could not load recorded voice clips: " + ex.Message); }
+        }
+
+        private void SaveVoiceClips() => Interface.Oxide.DataFileSystem.WriteObject(VoiceDataFile, voiceClips);
+
+        // Record actual Rust voice packets, not PCM/MP3. The recording admin
+        // speaks through their normal push-to-talk microphone.
+        private object OnPlayerVoice(BasePlayer player, byte[] packet)
+        {
+            if (player == null || packet == null || packet.Length == 0) return null;
+            List<string> frames;
+            if (!recordingFrames.TryGetValue(player.userID, out frames)) return null;
+            if (frames.Count < MaxVoiceFrames && packet.Length <= 4096)
+                frames.Add(Convert.ToBase64String(packet));
+            return null;
+        }
+
+        private void StopVoice(BasePlayer listener)
+        {
+            if (listener == null) return;
+            int generation;
+            playbackGeneration.TryGetValue(listener.userID, out generation);
+            playbackGeneration[listener.userID] = generation + 1;
+        }
+
+        private void PlayVoice(BasePlayer listener, NpcDefinition definition, DialogueNode node)
+        {
+            StopVoice(listener);
+            if (listener == null || node == null || string.IsNullOrWhiteSpace(node.Audio)) return;
+            // Voice references use clip:<id> for first-party native recordings.
+            if (!node.Audio.StartsWith("clip:", StringComparison.OrdinalIgnoreCase)) return;
+            List<string> frames;
+            if (!voiceClips.TryGetValue(node.Audio.Substring(5), out frames) || frames.Count == 0) return;
+            var placement = FindLookedAtPlacement(listener);
+            if (placement == null) return;
+            BaseEntity npc;
+            if (!spawned.TryGetValue(placement.Id, out npc) || npc == null || npc.net == null) return;
+            var source = npc;
+            var listenerId = listener.userID;
+            int generation = playbackGeneration[listenerId];
+            // Each packet is dispatched at the normal voice cadence. Only the
+            // initiating listener hears this conversation; proximity alone does nothing.
+            int index = 0;
+            timer.Repeat(0.02f, frames.Count, () =>
+            {
+                int current;
+                if (!playbackGeneration.TryGetValue(listenerId, out current) || current != generation ||
+                    !listener.IsConnected || !conversations.Contains(listenerId) || source.IsDestroyed || source.net == null) return;
+                if (index >= frames.Count) return;
+                try
+                {
+                    var packet = Convert.FromBase64String(frames[index++]);
+                    if (packet.Length == 0 || packet.Length > 4096) return;
+                    var writer = Network.Net.sv.StartWrite();
+                    writer.PacketID(Network.Message.Type.VoiceData);
+                    writer.EntityID(source.net.ID);
+                    writer.BytesWithSize(packet);
+                    writer.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
+                }
+                catch (Exception ex) { StopVoice(listener); PrintWarning("NPC voice playback failed: " + ex.Message); }
+            });
+        }
+
         private void DiscardPreview(ulong ownerId)
         {
             Placement pending;
@@ -425,6 +508,7 @@ namespace Oxide.Plugins
 
         private void OnServerInitialized()
         {
+            LoadVoiceClips();
             int restored = 0, failed = 0;
             foreach (var placement in data.Placements)
             {
@@ -452,6 +536,9 @@ namespace Oxide.Plugins
             showingPrompt.Clear();
             pendingPlacements.Clear();
             syncInProgress = false;
+            recordingFrames.Clear();
+            recordingNames.Clear();
+            playbackGeneration.Clear();
         }
 
         private bool IsOwner(BasePlayer player) => player != null && config.OwnerSteamIds.Contains(player.userID);
@@ -489,6 +576,40 @@ namespace Oxide.Plugins
                         " Voice playback: not implemented.");
                     break;
                 }
+                case "record":
+                {
+                    if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]) || args[1].Length > 100 ||
+                        !System.Text.RegularExpressions.Regex.IsMatch(args[1], "^[A-Za-z0-9_-]+$"))
+                    {
+                        player.ChatMessage("Usage: /npcstudio record <clip-id> (then speak using push-to-talk)");
+                        return;
+                    }
+                    recordingNames[player.userID] = args[1];
+                    recordingFrames[player.userID] = new List<string>();
+                    player.ChatMessage("Recording native Rust voice packets. Speak using push-to-talk; then /npcstudio stoprecord. Maximum 30 seconds.");
+                    break;
+                }
+                case "stoprecord":
+                {
+                    List<string> frames;
+                    string name;
+                    if (!recordingFrames.TryGetValue(player.userID, out frames) ||
+                        !recordingNames.TryGetValue(player.userID, out name))
+                    {
+                        player.ChatMessage("No recording in progress.");
+                        return;
+                    }
+                    recordingFrames.Remove(player.userID);
+                    recordingNames.Remove(player.userID);
+                    if (frames.Count == 0) { player.ChatMessage("No voice packets captured. Check your push-to-talk."); return; }
+                    voiceClips[name] = frames;
+                    SaveVoiceClips();
+                    player.ChatMessage("Saved " + frames.Count + " voice packets as clip:" + name + ". Assign this reference to a dialogue node's audio field.");
+                    break;
+                }
+                case "clips":
+                    player.ChatMessage("Native voice clips: " + (voiceClips.Count == 0 ? "(none)" : string.Join(", ", voiceClips.Keys)));
+                    break;
                 case "sync":
                     SyncStudio(player);
                     break;
@@ -1064,6 +1185,7 @@ namespace Oxide.Plugins
             }
             AddButton(ui, panel, "Close", "re.npcstudio.close", "0.73 0.02", "0.95 0.13");
             CuiHelper.AddUi(player, ui);
+            if (activeNode != null && definition != null) PlayVoice(player, activeDefinition, activeNode);
         }
 
         private void AddLabel(CuiElementContainer ui, string parent, string value, string min, string max, int size)
@@ -1101,6 +1223,7 @@ namespace Oxide.Plugins
                 if (node == null || !int.TryParse(choice, out index) || index < 0 || index >= node.Choices.Count || index >= 4) return;
                 var next = node.Choices[index].Next;
                 if (string.IsNullOrEmpty(next)) { CloseDialogue(player); return; }
+                StopVoice(player);
                 conversationNode[player.userID] = next;
                 OpenDialogue(player);
                 return;
@@ -1119,6 +1242,7 @@ namespace Oxide.Plugins
 
         private void CloseDialogue(BasePlayer player)
         {
+            StopVoice(player);
             conversations.Remove(player.userID);
             conversationDefinitions.Remove(player.userID);
             conversationNode.Remove(player.userID);
@@ -1131,6 +1255,9 @@ namespace Oxide.Plugins
         {
             if (player != null)
             {
+                StopVoice(player);
+                recordingFrames.Remove(player.userID);
+                recordingNames.Remove(player.userID);
                 conversations.Remove(player.userID);
                 conversationDefinitions.Remove(player.userID);
                 conversationNode.Remove(player.userID);
