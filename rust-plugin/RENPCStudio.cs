@@ -1294,6 +1294,8 @@ namespace Oxide.Plugins
             AddLabel(ui, panel, activeNode != null ? activeNode.Text : (response ?? "Internal Affairs? I already gave my statement."), "0.05 0.53", "0.95 0.80", 16);
             if (activeNode != null && activeNode.Choices != null)
             {
+                if (activeNode.Choices.Count == 0)
+                    AddButton(ui, panel, "Finish conversation", "re.npcstudio.finish", "0.05 0.22", "0.95 0.36");
                 for (int i = 0; i < activeNode.Choices.Count && i < 4; i++)
                 {
                     var choice = activeNode.Choices[i];
@@ -1349,17 +1351,7 @@ namespace Oxide.Plugins
                 var next = node.Choices[index].Next;
                 if (string.IsNullOrEmpty(next))
                 {
-                    ulong placementId;
-                    if (!d.Repeatable && conversationPlacement.TryGetValue(player.userID, out placementId))
-                    {
-                        List<ulong> completed;
-                        if (!data.CompletedConversations.TryGetValue(player.userID, out completed) || completed == null)
-                        {
-                            completed = new List<ulong>();
-                            data.CompletedConversations[player.userID] = completed;
-                        }
-                        if (!completed.Contains(placementId)) { completed.Add(placementId); Save(); }
-                    }
+                    CompleteConversation(player, d);
                     CloseDialogue(player);
                     return;
                 }
@@ -1370,6 +1362,35 @@ namespace Oxide.Plugins
             }
             if (d == null && choice == "0") OpenDialogue(player, "I was in the breakroom. The furnace wasn't running.");
             else if (d == null && choice == "1") OpenDialogue(player, "No. I didn't see anyone.");
+        }
+
+        private void CompleteConversation(BasePlayer player, NpcDefinition definition)
+        {
+            ulong placementId;
+            if (definition == null || definition.Repeatable ||
+                !conversationPlacement.TryGetValue(player.userID, out placementId)) return;
+            List<ulong> completed;
+            if (!data.CompletedConversations.TryGetValue(player.userID, out completed) || completed == null)
+            {
+                completed = new List<ulong>();
+                data.CompletedConversations[player.userID] = completed;
+            }
+            if (!completed.Contains(placementId)) { completed.Add(placementId); Save(); }
+        }
+
+        [ConsoleCommand("re.npcstudio.finish")]
+        private void Finish(ConsoleSystem.Arg arg)
+        {
+            var player = arg.Player();
+            if (player == null || !player.IsConnected || !conversations.Contains(player.userID)) return;
+            NpcDefinition definition;
+            string nodeId;
+            if (!conversationDefinitions.TryGetValue(player.userID, out definition) ||
+                definition == null || !conversationNode.TryGetValue(player.userID, out nodeId)) return;
+            var node = definition.Dialogue.Find(n => n.Id == nodeId);
+            if (node == null || node.Choices == null || node.Choices.Count != 0) return;
+            CompleteConversation(player, definition);
+            CloseDialogue(player);
         }
 
         [ConsoleCommand("re.npcstudio.close")]
