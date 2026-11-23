@@ -149,11 +149,16 @@ namespace Oxide.Plugins
         {
             if (frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
             int index = 0;
-            timer.Repeat(0.02f, frames.Count, () =>
+            Oxide.Core.Libraries.Timer.TimerInstance playbackTimer = null;
+            playbackTimer = timer.Repeat(0.02f, frames.Count, () =>
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed || source.net == null) return;
+                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed || source.net == null)
+                {
+                    if (playbackTimer != null) playbackTimer.Destroy();
+                    return;
+                }
                 if (index >= frames.Count) return;
                 try
                 {
