@@ -65,6 +65,7 @@ export const router = createBrowserRouter([
                   if (user.role !== 'SUPERADMIN') return redirect('/dashboard');
                 },
                 children: [
+                  { index: true, lazy: () => import('./pages/devtools/index') },
                   { path: 'npcstudio', lazy: () => import('./pages/devtools/npcstudio') },
                 ],
               },
