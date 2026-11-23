@@ -1,0 +1,398 @@
+[
+  {
+    "shortname": "hoodie",
+    "name": "Hoodie",
+    "itemId": 1751045826,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "jacket",
+    "name": "Jacket",
+    "itemId": -1163532624,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "jacket.snow",
+    "name": "Snow Jacket",
+    "itemId": -48090175,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "pants",
+    "name": "Pants",
+    "itemId": 237239288,
+    "hasSkins": true,
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "tshirt",
+    "name": "T-Shirt",
+    "itemId": 223891266,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "tshirt.long",
+    "name": "Longsleeve T-Shirt",
+    "itemId": 935692442,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "burlap.shirt",
+    "name": "Burlap Shirt",
+    "itemId": 602741290,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "burlap.trousers",
+    "name": "Burlap Trousers",
+    "itemId": 1992974553,
+    "hasSkins": false,
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "metal.facemask",
+    "name": "Metal Facemask",
+    "itemId": -194953424,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "metal.plate.torso",
+    "name": "Metal Chest Plate",
+    "itemId": 1110385766,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "coffeecan.helmet",
+    "name": "Coffee Can Helmet",
+    "itemId": -803263829,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "roadsign.jacket",
+    "name": "Road Sign Jacket",
+    "itemId": -2002277461,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "roadsign.kilt",
+    "name": "Road Sign Kilt",
+    "itemId": 1850456855,
+    "hasSkins": true,
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "hazmatsuit",
+    "name": "Hazmat Suit",
+    "itemId": 1266491000,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "hazmatsuit.arcticsuit",
+    "name": "Arctic Suit",
+    "itemId": -470439097,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "hat.cap",
+    "name": "Baseball Cap",
+    "itemId": -1022661119,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "hat.beenie",
+    "name": "Beenie Hat",
+    "itemId": 1675639563,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "hat.boonie",
+    "name": "Boonie Hat",
+    "itemId": -23994173,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "hat.wolf",
+    "name": "Wolf Headdress",
+    "itemId": -1478212975,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "shoes.boots",
+    "name": "Boots",
+    "itemId": -1549739227,
+    "hasSkins": true,
+    "slots": [
+      "Feet"
+    ]
+  },
+  {
+    "shortname": "boots.frog",
+    "name": "Frog Boots",
+    "itemId": -1000573653,
+    "hasSkins": false,
+    "slots": [
+      "Feet"
+    ]
+  },
+  {
+    "shortname": "burlap.gloves",
+    "name": "Leather Gloves",
+    "itemId": 1366282552,
+    "hasSkins": true,
+    "slots": [
+      "Hands"
+    ]
+  },
+  {
+    "shortname": "burlap.gloves.new",
+    "name": "Burlap Gloves",
+    "itemId": 21402876,
+    "hasSkins": false,
+    "slots": [
+      "Hands"
+    ]
+  },
+  {
+    "shortname": "largebackpack",
+    "name": "Large Backpack",
+    "itemId": -907422733,
+    "hasSkins": true,
+    "slots": [
+      "Accessory"
+    ]
+  },
+  {
+    "shortname": "smallbackpack",
+    "name": "Small Backpack",
+    "itemId": 2068884361,
+    "hasSkins": false,
+    "slots": [
+      "Accessory"
+    ]
+  },
+  {
+    "shortname": "kriegbackpack",
+    "name": "Krieg Large Backpack",
+    "itemId": -874650016,
+    "hasSkins": false,
+    "slots": [
+      "Accessory"
+    ]
+  },
+  {
+    "shortname": "heavy.plate.helmet",
+    "name": "Heavy Plate Helmet",
+    "itemId": 1181207482,
+    "hasSkins": false,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "heavy.plate.jacket",
+    "name": "Heavy Plate Jacket",
+    "itemId": -1102429027,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "heavy.plate.pants",
+    "name": "Heavy Plate Pants",
+    "itemId": -1778159885,
+    "hasSkins": false,
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "wood.armor.helmet",
+    "name": "Wood Armor Helmet",
+    "itemId": -2094954543,
+    "hasSkins": true,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "wood.armor.jacket",
+    "name": "Wood Chestplate",
+    "itemId": 418081930,
+    "hasSkins": true,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "wood.armor.pants",
+    "name": "Wood Armor Pants",
+    "itemId": 832133926,
+    "hasSkins": true,
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "woodarmor.gloves",
+    "name": "Wood Armor Gloves",
+    "itemId": -459159118,
+    "hasSkins": true,
+    "slots": [
+      "Hands"
+    ]
+  },
+  {
+    "shortname": "attire.bunny.onesie",
+    "name": "Bunny Onesie",
+    "itemId": -1266045928,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "barrelcostume",
+    "name": "Barrel Costume",
+    "itemId": -1215166612,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "cratecostume",
+    "name": "Crate Costume",
+    "itemId": 1189981699,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "diving.wetsuit",
+    "name": "Wetsuit",
+    "itemId": -1101924344,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "diving.tank",
+    "name": "Diving Tank",
+    "itemId": -2022172587,
+    "hasSkins": false,
+    "slots": [
+      "Accessory"
+    ]
+  },
+  {
+    "shortname": "diving.tank.double",
+    "name": "Double Diving Tank",
+    "itemId": -1559420426,
+    "hasSkins": false,
+    "slots": [
+      "Accessory"
+    ]
+  },
+  {
+    "shortname": "diving.mask",
+    "name": "Diving Mask",
+    "itemId": -113413047,
+    "hasSkins": false,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "ballistic.helmet",
+    "name": "Ballistic Helmet",
+    "itemId": 1127732084,
+    "hasSkins": false,
+    "slots": [
+      "Head"
+    ]
+  },
+  {
+    "shortname": "ballistic.vest",
+    "name": "Ballistic Vest",
+    "itemId": -1780402255,
+    "hasSkins": false,
+    "slots": [
+      "Chest"
+    ]
+  },
+  {
+    "shortname": "ballistic.legarmor",
+    "name": "Ballistic Leg Armor",
+    "itemId": 1983541158,
+    "hasSkins": false,
+    "slots": [
+      "Legs"
+    ]
+  },
+  {
+    "shortname": "tactical.gloves",
+    "name": "Tactical Gloves",
+    "itemId": -1108136649,
+    "hasSkins": false,
+    "slots": [
+      "Hands"
+    ]
+  }
+]
