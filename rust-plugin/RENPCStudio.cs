@@ -27,6 +27,7 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, BaseEntity> spawned = new Dictionary<ulong, BaseEntity>();
         private readonly HashSet<ulong> conversations = new HashSet<ulong>();
         private readonly Dictionary<ulong, Placement> pendingPlacements = new Dictionary<ulong, Placement>();
+        private bool syncInProgress;
 
         private class Configuration
         {
@@ -203,14 +204,27 @@ namespace Oxide.Plugins
         // Imported definitions are cached locally for server restart/offline use.
         private void SyncStudio(BasePlayer player)
         {
+            if (syncInProgress)
+            {
+                player.ChatMessage("NPC Studio sync already in progress.");
+                return;
+            }
+            if (!Uri.IsWellFormedUriString(config.StudioUrl, UriKind.Absolute) ||
+                !config.StudioUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                player.ChatMessage("StudioUrl must be an absolute HTTPS URL.");
+                return;
+            }
             if (string.IsNullOrWhiteSpace(config.RuntimeToken) || config.RuntimeToken.Length < 32)
             {
                 player.ChatMessage("Set RuntimeToken (32+ characters) in the RENPCStudio server config.");
                 return;
             }
             var headers = new Dictionary<string, string> { { "Authorization", "Bearer " + config.RuntimeToken } };
+            syncInProgress = true;
             webrequest.Enqueue(config.StudioUrl.TrimEnd('/') + "/api/devtools/npcs/runtime", null, (code, body) =>
             {
+                syncInProgress = false;
                 if (code != 200 || string.IsNullOrEmpty(body))
                 {
                     if (player != null && player.IsConnected) player.ChatMessage("NPC Studio sync failed (HTTP " + code + ").");
@@ -223,6 +237,7 @@ namespace Oxide.Plugins
                     var incoming = new DefinitionFile();
                     var items = root["npcs"] as JArray;
                     if (items == null) throw new Exception("Missing NPC definitions");
+                    if (items.Count > 1000) throw new Exception("NPC manifest exceeds 1000 definitions.");
                     foreach (var item in items)
                     {
                         var definition = item["definition"] as JObject;
@@ -389,6 +404,7 @@ namespace Oxide.Plugins
             conversationNode.Clear();
             showingPrompt.Clear();
             pendingPlacements.Clear();
+            syncInProgress = false;
         }
 
         private bool IsOwner(BasePlayer player) => player != null && config.OwnerSteamIds.Contains(player.userID);
@@ -410,6 +426,22 @@ namespace Oxide.Plugins
             }
             switch (args[0].ToLowerInvariant())
             {
+                case "status":
+                {
+                    int updates = 0;
+                    int missing = 0;
+                    foreach (var placement in data.Placements)
+                    {
+                        var current = GetDefinition(placement.DefinitionId);
+                        if (current == null) { missing++; continue; }
+                        if (placement.Snapshot == null || placement.Revision != current.Revision) updates++;
+                    }
+                    player.ChatMessage("NPC Studio: " + definitions.Npcs.Count + " definitions, " + data.Placements.Count +
+                        " placements, " + updates + " pending updates, " + missing + " missing definitions. " +
+                        (syncInProgress ? "Sync in progress." : "Sync idle.") +
+                        " Voice playback: not implemented.");
+                    break;
+                }
                 case "sync":
                     SyncStudio(player);
                     break;
