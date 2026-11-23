@@ -15,7 +15,7 @@ const MAX_DEFINITION_BYTES = 64 * 1024;
 const audioBody = z.object({ filename:z.string().min(1).max(200), contentType:z.enum(['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg']), data:z.string().min(1).max(11200000) });
 const guard = async (req: Parameters<typeof authenticateUser>[0], res: Parameters<typeof authenticateUser>[1]) => {
  await authenticateUser(req,res);
- if(!isAdministrator(req.user.role)) throw new Error('Administrator access required');
+ if(!req.user || !isAdministrator(req.user.role)) return res.code(403).send({error:'Administrator access required'});
 };
 let initialized:Promise<void>|undefined;
 function setup(){
