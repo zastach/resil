@@ -14,15 +14,14 @@ const blankNode = (id:string):Node => ({id,text:'',audio:'',choices:[]});
 const storageKey='resil-npcstudio-v1';
 function download(name:string, body:string, mime:string) { const url=URL.createObjectURL(new Blob([body],{type:mime})); const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
 function validate(n:Npc) { const ids=n.dialogue.map(x=>x.id);if(!/^[a-z0-9][a-z0-9-]*$/.test(n.id))return 'NPC ID must use lowercase letters, numbers and hyphens.';if(!n.name.trim())return 'NPC name required.';if(!ids.includes('start')||new Set(ids).size!==ids.length)return 'Dialogue must contain a start node and unique node IDs.';if(n.dialogue.some(x=>x.choices.some(c=>c.next&&!ids.includes(c.next))))return 'A dialogue response links to a missing node.';return ''; }
+function readLibrary(): Npc[] { try { const data=JSON.parse(localStorage.getItem(storageKey)||'[]'); return Array.isArray(data)?data:[]; } catch { return []; } }
 export function Component() {
- const [library,setLibrary]=useState<Npc[]>([]);
- const [selected,setSelected]=useState('');
- const [draft,setDraft]=useState<Npc>(starter);
+ const [library,setLibrary]=useState<Npc[]>(readLibrary);
+ const [selected,setSelected]=useState(()=>readLibrary()[0]?.id||'');
+ const [draft,setDraft]=useState<Npc>(()=>readLibrary()[0]||starter());
  const [notice,setNotice]=useState('');
- const [loaded,setLoaded]=useState(false);
  const [tab,setTab]=useState<string|null>('appearance');
- useEffect(()=>{try{const raw=localStorage.getItem(storageKey);if(raw){const data=JSON.parse(raw) as Npc[];if(Array.isArray(data)){setLibrary(data);if(data[0]){setSelected(data[0].id);setDraft(data[0]);}}}}catch{}setLoaded(true);},[]);
- useEffect(()=>{if(loaded)localStorage.setItem(storageKey,JSON.stringify(library));},[library,loaded]);
+ useEffect(()=>{localStorage.setItem(storageKey,JSON.stringify(library));},[library]);
  const patch=(p:Partial<Npc>)=>setDraft(prev=>({...prev,...p}));
  const save=()=>{const error=validate(draft);if(error){setNotice(error);return;}const exists=library.find(x=>x.id===draft.id);const next={...draft,revision:exists?exists.revision+1:1};setLibrary(prev=>[...prev.filter(x=>x.id!==next.id),next]);setSelected(next.id);setDraft(next);setNotice('Saved to this browser. Export a definition to transfer it; server-side publishing is not connected.');};
  const updateNode=(i:number,p:Partial<Node>)=>patch({dialogue:draft.dialogue.map((n,j)=>i===j?{...n,...p}:n)});
