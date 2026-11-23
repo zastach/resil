@@ -3,7 +3,7 @@
 ## Implementation status (November 2026)
 The implementation branch is `npc-studio-full-v1`. The website editor, authenticated NPC manifest, definition synchronization, manual apply, NPC placement, E-to-talk dialogue, and first-party audio conversion/playback code are present. Uploaded audio is converted by FFmpeg to 20-ms Opus packets; the Rust plugin fetches those packets using the runtime token and sends them to the interacting client as native Rust voice data. Optional in-game push-to-talk recording provides an alternate source via `clip:<id>`.
 
-**No end-to-end testing or Shockbyte installation has occurred.** Rust packet serialization, Opus compatibility, Oxide hook signatures, website build, and the actual audio experience remain unverified. These are release gates, not completed functionality. Testing is intentionally deferred until implementation handoff at the user's direction.
+**No end-to-end testing or Shockbyte installation has occurred.** Rust packet serialization, Opus compatibility, The current Oxide microphone hook was updated to use ArraySegment<byte> and the NetworkableId writer conversion was corrected in source; exact target-build compilation, website build, voice wire format, and actual audio playback remain unverified. These are release gates, not completed functionality. Source-level hardening and automated voice conversion tests are included; live testing remains blocked without a staging Rust server and a runnable website build.
 
 ## Audio integration
 - Website upload: `POST /api/devtools/npcs/audio` accepts MP3/WAV/OGG, stores the original and its bounded Opus packets.
