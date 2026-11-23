@@ -397,7 +397,7 @@ namespace Oxide.Plugins
                 case "import":
                 {
                     string result;
-                    if (ReloadDefinitions(out result)) RefreshPlacedNpcs();
+                    ReloadDefinitions(out result);
                     player.ChatMessage(result);
                     break;
                 }
@@ -830,10 +830,13 @@ namespace Oxide.Plugins
             AddLabel(ui, panel, activeNode != null ? activeNode.Text : (response ?? "Internal Affairs? I already gave my statement."), "0.05 0.53", "0.95 0.80", 16);
             if (activeNode != null)
             {
-                for (int i = 0; i < activeNode.Choices.Count && i < 2; i++)
+                for (int i = 0; i < activeNode.Choices.Count && i < 4; i++)
                 {
                     var choice = activeNode.Choices[i];
-                    AddButton(ui, panel, choice.Text, "re.npcstudio.choice " + i, i == 0 ? "0.05 0.33" : "0.05 0.15", i == 0 ? "0.95 0.49" : "0.95 0.31");
+                    float top = 0.51f - i * 0.13f;
+                    AddButton(ui, panel, choice.Text, "re.npcstudio.choice " + i,
+                        "0.05 " + (top - 0.11f).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "0.95 " + top.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 }
             }
             else
@@ -878,7 +881,7 @@ namespace Oxide.Plugins
                 if (d == null || !conversationNode.TryGetValue(player.userID, out nodeId)) return;
                 var node = d.Dialogue.Find(n => n.Id == nodeId);
                 int index;
-                if (node == null || !int.TryParse(choice, out index) || index < 0 || index >= node.Choices.Count || index >= 2) return;
+                if (node == null || !int.TryParse(choice, out index) || index < 0 || index >= node.Choices.Count || index >= 4) return;
                 var next = node.Choices[index].Next;
                 if (string.IsNullOrEmpty(next)) { CloseDialogue(player); return; }
                 conversationNode[player.userID] = next;
