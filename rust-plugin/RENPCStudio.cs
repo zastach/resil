@@ -134,6 +134,30 @@ namespace Oxide.Plugins
                     message = "Invalid definitions file or unsupported schema version.";
                     return false;
                 }
+                string validationMessage;
+                if (!ValidateDefinitions(incoming, out validationMessage))
+                {
+                    message = validationMessage;
+                    return false;
+                }
+                definitions = incoming;
+                message = "Imported " + definitions.Npcs.Count + " NPC definitions.";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                message = "Could not read definitions: " + ex.Message;
+                return false;
+            }
+        }
+
+        private bool ValidateDefinitions(DefinitionFile incoming, out string message)
+        {
+            if (incoming == null || incoming.SchemaVersion != 1 || incoming.Npcs == null)
+            {
+                message = "Invalid definitions file or unsupported schema version.";
+                return false;
+            }
                 var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var npc in incoming.Npcs)
                 {
@@ -163,15 +187,8 @@ namespace Oxide.Plugins
                                 return false;
                             }
                 }
-                definitions = incoming;
-                message = "Imported " + definitions.Npcs.Count + " NPC definitions.";
-                return true;
-            }
-            catch (Exception ex)
-            {
-                message = "Could not read definitions: " + ex.Message;
-                return false;
-            }
+            message = "Validated " + incoming.Npcs.Count + " definitions.";
+            return true;
         }
 
         // Explicit remote sync: existing placements are NOT silently respawned.
@@ -228,16 +245,11 @@ namespace Oxide.Plugins
                         }
                         if (!string.IsNullOrWhiteSpace(npc.Id) && !string.IsNullOrWhiteSpace(npc.Name)) incoming.Npcs.Add(npc);
                     }
-                    // Validate the staged data through the existing importer before activation.
-                    var previous = definitions;
-                    Interface.Oxide.DataFileSystem.WriteObject(DefinitionFileName, incoming);
+                    // Validate in memory before writing to disk, so failed syncs cannot corrupt the cache.
                     string message;
-                    if (!ReloadDefinitions(out message))
-                    {
-                        definitions = previous;
-                        Interface.Oxide.DataFileSystem.WriteObject(DefinitionFileName, previous);
-                        throw new Exception(message);
-                    }
+                    if (!ValidateDefinitions(incoming, out message)) throw new Exception(message);
+                    Interface.Oxide.DataFileSystem.WriteObject(DefinitionFileName, incoming);
+                    definitions = incoming;
                     if (player != null && player.IsConnected) player.ChatMessage("Synced " + definitions.Npcs.Count + " definitions. Existing NPCs unchanged; use /npcstudio apply to update placed instances.");
                 }
                 catch (Exception ex)
@@ -368,10 +380,19 @@ namespace Oxide.Plugins
                     SyncStudio(player);
                     break;
                 case "apply":
-                    RefreshPlacedNpcs();
-                    foreach (var placement in data.Placements) { var def = GetDefinition(placement.DefinitionId); if (def != null) placement.Revision = def.Revision; }
+                    int applied = 0;
+                    foreach (var placement in data.Placements)
+                    {
+                        var def = GetDefinition(placement.DefinitionId);
+                        if (def == null || placement.Revision == def.Revision) continue;
+                        BaseEntity oldEntity;
+                        spawned.TryGetValue(placement.Id, out oldEntity);
+                        spawned.Remove(placement.Id);
+                        if (oldEntity != null && !oldEntity.IsDestroyed) oldEntity.Kill();
+                        if (Spawn(placement)) { placement.Revision = def.Revision; applied++; }
+                    }
                     Save();
-                    player.ChatMessage("Applied current definitions to placed NPCs.");
+                    player.ChatMessage("Applied updated definitions to " + applied + " placed NPCs.");
                     break;
                 case "import":
                 {
