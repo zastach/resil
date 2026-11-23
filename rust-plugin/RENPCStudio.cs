@@ -327,6 +327,8 @@ namespace Oxide.Plugins
                 placement.ShortId = data.NextShortId++;
                 used.Add(placement.ShortId);
             }
+            // Older saved placements predate revision snapshots. Pin the currently
+            // imported definition once at startup, without changing placed NPCs.
             if (used.Count > 0)
             {
                 int max = 0;
@@ -336,7 +338,21 @@ namespace Oxide.Plugins
             Save();
             string importMessage;
             if (!ReloadDefinitions(out importMessage)) PrintWarning(importMessage);
-            else Puts(importMessage);
+            else
+            {
+                Puts(importMessage);
+                bool migrated = false;
+                foreach (var placement in data.Placements)
+                {
+                    if (placement.Snapshot != null) continue;
+                    var def = GetDefinition(placement.DefinitionId);
+                    if (def == null) continue;
+                    placement.Snapshot = def;
+                    placement.Revision = def.Revision;
+                    migrated = true;
+                }
+                if (migrated) Save();
+            }
         }
 
         private void OnServerInitialized()
@@ -388,21 +404,33 @@ namespace Oxide.Plugins
                     break;
                 case "apply":
                     int applied = 0;
+                    int failed = 0;
                     foreach (var placement in data.Placements)
                     {
                         var def = GetDefinition(placement.DefinitionId);
-                        if (def == null || placement.Revision == def.Revision) continue;
+                        if (def == null || (placement.Snapshot != null && placement.Revision == def.Revision)) continue;
                         var previousSnapshot = placement.Snapshot;
+                        var previousRevision = placement.Revision;
                         placement.Snapshot = def;
                         BaseEntity oldEntity;
                         spawned.TryGetValue(placement.Id, out oldEntity);
                         spawned.Remove(placement.Id);
                         if (oldEntity != null && !oldEntity.IsDestroyed) oldEntity.Kill();
-                        if (Spawn(placement)) { placement.Revision = def.Revision; applied++; }
-                        else placement.Snapshot = previousSnapshot;
+                        if (Spawn(placement))
+                        {
+                            placement.Revision = def.Revision;
+                            applied++;
+                        }
+                        else
+                        {
+                            placement.Snapshot = previousSnapshot;
+                            placement.Revision = previousRevision;
+                            if (!Spawn(placement)) PrintWarning("Could not restore NPC #" + placement.ShortId + " after failed update.");
+                            failed++;
+                        }
                     }
                     Save();
-                    player.ChatMessage("Applied updated definitions to " + applied + " placed NPCs.");
+                    player.ChatMessage("Updated " + applied + " NPCs; " + failed + " failed (previous definitions restored where possible).");
                     break;
                 case "import":
                 {
@@ -828,7 +856,10 @@ namespace Oxide.Plugins
             }
             NpcDefinition activeDefinition;
             conversationDefinitions.TryGetValue(player.userID, out activeDefinition);
-            var activeNode = activeDefinition != null ? activeDefinition.Dialogue.Find(n => n.Id == conversationNode[player.userID]) : null;
+            string currentNode;
+            conversationNode.TryGetValue(player.userID, out currentNode);
+            var activeNode = activeDefinition != null && activeDefinition.Dialogue != null
+                ? activeDefinition.Dialogue.Find(n => n.Id == currentNode) : null;
             var ui = new CuiElementContainer();
             var panel = ui.Add(new CuiPanel
             {
@@ -925,6 +956,8 @@ namespace Oxide.Plugins
                 conversationDefinitions.Remove(player.userID);
                 conversationNode.Remove(player.userID);
                 showingPrompt.Remove(player.userID);
+                CuiHelper.DestroyUi(player, UiName);
+                CuiHelper.DestroyUi(player, PromptUiName);
             }
         }
     }
