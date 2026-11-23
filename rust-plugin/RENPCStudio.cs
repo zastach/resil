@@ -255,8 +255,7 @@ namespace Oxide.Plugins
                         npc.Revision = (int?)item["revision"] ?? 0;
                         npc.Invulnerable = !((bool?)definition["killable"] ?? false);
                         npc.Health = (float?)definition["hp"] ?? 100f;
-                        // The web editor does not require a node literally named "start".
-                        // Use the first authored node as the entry point.
+                        // The editor requires a start node; preserve it as the entry point.
                         npc.StartNode = "start";
                         var clothing = definition["equipment"] as JArray;
                         if (clothing != null) foreach (var piece in clothing)
@@ -983,10 +982,10 @@ namespace Oxide.Plugins
                         "0.95 " + top.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 }
             }
-            else
+            else if (activeDefinition == null)
             {
-                AddButton(ui, panel, "Where were you?", "re.npcstudio.choice 1", "0.05 0.33", "0.95 0.49");
-                AddButton(ui, panel, "Did you see anyone?", "re.npcstudio.choice 2", "0.05 0.15", "0.95 0.31");
+                AddButton(ui, panel, "Where were you?", "re.npcstudio.choice 0", "0.05 0.33", "0.95 0.49");
+                AddButton(ui, panel, "Did you see anyone?", "re.npcstudio.choice 1", "0.05 0.15", "0.95 0.31");
             }
             AddButton(ui, panel, "Close", "re.npcstudio.close", "0.73 0.02", "0.95 0.13");
             CuiHelper.AddUi(player, ui);
@@ -1015,7 +1014,7 @@ namespace Oxide.Plugins
         private void Choice(ConsoleSystem.Arg arg)
         {
             var player = arg.Player();
-            if (player == null || !conversations.Contains(player.userID)) return;
+            if (player == null || !player.IsConnected || !conversations.Contains(player.userID)) return;
             var choice = arg.GetString(0, "");
             NpcDefinition d;
             if (conversationDefinitions.TryGetValue(player.userID, out d))
@@ -1031,8 +1030,8 @@ namespace Oxide.Plugins
                 OpenDialogue(player);
                 return;
             }
-            if (choice == "0") OpenDialogue(player, "I was in the breakroom. The furnace wasn't running.");
-            else if (choice == "1") OpenDialogue(player, "No. I didn't see anyone.");
+            if (d == null && choice == "0") OpenDialogue(player, "I was in the breakroom. The furnace wasn't running.");
+            else if (d == null && choice == "1") OpenDialogue(player, "No. I didn't see anyone.");
         }
 
         [ConsoleCommand("re.npcstudio.close")]
