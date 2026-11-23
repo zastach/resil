@@ -21,7 +21,7 @@ namespace Oxide.Plugins
         private Configuration config;
         private StoredData data;
         private DefinitionFile definitions = new DefinitionFile();
-        private readonly Dictionary<ulong, string> conversationDefinition = new Dictionary<ulong, string>();
+        private readonly Dictionary<ulong, NpcDefinition> conversationDefinitions = new Dictionary<ulong, NpcDefinition>();
         private readonly Dictionary<ulong, string> conversationNode = new Dictionary<ulong, string>();
         private const string DefinitionFileName = "RENPCStudio_Definitions";
         private readonly Dictionary<ulong, BaseEntity> spawned = new Dictionary<ulong, BaseEntity>();
@@ -78,6 +78,7 @@ namespace Oxide.Plugins
             public float Yaw;
             public string DefinitionId;
             public int Revision;
+            public NpcDefinition Snapshot;
         }
 
         private class StoredData
@@ -116,6 +117,12 @@ namespace Oxide.Plugins
         {
             public string Text;
             public string Next;
+        }
+
+        private NpcDefinition GetPlacementDefinition(Placement placement)
+        {
+            if (placement == null) return null;
+            return placement.Snapshot ?? GetDefinition(placement.DefinitionId);
         }
 
         private NpcDefinition GetDefinition(string id)
@@ -352,7 +359,7 @@ namespace Oxide.Plugins
             foreach (var entity in runtimeEntities)
                 if (entity != null && !entity.IsDestroyed) entity.Kill();
             conversations.Clear();
-            conversationDefinition.Clear();
+            conversationDefinitions.Clear();
             conversationNode.Clear();
             showingPrompt.Clear();
         }
@@ -385,11 +392,14 @@ namespace Oxide.Plugins
                     {
                         var def = GetDefinition(placement.DefinitionId);
                         if (def == null || placement.Revision == def.Revision) continue;
+                        var previousSnapshot = placement.Snapshot;
+                        placement.Snapshot = def;
                         BaseEntity oldEntity;
                         spawned.TryGetValue(placement.Id, out oldEntity);
                         spawned.Remove(placement.Id);
                         if (oldEntity != null && !oldEntity.IsDestroyed) oldEntity.Kill();
                         if (Spawn(placement)) { placement.Revision = def.Revision; applied++; }
+                        else placement.Snapshot = previousSnapshot;
                     }
                     Save();
                     player.ChatMessage("Applied updated definitions to " + applied + " placed NPCs.");
@@ -415,7 +425,7 @@ namespace Oxide.Plugins
                         return;
                     }
                     var id = (ulong)DateTime.UtcNow.Ticks;
-                    var placement = new Placement { Id = id, ShortId = data.NextShortId++, Position = player.transform.position, Yaw = player.eyes.rotation.eulerAngles.y, DefinitionId = definitionId, Revision = GetDefinition(definitionId) != null ? GetDefinition(definitionId).Revision : 0 };
+                    var placement = new Placement { Id = id, ShortId = data.NextShortId++, Position = player.transform.position, Yaw = player.eyes.rotation.eulerAngles.y, DefinitionId = definitionId, Revision = GetDefinition(definitionId) != null ? GetDefinition(definitionId).Revision : 0, Snapshot = GetDefinition(definitionId) };
                     placement.Position = GroundPosition(placement.Position);
                     if (!Spawn(placement))
                     {
@@ -599,7 +609,7 @@ namespace Oxide.Plugins
                     entity.Kill();
                     return false;
                 }
-                var definition = GetDefinition(placement.DefinitionId);
+                var definition = GetPlacementDefinition(placement);
                 npc.displayName = definition != null ? definition.Name : config.DisplayName;
                 npc.syncPosition = true;
                 stage = "network-spawn";
@@ -785,7 +795,7 @@ namespace Oxide.Plugins
             if (IsLookingAtStudioNpc(player))
             {
                 var placement = FindLookedAtPlacement(player);
-                OpenDialogue(player, null, placement != null ? placement.DefinitionId : null);
+                OpenDialogue(player, null, GetPlacementDefinition(placement));
             }
         }
 
@@ -797,27 +807,27 @@ namespace Oxide.Plugins
                 BaseEntity npc;
                 if (spawned.TryGetValue(placement.Id, out npc) && npc == entity)
                 {
-                    var definition = GetDefinition(placement.DefinitionId);
+                    var definition = GetPlacementDefinition(placement);
                     return (definition != null ? definition.Invulnerable : config.Invulnerable) ? (object)true : null;
                 }
             }
             return null;
         }
 
-        private void OpenDialogue(BasePlayer player, string response = null, string definitionId = null)
+        private void OpenDialogue(BasePlayer player, string response = null, NpcDefinition definition = null)
         {
             if (player == null || !player.IsConnected) return;
             CuiHelper.DestroyUi(player, UiName);
             CuiHelper.DestroyUi(player, PromptUiName);
             showingPrompt.Remove(player.userID);
             conversations.Add(player.userID);
-            if (definitionId != null)
+            if (definition != null)
             {
-                conversationDefinition[player.userID] = definitionId;
-                var d = GetDefinition(definitionId);
-                conversationNode[player.userID] = d != null ? d.StartNode : "";
+                conversationDefinitions[player.userID] = definition;
+                conversationNode[player.userID] = definition.StartNode;
             }
-            var activeDefinition = conversationDefinition.ContainsKey(player.userID) ? GetDefinition(conversationDefinition[player.userID]) : null;
+            NpcDefinition activeDefinition;
+            conversationDefinitions.TryGetValue(player.userID, out activeDefinition);
             var activeNode = activeDefinition != null ? activeDefinition.Dialogue.Find(n => n.Id == conversationNode[player.userID]) : null;
             var ui = new CuiElementContainer();
             var panel = ui.Add(new CuiPanel
@@ -873,10 +883,9 @@ namespace Oxide.Plugins
             var player = arg.Player();
             if (player == null || !conversations.Contains(player.userID)) return;
             var choice = arg.GetString(0, "");
-            string defId;
-            if (conversationDefinition.TryGetValue(player.userID, out defId))
+            NpcDefinition d;
+            if (conversationDefinitions.TryGetValue(player.userID, out d))
             {
-                var d = GetDefinition(defId);
                 string nodeId;
                 if (d == null || !conversationNode.TryGetValue(player.userID, out nodeId)) return;
                 var node = d.Dialogue.Find(n => n.Id == nodeId);
@@ -903,7 +912,7 @@ namespace Oxide.Plugins
         private void CloseDialogue(BasePlayer player)
         {
             conversations.Remove(player.userID);
-            conversationDefinition.Remove(player.userID);
+            conversationDefinitions.Remove(player.userID);
             conversationNode.Remove(player.userID);
             CuiHelper.DestroyUi(player, UiName);
         }
@@ -913,7 +922,7 @@ namespace Oxide.Plugins
             if (player != null)
             {
                 conversations.Remove(player.userID);
-                conversationDefinition.Remove(player.userID);
+                conversationDefinitions.Remove(player.userID);
                 conversationNode.Remove(player.userID);
                 showingPrompt.Remove(player.userID);
             }
