@@ -24,6 +24,9 @@ function setup(){
  return initialized;
 }
 export default typedPlugin(async server=>{
+ const runtimeGuard=async(req:Parameters<typeof authenticateUser>[0],res:Parameters<typeof authenticateUser>[1])=>{const secret=process.env.RESIL_NPC_RUNTIME_TOKEN;if(!secret||secret.length<32||req.headers.authorization!=='Bearer '+secret)return res.code(401).send({error:'Runtime authentication required'});};
+ server.get(PATH+'/runtime',{preHandler:[runtimeGuard]},async(_req,res)=>{await setup();const npcs=await db.execute(sql`SELECT id,name,definition,revision FROM resil_npc_definitions ORDER BY name`);return res.header('Cache-Control','no-store').send({version:1,npcs:npcs.rows});});
+ server.get(PATH+'/runtime/audio/:id',{preHandler:[runtimeGuard]},async(req,res)=>{const audioId=id.parse((req.params as {id:string}).id);await setup();const result=await db.execute(sql`SELECT mime,content FROM resil_npc_audio WHERE id=${audioId}`);if(!result.rows.length)return res.code(404).send({error:'Audio not found'});const row=result.rows[0] as {mime:string;content:Buffer};return res.header('Cache-Control','private, max-age=3600').header('X-Content-Type-Options','nosniff').type(row.mime).send(row.content);});
  server.post(PATH+'/audio',{preHandler:[guard],bodyLimit:12000000},async(req,res)=>{
   const body=audioBody.parse(req.body);
   if(!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(body.data))return res.code(400).send({error:'Invalid audio encoding'});
