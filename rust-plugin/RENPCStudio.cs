@@ -180,21 +180,32 @@ namespace Oxide.Plugins
                 message = "Invalid definitions file or unsupported schema version.";
                 return false;
             }
+                if (incoming.Npcs.Count > 1000)
+                {
+                    message = "Too many NPC definitions.";
+                    return false;
+                }
                 var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var npc in incoming.Npcs)
                 {
                     if (npc == null || string.IsNullOrWhiteSpace(npc.Id) || !ids.Add(npc.Id) ||
                         npc.Health < 1f || float.IsNaN(npc.Health) || float.IsInfinity(npc.Health) ||
-                        string.IsNullOrWhiteSpace(npc.Name) || npc.Dialogue == null || npc.Clothing == null)
+                        string.IsNullOrWhiteSpace(npc.Name) || npc.Dialogue == null || npc.Dialogue.Count == 0 || npc.Dialogue.Count > 128 || npc.Clothing == null)
                     {
                         message = "Invalid NPC: missing/duplicate ID, name, clothing, or dialogue.";
+                        return false;
+                    }
+                    if (npc.Clothing.Count > 32)
+                    {
+                        message = "Too many equipment entries in " + npc.Id;
                         return false;
                     }
                     var nodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var node in npc.Dialogue)
                         if (node == null || string.IsNullOrWhiteSpace(node.Id) ||
                             string.IsNullOrWhiteSpace(node.Text) || !nodes.Add(node.Id) ||
-                            node.Choices == null || node.Choices.Count > 4 || (node.Audio != null && node.Audio.Length > 2048))
+                            node.Choices == null || node.Choices.Count > 4 || (node.Audio != null && node.Audio.Length > 2048) ||
+                            node.Text.Length > 4096 || node.Id.Length > 120)
                         {
                             message = "Invalid dialogue node, missing text, or more than four choices in " + npc.Id;
                             return false;
@@ -970,10 +981,11 @@ namespace Oxide.Plugins
         {
             if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || input == null || !input.WasJustPressed(BUTTON.USE)) return;
             if (conversations.Contains(player.userID)) return;
-            if (IsLookingAtStudioNpc(player))
+            var placement = FindLookedAtPlacement(player);
+            if (placement != null)
             {
-                var placement = FindLookedAtPlacement(player);
-                OpenDialogue(player, null, GetPlacementDefinition(placement));
+                var definition = GetPlacementDefinition(placement);
+                if (definition != null) OpenDialogue(player, null, definition);
             }
         }
 
