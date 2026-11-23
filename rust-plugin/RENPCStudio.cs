@@ -874,7 +874,7 @@ namespace Oxide.Plugins
                 BaseEntity npc;
                 if (spawned.TryGetValue(placement.Id, out npc) &&
                     npc != null && !npc.IsDestroyed && npc.net != null &&
-                    npc.net.ID == entity.net.ID) return true;
+                    npc.net.ID == entity.net.ID && GetPlacementDefinition(placement) != null) return true;
             }
             return false;
         }
