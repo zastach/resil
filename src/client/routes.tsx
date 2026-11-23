@@ -53,6 +53,24 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            path: '/devtools',
+            Component: Layout,
+            loader: dashboardLoader,
+            children: [
+              {
+                loader: async () => {
+                  const res = await fetch('/api/user');
+                  if (!res.ok) return redirect('/auth/login');
+                  const { user } = await res.json();
+                  if (user.role !== 'SUPERADMIN') return redirect('/dashboard');
+                },
+                children: [
+                  { path: 'npcstudio', lazy: () => import('./pages/devtools/npcstudio') },
+                ],
+              },
+            ],
+          },
+          {
             path: '/dashboard',
             Component: Layout,
             loader: dashboardLoader,
