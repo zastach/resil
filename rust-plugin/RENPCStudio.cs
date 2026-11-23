@@ -171,6 +171,7 @@ namespace Oxide.Plugins
                 foreach (var npc in incoming.Npcs)
                 {
                     if (npc == null || string.IsNullOrWhiteSpace(npc.Id) || !ids.Add(npc.Id) ||
+                        npc.Health < 1f || float.IsNaN(npc.Health) || float.IsInfinity(npc.Health) ||
                         string.IsNullOrWhiteSpace(npc.Name) || npc.Dialogue == null || npc.Clothing == null)
                     {
                         message = "Invalid NPC: missing/duplicate ID, name, clothing, or dialogue.";
@@ -238,10 +239,12 @@ namespace Oxide.Plugins
                     var items = root["npcs"] as JArray;
                     if (items == null) throw new Exception("Missing NPC definitions");
                     if (items.Count > 1000) throw new Exception("NPC manifest exceeds 1000 definitions.");
+                    if (items.Count == 0 && definitions.Npcs.Count > 0)
+                        throw new Exception("Refusing to replace existing definitions with an empty manifest.");
                     foreach (var item in items)
                     {
                         var definition = item["definition"] as JObject;
-                        if (definition == null) continue;
+                        if (definition == null) throw new Exception("Manifest contains an NPC without a definition.");
                         var npc = new NpcDefinition();
                         npc.Id = (string)item["id"];
                         npc.Name = (string)item["name"];
@@ -275,7 +278,7 @@ namespace Oxide.Plugins
                             npc.Dialogue.Add(n);
                         }
                         if (npc.Dialogue.Count > 0) npc.StartNode = npc.Dialogue[0].Id;
-                        if (!string.IsNullOrWhiteSpace(npc.Id) && !string.IsNullOrWhiteSpace(npc.Name)) incoming.Npcs.Add(npc);
+                        incoming.Npcs.Add(npc);
                     }
                     // Validate in memory before writing to disk, so failed syncs cannot corrupt the cache.
                     string message;
@@ -421,7 +424,7 @@ namespace Oxide.Plugins
             }
             if (args.Length == 0)
             {
-                player.ChatMessage("/npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list");
+                player.ChatMessage("/npcstudio status | /npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list");
                 return;
             }
             switch (args[0].ToLowerInvariant())
@@ -446,6 +449,7 @@ namespace Oxide.Plugins
                     SyncStudio(player);
                     break;
                 case "apply":
+                {
                     int applied = 0;
                     int failed = 0;
                     foreach (var placement in data.Placements)
@@ -475,6 +479,7 @@ namespace Oxide.Plugins
                     Save();
                     player.ChatMessage("Updated " + applied + " NPCs; " + failed + " failed (previous definitions restored where possible).");
                     break;
+                }
                 case "import":
                 {
                     string result;
