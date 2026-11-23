@@ -575,7 +575,7 @@ namespace Oxide.Plugins
                     player.ChatMessage("NPC Studio: " + definitions.Npcs.Count + " definitions, " + data.Placements.Count +
                         " placements, " + updates + " pending updates, " + missing + " missing definitions. " +
                         (syncInProgress ? "Sync in progress." : "Sync idle.") +
-                        " Voice playback: not implemented.");
+                        " Native voice clips: " + voiceClips.Count + " (record/stoprecord/clips). Website audio conversion pending.");
                     break;
                 }
                 case "record":
