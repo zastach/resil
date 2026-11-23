@@ -8,7 +8,7 @@ import z from 'zod';
 export const PATH = '/api/devtools/npcs';
 const id = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
 const folderBody = z.object({ id: id.optional(), name: z.string().trim().min(1).max(100), parentId: id.nullable().optional() });
-const npcBody = z.object({ id, name: z.string().trim().min(1).max(150), folderId: id.nullable().optional(), definition: z.record(z.string(), z.unknown()) });
+const npcBody = z.object({ id, name: z.string().trim().min(1).max(150), folderId: id.nullable().optional(), expectedRevision: z.number().int().min(0).optional(), definition: z.record(z.string(), z.unknown()) });
 const guard = async (req: Parameters<typeof authenticateUser>[0], res: Parameters<typeof authenticateUser>[1]) => {
  await authenticateUser(req,res);
  if(!isAdministrator(req.user.role)) throw new Error('Administrator access required');
@@ -47,8 +47,10 @@ export default typedPlugin(async server=>{
   const npcId=id.parse((req.params as {id:string}).id);const body=npcBody.parse(req.body);await setup();
   if(body.id!==npcId)return res.code(400).send({error:'NPC ID mismatch'});
   if(body.folderId){const f=await db.execute(sql`SELECT id FROM resil_npc_folders WHERE id=${body.folderId}`);if(!f.rows.length)return res.code(400).send({error:'Folder does not exist'});}
+  const expectedRevision=body.expectedRevision??0;
   const author=req.user.username;
-  const result=await db.execute(sql`INSERT INTO resil_npc_definitions(id,name,folder_id,definition,created_by,updated_by) VALUES (${npcId},${body.name},${body.folderId||null},${JSON.stringify(body.definition)}::jsonb,${author},${author}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,folder_id=excluded.folder_id,definition=excluded.definition,revision=resil_npc_definitions.revision+1,updated_by=excluded.updated_by,updated_at=now() RETURNING revision`);
+  const result=await db.execute(sql`INSERT INTO resil_npc_definitions(id,name,folder_id,definition,created_by,updated_by) VALUES (${npcId},${body.name},${body.folderId||null},${JSON.stringify(body.definition)}::jsonb,${author},${author}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,folder_id=excluded.folder_id,definition=excluded.definition,revision=resil_npc_definitions.revision+1,updated_by=excluded.updated_by,updated_at=now() WHERE resil_npc_definitions.revision=${expectedRevision} RETURNING revision`);
+  if(!result.rows.length)return res.code(409).send({error:'NPC changed since it was loaded. Refresh before saving.'});
   return res.send({revision:result.rows[0]?.revision});
  });
  server.delete(PATH+'/:id',{preHandler:[guard]},async(req,res)=>{
