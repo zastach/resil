@@ -7,21 +7,29 @@ type Choice = { text: string; next: string; condition: string };
 type Node = { id: string; text: string; audio: string; choices: Choice[] };
 type Npc = { id: string; name: string; description: string; equipment: Equipment[]; backpack: string; killable: boolean; hp: number; repeatable: boolean; dialogue: Node[]; revision: number };
 const slots = ['Head', 'Chest', 'Legs', 'Feet', 'Hands', 'Accessory'];
-const items = ['hazmatsuit','hoodie','shirt.collared','tshirt','jacket','jacket.snow','roadsign.jacket','metal.facemask','hat.cap','hat.beenie','hat.boonie','mask.bandana','pants','pants.shorts','roadsign.kilt','shoes.boots','shoes.boots.frog','gloves.leather','burlap.gloves','backpack.small','backpack.large'];
+const itemGroups: Record<string, string[]> = {
+ Head: ['metal.facemask','coffeecan.helmet','riot.helmet','bucket.helmet','hat.cap','hat.beenie','hat.boonie','hat.miner','hat.candle','hat.wolf','hat.burlap','burlap.headwrap','mask.bandana','mask.balaclava','mask.surgical','mask.gas','mask.wood','deer.skull.mask','attire.ninja.suit','santahat','pumpkin','skull'],
+ Chest: ['hazmatsuit','hazmatsuit.nomadsuit','hazmatsuit.spacesuit','hazmatsuit.arcticsuit','hoodie','shirt.collared','tshirt','tshirt.long','shirt.tanktop','jacket','jacket.snow','jacket.suit','jacket.miner','roadsign.jacket','metal.plate.torso','burlap.shirt','hide.vest','attire.hide.poncho','attire.bunny.onesie','attire.ninja.suit','attire.banditguard','attire.scientist','attire.scientist.faction','attire.scientist.roadside','attire.scientist.arctic','attire.scientist.peacekeeper','attire.egg.suit'],
+ Legs: ['pants','pants.shorts','burlap.trousers','hide.pants','roadsign.kilt','attire.hide.skirt','attire.bunny.onesie','attire.ninja.suit'],
+ Feet: ['shoes.boots','shoes.boots.frog','burlap.shoes','hide.boots'],
+ Hands: ['gloves.leather','burlap.gloves','tactical.gloves','roadsign.gloves'],
+ Accessory: ['wood.armor.jacket','wood.armor.pants','bone.armor.suit','bone.armor.jacket','attire.hide.poncho'],
+};
+const items = [...new Set(Object.values(itemGroups).flat())];
+const itemSlots: Record<string,string[]> = Object.fromEntries(Object.entries(itemGroups).flatMap(([slot, ids])=>ids.map(id=>[id,[slot]])));
+const allowedItemsForSlot=(slot:string)=>itemGroups[slot]||[];
 const emptyEquipment = () => slots.map(slot => ({ slot, shortname: '', skinId: '0' }));
 const starter = (): Npc => ({ id:'npc-'+Math.random().toString(36).slice(2,10), name:'', description:'', equipment:emptyEquipment(), backpack:'', killable:false, hp:100, repeatable:true, revision:1, dialogue:[{id:'start',text:'Can I help you?',audio:'',choices:[{text:'What happened here?',next:'answer',condition:''}]},{id:'answer',text:'I am not sure what I saw.',audio:'',choices:[]}] });
 const blankNode = (id:string):Node => ({id,text:'',audio:'',choices:[]});
-const fullBodyItems = new Set(['hazmatsuit','hazmatsuit.nomadsuit','hazmatsuit.spacesuit','hazmatsuit.arcticsuit']);
-const itemSlots: Record<string,string[]> = {hazmatsuit:['Chest'],hoodie:['Chest'],'shirt.collared':['Chest'],tshirt:['Chest'],jacket:['Chest'],'jacket.snow':['Chest'],'roadsign.jacket':['Chest'],'metal.facemask':['Head'],'hat.cap':['Head'],'hat.beenie':['Head'],'hat.boonie':['Head'],'mask.bandana':['Head'],pants:['Legs'],'pants.shorts':['Legs'],'roadsign.kilt':['Legs'],'shoes.boots':['Feet'],'shoes.boots.frog':['Feet'],'gloves.leather':['Hands'],'burlap.gloves':['Hands']};
-const allowedItemsForSlot=(slot:string)=>items.filter(x=>itemSlots[x]?.includes(slot));
-const torsoOuterwear = new Set(['jacket','jacket.snow']);
-const torsoInnerwear = new Set(['hoodie','shirt.collared','tshirt']);
+const fullBodyItems = new Set(['hazmatsuit','hazmatsuit.nomadsuit','hazmatsuit.spacesuit','hazmatsuit.arcticsuit','attire.bunny.onesie','attire.ninja.suit','attire.egg.suit','attire.scientist','attire.scientist.faction','attire.scientist.roadside','attire.scientist.arctic','attire.scientist.peacekeeper']);
+const torsoOuterwear = new Set(['jacket','jacket.snow','jacket.suit','jacket.miner']);
+const torsoInnerwear = new Set(['hoodie','shirt.collared','tshirt','tshirt.long','shirt.tanktop','burlap.shirt']);
 function equipmentConflicts(equipment: Equipment[]): string[] {
  const equipped=equipment.filter(x=>x.shortname.trim());
  const fullBody=equipped.filter(x=>fullBodyItems.has(x.shortname));
  const issues:string[]=[];
  if(fullBody.length && equipped.length>1) issues.push('Full-body suits cannot be combined with other wearable equipment.');
- for(const eq of equipped){const valid=itemSlots[eq.shortname];if(valid && !valid.includes(eq.slot))issues.push(itemLabel(eq.shortname)+' cannot be equipped in '+eq.slot+'.');}
+ for(const eq of equipped){const valid=itemSlots[eq.shortname];if(!valid)issues.push('Unverified Rust item: '+eq.shortname+'. Use a verified wearable shortname.');else if(!valid.includes(eq.slot))issues.push(itemLabel(eq.shortname)+' cannot be equipped in '+eq.slot+'.');}
  for(const eq of equipped){if(!/^(0|[1-9][0-9]*)$/.test(eq.skinId||'0'))issues.push('Skin ID must be a non-negative numeric ID for '+eq.slot+'.');}
  if(equipped.some(x=>torsoOuterwear.has(x.shortname)) && equipped.some(x=>torsoInnerwear.has(x.shortname))) issues.push('Jackets and torso-layer shirts/hoodies cannot be worn together.');
  const duplicates=new Set<string>();
