@@ -2,7 +2,7 @@ name: Resil Build
 
 on:
   push:
-    branches: [resil-discord-access]
+    branches: [resil-discord-access, npc-studio-foundation]
   workflow_dispatch:
 
 permissions:
