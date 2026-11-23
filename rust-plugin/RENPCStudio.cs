@@ -147,7 +147,7 @@ namespace Oxide.Plugins
 
         private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation)
         {
-            if (frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
+            if (listener == null || source == null || frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
             int index = 0;
             Oxide.Core.Libraries.Timer.TimerInstance playbackTimer = null;
             playbackTimer = timer.Repeat(0.02f, frames.Count, () =>
@@ -350,6 +350,15 @@ namespace Oxide.Plugins
                         message = "Too many equipment entries in " + npc.Id;
                         return false;
                     }
+                    foreach (var item in npc.Clothing)
+                    {
+                        if (item == null || string.IsNullOrWhiteSpace(item.Shortname) ||
+                            item.Shortname.Length > 100)
+                        {
+                            message = "Invalid equipment entry in " + npc.Id;
+                            return false;
+                        }
+                    }
                     var nodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var node in npc.Dialogue)
                         if (node == null || string.IsNullOrWhiteSpace(node.Id) ||
@@ -526,6 +535,10 @@ namespace Oxide.Plugins
             data = Interface.Oxide.DataFileSystem.ReadObject<StoredData>(Name) ?? new StoredData();
             if (data.Placements == null) data.Placements = new List<Placement>();
             if (data.CompletedConversations == null) data.CompletedConversations = new Dictionary<ulong, List<ulong>>();
+            // Retain only completion entries for placements that still exist.
+            var activePlacementIds = new HashSet<ulong>(data.Placements.ConvertAll(p => p.Id));
+            foreach (var completed in data.CompletedConversations.Values)
+                if (completed != null) completed.RemoveAll(id => !activePlacementIds.Contains(id));
             data.Placements.RemoveAll(p => p == null);
             if (data.NextShortId < 1) data.NextShortId = 1;
             // Migrate existing placements without changing their original persistent IDs.
