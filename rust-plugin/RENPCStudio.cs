@@ -148,9 +148,27 @@ namespace Oxide.Plugins
         private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation)
         {
             if (listener == null || source == null || frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
+            // Decode and validate before scheduling. A corrupt clip must not leave
+            // a repeating timer running or produce partial, unpredictable playback.
+            var packets = new List<byte[]>(frames.Count);
+            try
+            {
+                foreach (var encoded in frames)
+                {
+                    if (string.IsNullOrWhiteSpace(encoded) || encoded.Length > 5500) return;
+                    var bytes = Convert.FromBase64String(encoded);
+                    if (bytes.Length == 0 || bytes.Length > 4096) return;
+                    packets.Add(bytes);
+                }
+            }
+            catch (FormatException ex)
+            {
+                PrintWarning("NPC voice clip has invalid packet encoding: " + ex.Message);
+                return;
+            }
             int index = 0;
             Oxide.Core.Libraries.Timer.TimerInstance playbackTimer = null;
-            playbackTimer = timer.Repeat(0.02f, frames.Count, () =>
+            playbackTimer = timer.Repeat(0.02f, packets.Count, () =>
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
@@ -159,11 +177,10 @@ namespace Oxide.Plugins
                     if (playbackTimer != null) playbackTimer.Destroy();
                     return;
                 }
-                if (index >= frames.Count) return;
+                if (index >= packets.Count) return;
                 try
                 {
-                    var packet = Convert.FromBase64String(frames[index++]);
-                    if (packet.Length == 0 || packet.Length > 4096) return;
+                    var packet = packets[index++];
                     if (Network.Net.sv.write.Start())
                     {
                         Network.Net.sv.write.PacketID(Network.Message.Type.VoiceData);
@@ -172,7 +189,12 @@ namespace Oxide.Plugins
                         Network.Net.sv.write.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
                     }
                 }
-                catch (Exception ex) { StopVoice(listener); PrintWarning("NPC voice playback failed: " + ex.Message); }
+                catch (Exception ex)
+                {
+                    StopVoice(listener);
+                    if (playbackTimer != null) playbackTimer.Destroy();
+                    PrintWarning("NPC voice playback failed: " + ex.Message);
+                }
             });
         }
 
