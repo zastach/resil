@@ -705,7 +705,7 @@ namespace Oxide.Plugins
         private Placement FindLookedAtPlacement(BasePlayer player)
         {
             RaycastHit hit;
-            if (!Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return null;
+            if (player == null || !player.IsConnected || config.InteractionDistance <= 0f || !Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return null;
             var target = hit.GetEntity();
             if (target == null || target.net == null) return null;
             foreach (var placement in data.Placements)
@@ -851,7 +851,7 @@ namespace Oxide.Plugins
 
         private bool IsLookingAtStudioNpc(BasePlayer player)
         {
-            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || conversations.Contains(player.userID)) return false;
+            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || conversations.Contains(player.userID) || config.InteractionDistance <= 0f) return false;
             RaycastHit hit;
             if (!Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return false;
             var entity = hit.GetEntity();
@@ -1002,7 +1002,7 @@ namespace Oxide.Plugins
 
         private void OpenDialogue(BasePlayer player, string response = null, NpcDefinition definition = null)
         {
-            if (player == null || !player.IsConnected) return;
+            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping()) return;
             CuiHelper.DestroyUi(player, UiName);
             CuiHelper.DestroyUi(player, PromptUiName);
             showingPrompt.Remove(player.userID);
@@ -1034,7 +1034,7 @@ namespace Oxide.Plugins
             }, "Overlay", UiName);
             AddLabel(ui, panel, activeDefinition != null ? activeDefinition.Name : "DEPARTMENT NULL — INTERVIEW", "0.05 0.82", "0.95 0.98", 18);
             AddLabel(ui, panel, activeNode != null ? activeNode.Text : (response ?? "Internal Affairs? I already gave my statement."), "0.05 0.53", "0.95 0.80", 16);
-            if (activeNode != null)
+            if (activeNode != null && activeNode.Choices != null)
             {
                 for (int i = 0; i < activeNode.Choices.Count && i < 4; i++)
                 {
