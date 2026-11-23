@@ -26,6 +26,7 @@ namespace Oxide.Plugins
         private const string DefinitionFileName = "RENPCStudio_Definitions";
         private readonly Dictionary<ulong, BaseEntity> spawned = new Dictionary<ulong, BaseEntity>();
         private readonly HashSet<ulong> conversations = new HashSet<ulong>();
+        private readonly Dictionary<ulong, Placement> pendingPlacements = new Dictionary<ulong, Placement>();
 
         private class Configuration
         {
@@ -378,6 +379,7 @@ namespace Oxide.Plugins
             conversationDefinitions.Clear();
             conversationNode.Clear();
             showingPrompt.Clear();
+            pendingPlacements.Clear();
         }
 
         private bool IsOwner(BasePlayer player) => player != null && config.OwnerSteamIds.Contains(player.userID);
@@ -394,7 +396,7 @@ namespace Oxide.Plugins
             }
             if (args.Length == 0)
             {
-                player.ChatMessage("/npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio kill (aim at NPC) | /npcstudio list | /npcstudio test | /npcstudio debugspawn");
+                player.ChatMessage("/npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list");
                 return;
             }
             switch (args[0].ToLowerInvariant())
@@ -445,26 +447,57 @@ namespace Oxide.Plugins
                     break;
                 case "spawn":
                 {
-                    // Player stands at spawn location and looks in desired facing direction.
+                    // Stage a placement without spawning or saving it. Confirmation
+                    // uses the exact location/facing captured when previewed.
                     string definitionId = args.Length > 1 ? args[1] : null;
-                    if (!string.IsNullOrEmpty(definitionId) && GetDefinition(definitionId) == null)
+                    var definition = GetDefinition(definitionId);
+                    if (string.IsNullOrEmpty(definitionId) || definition == null)
                     {
-                        player.ChatMessage("Unknown NPC definition. Try /npcstudio definitions");
+                        player.ChatMessage("Usage: /npcstudio spawn <definition-id>. See /npcstudio definitions.");
                         return;
                     }
-                    var id = (ulong)DateTime.UtcNow.Ticks;
-                    var placement = new Placement { Id = id, ShortId = data.NextShortId++, Position = player.transform.position, Yaw = player.eyes.rotation.eulerAngles.y, DefinitionId = definitionId, Revision = GetDefinition(definitionId) != null ? GetDefinition(definitionId).Revision : 0, Snapshot = GetDefinition(definitionId) };
-                    placement.Position = GroundPosition(placement.Position);
-                    if (!Spawn(placement))
+                    var preview = new Placement
                     {
-                        player.ChatMessage("Spawn failed. Check server console for prefab/API errors.");
-                        return;
-                    }
-                    data.Placements.Add(placement);
-                    Save();
-                    player.ChatMessage("Spawned test NPC #" + placement.ShortId + ". It faces your viewing direction.");
+                        Id = (ulong)DateTime.UtcNow.Ticks,
+                        ShortId = data.NextShortId,
+                        Position = GroundPosition(player.transform.position),
+                        Yaw = player.eyes.rotation.eulerAngles.y,
+                        DefinitionId = definitionId,
+                        Revision = definition.Revision,
+                        Snapshot = definition
+                    };
+                    pendingPlacements[player.userID] = preview;
+                    player.ChatMessage("NPC preview #" + preview.ShortId + ": " + definition.Name +
+                        " at " + preview.Position.ToString("F1") +
+                        ", facing " + preview.Yaw.ToString("F1") +
+                        " degrees. /npcstudio confirm to place, or /npcstudio cancel. No NPC has spawned yet.");
                     break;
                 }
+                case "confirm":
+                {
+                    Placement preview;
+                    if (!pendingPlacements.TryGetValue(player.userID, out preview))
+                    {
+                        player.ChatMessage("No pending placement. Use /npcstudio spawn <definition-id>.");
+                        return;
+                    }
+                    preview.ShortId = data.NextShortId;
+                    if (!Spawn(preview))
+                    {
+                        player.ChatMessage("NPC spawn failed. Preview retained; check server console.");
+                        return;
+                    }
+                    data.NextShortId++;
+                    data.Placements.Add(preview);
+                    pendingPlacements.Remove(player.userID);
+                    Save();
+                    player.ChatMessage("Placed NPC #" + preview.ShortId + " with pinned revision " + preview.Revision + ".");
+                    break;
+                }
+                case "cancel":
+                    pendingPlacements.Remove(player.userID);
+                    player.ChatMessage("Pending NPC placement canceled.");
+                    break;
                 case "rotate":
                 {
                     float degrees;
@@ -956,6 +989,7 @@ namespace Oxide.Plugins
                 conversationDefinitions.Remove(player.userID);
                 conversationNode.Remove(player.userID);
                 showingPrompt.Remove(player.userID);
+                pendingPlacements.Remove(player.userID);
                 CuiHelper.DestroyUi(player, UiName);
                 CuiHelper.DestroyUi(player, PromptUiName);
             }
