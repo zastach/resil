@@ -12,8 +12,10 @@ export async function encodeVoicePackets(input: Buffer): Promise<string[]> {
    '-frame_duration','20','-b:a','24000','-vbr','off','-f','ogg','pipe:1'
   ], {stdio:['pipe','pipe','pipe']});
   const parts:Buffer[]=[];let length=0;let stderr='';
-  const watchdog=setTimeout(()=>proc.kill('SIGKILL'),20000);
-  proc.stdout.on('data',(b:Buffer)=>{length+=b.length;if(length>2_000_000)proc.kill('SIGKILL');else parts.push(b);});
+  let timedOut=false;
+  let tooLarge=false;
+  const watchdog=setTimeout(()=>{timedOut=true;proc.kill('SIGKILL');},20000);
+  proc.stdout.on('data',(b:Buffer)=>{length+=b.length;if(length>2_000_000){tooLarge=true;proc.kill('SIGKILL');}else parts.push(b);});
   proc.stderr.on('data',(b:Buffer)=>{stderr+=b.toString().slice(0,1024);});
   let settled=false;
   const fail=(error:Error)=>{if(!settled){settled=true;clearTimeout(watchdog);reject(error);}};
@@ -21,6 +23,8 @@ export async function encodeVoicePackets(input: Buffer): Promise<string[]> {
   proc.on('close',code=>{
    if(settled)return;
    clearTimeout(watchdog);
+   if(timedOut)return fail(Error('Audio transcoding exceeded 20 seconds'));
+   if(tooLarge)return fail(Error('Encoded voice stream exceeds 2 MB'));
    if(code!==0)return fail(Error('Audio transcoding failed: '+stderr.slice(0,300)));
    settled=true;resolve(Buffer.concat(parts));
   });
