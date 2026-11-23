@@ -133,6 +133,7 @@ export default typedPlugin(async server=>{
    const found=new Set(available.rows.map(row=>String(row.id)));
    if(audioRefs.some(ref=>!found.has(ref)))return res.code(400).send({error:'One or more uploaded voice recordings are unavailable'});
   }
+  if(definition.equipment!=null&&(!Array.isArray(definition.equipment)||definition.equipment.length>32))return res.code(400).send({error:'Too many equipment entries'});
   if(definition.equipment!=null){
    for(const raw of definition.equipment){
     if(!raw||typeof raw!=='object'||Array.isArray(raw))return res.code(400).send({error:'Invalid equipment entry'});
@@ -142,7 +143,6 @@ export default typedPlugin(async server=>{
        (piece.skinId!=null&&!/^(0|[1-9][0-9]*)$/.test(String(piece.skinId))))return res.code(400).send({error:'Invalid wearable or skin ID'});
    }
   }
-  if(definition.equipment!=null&&(!Array.isArray(definition.equipment)||definition.equipment.length>32))return res.code(400).send({error:'Too many equipment entries'});
   if(definition.hp!=null&&(typeof definition.hp!=='number'||!Number.isFinite(definition.hp)||definition.hp<1))return res.code(400).send({error:'NPC health must be positive'});
   if(definition.killable!=null&&typeof definition.killable!=='boolean')return res.code(400).send({error:'Invalid NPC killable setting'});
   if(body.folderId){const f=await db.execute(sql`SELECT id FROM resil_npc_folders WHERE id=${body.folderId}`);if(!f.rows.length)return res.code(400).send({error:'Folder does not exist'});}
