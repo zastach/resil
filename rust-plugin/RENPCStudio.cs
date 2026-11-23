@@ -29,6 +29,19 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, Placement> pendingPlacements = new Dictionary<ulong, Placement>();
         private bool syncInProgress;
 
+        private void DiscardPreview(ulong ownerId)
+        {
+            Placement pending;
+            if (!pendingPlacements.TryGetValue(ownerId, out pending)) return;
+            pendingPlacements.Remove(ownerId);
+            BaseEntity entity;
+            if (spawned.TryGetValue(pending.Id, out entity))
+            {
+                spawned.Remove(pending.Id);
+                if (entity != null && !entity.IsDestroyed) entity.Kill();
+            }
+        }
+
         private class Configuration
         {
             public List<ulong> OwnerSteamIds = new List<ulong>();
@@ -521,11 +534,17 @@ namespace Oxide.Plugins
                         Revision = definition.Revision,
                         Snapshot = definition
                     };
+                    DiscardPreview(player.userID);
+                    if (!Spawn(preview))
+                    {
+                        player.ChatMessage("Could not create NPC preview; check server console.");
+                        return;
+                    }
                     pendingPlacements[player.userID] = preview;
                     player.ChatMessage("NPC preview #" + preview.ShortId + ": " + definition.Name +
                         " at " + preview.Position.ToString("F1") +
                         ", facing " + preview.Yaw.ToString("F1") +
-                        " degrees. /npcstudio confirm to place, or /npcstudio cancel. No NPC has spawned yet.");
+                        " degrees. The temporary NPC is visible in-world. /npcstudio confirm to save, or /npcstudio cancel to remove it.");
                     break;
                 }
                 case "confirm":
@@ -537,10 +556,14 @@ namespace Oxide.Plugins
                         return;
                     }
                     preview.ShortId = data.NextShortId;
-                    if (!Spawn(preview))
+                    BaseEntity previewEntity;
+                    if (!spawned.TryGetValue(preview.Id, out previewEntity) || previewEntity == null || previewEntity.IsDestroyed)
                     {
-                        player.ChatMessage("NPC spawn failed. Preview retained; check server console.");
-                        return;
+                        if (!Spawn(preview))
+                        {
+                            player.ChatMessage("NPC spawn failed. Preview retained; check server console.");
+                            return;
+                        }
                     }
                     data.NextShortId++;
                     data.Placements.Add(preview);
@@ -550,7 +573,7 @@ namespace Oxide.Plugins
                     break;
                 }
                 case "cancel":
-                    pendingPlacements.Remove(player.userID);
+                    DiscardPreview(player.userID);
                     player.ChatMessage("Pending NPC placement canceled.");
                     break;
                 case "rotate":
@@ -1058,7 +1081,7 @@ namespace Oxide.Plugins
                 conversationDefinitions.Remove(player.userID);
                 conversationNode.Remove(player.userID);
                 showingPrompt.Remove(player.userID);
-                pendingPlacements.Remove(player.userID);
+                DiscardPreview(player.userID);
                 CuiHelper.DestroyUi(player, UiName);
                 CuiHelper.DestroyUi(player, PromptUiName);
             }
