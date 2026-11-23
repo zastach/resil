@@ -277,7 +277,8 @@ namespace Oxide.Plugins
                             }
                             npc.Dialogue.Add(n);
                         }
-                        if (npc.Dialogue.Count > 0) npc.StartNode = npc.Dialogue[0].Id;
+                        if (npc.Dialogue.Count > 0)
+                            npc.StartNode = npc.Dialogue.Exists(n => n.Id == "start") ? "start" : npc.Dialogue[0].Id;
                         incoming.Npcs.Add(npc);
                     }
                     // Validate in memory before writing to disk, so failed syncs cannot corrupt the cache.
