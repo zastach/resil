@@ -233,6 +233,8 @@ namespace Oxide.Plugins
                         npc.Revision = (int?)item["revision"] ?? 0;
                         npc.Invulnerable = !((bool?)definition["killable"] ?? false);
                         npc.Health = (float?)definition["hp"] ?? 100f;
+                        // The web editor does not require a node literally named "start".
+                        // Use the first authored node as the entry point.
                         npc.StartNode = "start";
                         var clothing = definition["equipment"] as JArray;
                         if (clothing != null) foreach (var piece in clothing)
@@ -248,9 +250,16 @@ namespace Oxide.Plugins
                             var n = new DialogueNode { Id = (string)node["id"], Text = (string)node["text"], Audio = (string)node["audio"] };
                             var choices = node["choices"] as JArray;
                             if (choices != null) foreach (var choice in choices)
+                            {
+                                // Conditional choices cannot be evaluated by the V1 runtime.
+                                // Fail closed instead of exposing a restricted response.
+                                if (!string.IsNullOrWhiteSpace((string)choice["condition"]))
+                                    throw new Exception("NPC " + npc.Id + " uses conditional dialogue choices not supported by Rust V1.");
                                 n.Choices.Add(new DialogueChoice { Text = (string)choice["text"], Next = (string)choice["next"] });
+                            }
                             npc.Dialogue.Add(n);
                         }
+                        if (npc.Dialogue.Count > 0) npc.StartNode = npc.Dialogue[0].Id;
                         if (!string.IsNullOrWhiteSpace(npc.Id) && !string.IsNullOrWhiteSpace(npc.Name)) incoming.Npcs.Add(npc);
                     }
                     // Validate in memory before writing to disk, so failed syncs cannot corrupt the cache.
