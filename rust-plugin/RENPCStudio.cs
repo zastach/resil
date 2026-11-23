@@ -838,11 +838,41 @@ namespace Oxide.Plugins
         // Shared deletion path for /npcstudio kill and /npcstudio remove.
         // Unregister before calling Kill() so the entity-death hook cannot race
         // with this command and leave stale records or perform a second removal.
+        private void ClearPlacementState(ulong placementId)
+        {
+            // Prevent active sessions and pending voice requests from continuing
+            // to reference an NPC that has been removed or killed.
+            var affected = new List<ulong>();
+            foreach (var session in conversationPlacement)
+                if (session.Value == placementId) affected.Add(session.Key);
+            foreach (var playerId in affected)
+            {
+                var player = BasePlayer.FindByID(playerId);
+                if (player != null) CloseDialogue(player);
+                else
+                {
+                    conversations.Remove(playerId);
+                    conversationPlacement.Remove(playerId);
+                    conversationDefinitions.Remove(playerId);
+                    conversationNode.Remove(playerId);
+                    int generation;
+                    playbackGeneration.TryGetValue(playerId, out generation);
+                    playbackGeneration[playerId] = generation + 1;
+                }
+            }
+            if (data.CompletedConversations != null)
+            {
+                foreach (var completed in data.CompletedConversations.Values)
+                    if (completed != null) completed.Remove(placementId);
+            }
+        }
+
         private void RemovePlacementPermanently(Placement placement)
         {
             BaseEntity entity;
             spawned.TryGetValue(placement.Id, out entity);
             spawned.Remove(placement.Id);
+            ClearPlacementState(placement.Id);
             data.Placements.RemoveAll(p => p.Id == placement.Id);
             Save();
             if (entity != null && !entity.IsDestroyed) entity.Kill();
@@ -873,6 +903,7 @@ namespace Oxide.Plugins
             foreach (var owner in abandonedOwners) pendingPlacements.Remove(owner);
             if (data.Placements.RemoveAll(p => p.Id == placementId) > 0)
             {
+                ClearPlacementState(placementId);
                 Save();
                 Puts("Removed saved placement for destroyed NPC " + placementId + ".");
             }
