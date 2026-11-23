@@ -16,7 +16,8 @@ const itemGroups: Record<string, string[]> = {
  Accessory: ['wood.armor.jacket','wood.armor.pants','bone.armor.suit','bone.armor.jacket','attire.hide.poncho'],
 };
 const items = [...new Set(Object.values(itemGroups).flat())];
-const itemSlots: Record<string,string[]> = Object.fromEntries(Object.entries(itemGroups).flatMap(([slot, ids])=>ids.map(id=>[id,[slot]])));
+const itemSlots: Record<string,string[]> = {};
+for (const [slot, ids] of Object.entries(itemGroups)) for (const id of ids) (itemSlots[id] ||= []).push(slot);
 const allowedItemsForSlot=(slot:string)=>itemGroups[slot]||[];
 const emptyEquipment = () => slots.map(slot => ({ slot, shortname: '', skinId: '0' }));
 const starter = (): Npc => ({ id:'npc-'+Math.random().toString(36).slice(2,10), name:'', description:'', equipment:emptyEquipment(), backpack:'', killable:false, hp:100, repeatable:true, revision:1, dialogue:[{id:'start',text:'Can I help you?',audio:'',choices:[{text:'What happened here?',next:'answer',condition:''}]},{id:'answer',text:'I am not sure what I saw.',audio:'',choices:[]}] });
