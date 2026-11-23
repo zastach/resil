@@ -9,6 +9,8 @@ export const PATH = '/api/devtools/npcs';
 const id = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
 const folderBody = z.object({ id: id.optional(), name: z.string().trim().min(1).max(100), parentId: id.nullable().optional() });
 const npcBody = z.object({ id, name: z.string().trim().min(1).max(150), folderId: id.nullable().optional(), expectedRevision: z.number().int().min(0).optional(), definition: z.record(z.string(), z.unknown()) });
+const MAX_NPCS = 1000;
+const MAX_DEFINITION_BYTES = 64 * 1024;
 const audioBody = z.object({ filename:z.string().min(1).max(200), contentType:z.enum(['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg']), data:z.string().min(1).max(11200000) });
 const guard = async (req: Parameters<typeof authenticateUser>[0], res: Parameters<typeof authenticateUser>[1]) => {
  await authenticateUser(req,res);
@@ -59,6 +61,10 @@ export default typedPlugin(async server=>{
   const body=folderBody.parse(req.body);await setup();
   const folderId=body.id||'folder-'+crypto.randomUUID();
   if(body.parentId===folderId)return res.code(400).send({error:'Folder cannot contain itself'});
+  if(body.parentId){
+   const ancestors=await db.execute(sql`WITH RECURSIVE parents AS (SELECT id,parent_id FROM resil_npc_folders WHERE id=${body.parentId} UNION SELECT f.id,f.parent_id FROM resil_npc_folders f JOIN parents p ON f.id=p.parent_id) SELECT id FROM parents WHERE id=${folderId} LIMIT 1`);
+   if(ancestors.rows.length)return res.code(400).send({error:'Folder hierarchy would contain a cycle'});
+  }
   if(body.parentId){const p=await db.execute(sql`SELECT id FROM resil_npc_folders WHERE id=${body.parentId}`);if(!p.rows.length)return res.code(400).send({error:'Parent folder does not exist'});}
   await db.execute(sql`INSERT INTO resil_npc_folders(id,name,parent_id) VALUES (${folderId},${body.name},${body.parentId||null}) ON CONFLICT (id) DO UPDATE SET name=excluded.name,parent_id=excluded.parent_id`);
   return res.send({id:folderId});
@@ -73,7 +79,13 @@ export default typedPlugin(async server=>{
  server.put(PATH+'/:id',{preHandler:[guard]},async(req,res)=>{
   const npcId=id.parse((req.params as {id:string}).id);const body=npcBody.parse(req.body);await setup();
   if(body.id!==npcId)return res.code(400).send({error:'NPC ID mismatch'});
+  if(Buffer.byteLength(JSON.stringify(body.definition),'utf8')>MAX_DEFINITION_BYTES)return res.code(413).send({error:'NPC definition is too large'});
+  const definition=body.definition;
+  if(!Array.isArray(definition.dialogue)||definition.dialogue.length===0||definition.dialogue.length>128)return res.code(400).send({error:'NPC requires 1–128 dialogue nodes'});
+  if(!definition.dialogue.every((node:unknown)=>typeof node==='object'&&node!==null&&typeof (node as {id?:unknown}).id==='string'&&typeof (node as {text?:unknown}).text==='string'&&Array.isArray((node as {choices?:unknown}).choices)&&((node as {choices:unknown[]}).choices.length<=4)))return res.code(400).send({error:'Invalid dialogue node or more than four choices'});
   if(body.folderId){const f=await db.execute(sql`SELECT id FROM resil_npc_folders WHERE id=${body.folderId}`);if(!f.rows.length)return res.code(400).send({error:'Folder does not exist'});}
+  const existing=await db.execute(sql`SELECT revision FROM resil_npc_definitions WHERE id=${npcId}`);
+  if(!existing.rows.length){const count=await db.execute(sql`SELECT COUNT(*)::int AS total FROM resil_npc_definitions`);if(Number(count.rows[0]?.total??0)>=MAX_NPCS)return res.code(409).send({error:'NPC limit reached'});}
   const expectedRevision=body.expectedRevision??0;
   const author=req.user.username;
   const result=await db.execute(sql`INSERT INTO resil_npc_definitions(id,name,folder_id,definition,created_by,updated_by) VALUES (${npcId},${body.name},${body.folderId||null},${JSON.stringify(body.definition)}::jsonb,${author},${author}) ON CONFLICT(id) DO UPDATE SET name=excluded.name,folder_id=excluded.folder_id,definition=excluded.definition,revision=resil_npc_definitions.revision+1,updated_by=excluded.updated_by,updated_at=now() WHERE resil_npc_definitions.revision=${expectedRevision} RETURNING revision`);
