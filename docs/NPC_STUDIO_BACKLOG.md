@@ -21,3 +21,16 @@ Allow an NPC dialogue response or node to trigger a server-side administrative a
 - Exact allowlisted commands and actions, and whether a command can target only the interacting player.
 - Whether the action runs when a response is selected or after a dialogue node is completed.
 - How administrators configure prerequisites, cooldowns, and success/failure branches.
+
+## Complete Rust wearable catalog, including unobtainable items
+
+**Status:** Backlog — catalog verification required before production release.
+
+Replace the current hardcoded, incomplete item arrays with a versioned catalog derived from Rust's actual item definitions and wearable-slot/conflict metadata. Include player-obtainable, admin-only, NPC-only, event, and unobtainable wearable items. User-requested examples include glowing eyes, bunny suit, BDU shirt/pants, burlap, hide, and metal body armor.
+
+- Confirm actual shortnames and whether special items are separate item definitions, skins, or visual effects; do not invent IDs or treat skins as items.
+- Capture correct wearable slots, multiple-slot occupancy, clothing incompatibilities, full-body blocking, and item icons.
+- Show only compatible items for each body slot, with searchable names, visual previews, and an optional 'Special / Unobtainable' filter.
+- Validate against the same canonical catalog in UI, JSON import/export, and server-side publishing; verify behavior in a Rust test server.
+- Explicitly distinguish verified equipable items from unknown/unsupported items and provide useful validation errors.
+- The current six-category editor and hand-maintained list are provisional and must not be represented as complete.
