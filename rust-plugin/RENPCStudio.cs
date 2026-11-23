@@ -23,6 +23,7 @@ namespace Oxide.Plugins
         private DefinitionFile definitions = new DefinitionFile();
         private readonly Dictionary<ulong, NpcDefinition> conversationDefinitions = new Dictionary<ulong, NpcDefinition>();
         private readonly Dictionary<ulong, string> conversationNode = new Dictionary<ulong, string>();
+        private readonly Dictionary<ulong, ulong> conversationPlacement = new Dictionary<ulong, ulong>();
         private const string DefinitionFileName = "RENPCStudio_Definitions";
         private readonly Dictionary<ulong, BaseEntity> spawned = new Dictionary<ulong, BaseEntity>();
         private readonly HashSet<ulong> conversations = new HashSet<ulong>();
@@ -82,10 +83,10 @@ namespace Oxide.Plugins
             if (!node.Audio.StartsWith("clip:", StringComparison.OrdinalIgnoreCase)) return;
             List<string> frames;
             if (!voiceClips.TryGetValue(node.Audio.Substring(5), out frames) || frames.Count == 0) return;
-            var placement = FindLookedAtPlacement(listener);
-            if (placement == null) return;
+            ulong placementId;
+            if (!conversationPlacement.TryGetValue(listener.userID, out placementId)) return;
             BaseEntity npc;
-            if (!spawned.TryGetValue(placement.Id, out npc) || npc == null || npc.net == null) return;
+            if (!spawned.TryGetValue(placementId, out npc) || npc == null || npc.net == null) return;
             var source = npc;
             var listenerId = listener.userID;
             int generation = playbackGeneration[listenerId];
@@ -533,6 +534,7 @@ namespace Oxide.Plugins
             conversations.Clear();
             conversationDefinitions.Clear();
             conversationNode.Clear();
+            conversationPlacement.Clear();
             showingPrompt.Clear();
             pendingPlacements.Clear();
             syncInProgress = false;
@@ -1106,7 +1108,11 @@ namespace Oxide.Plugins
             if (placement != null)
             {
                 var definition = GetPlacementDefinition(placement);
-                if (definition != null) OpenDialogue(player, null, definition);
+                if (definition != null)
+                {
+                    conversationPlacement[player.userID] = placement.Id;
+                    OpenDialogue(player, null, definition);
+                }
             }
         }
 
@@ -1185,7 +1191,7 @@ namespace Oxide.Plugins
             }
             AddButton(ui, panel, "Close", "re.npcstudio.close", "0.73 0.02", "0.95 0.13");
             CuiHelper.AddUi(player, ui);
-            if (activeNode != null && definition != null) PlayVoice(player, activeDefinition, activeNode);
+            if (activeNode != null && activeDefinition != null) PlayVoice(player, activeDefinition, activeNode);
         }
 
         private void AddLabel(CuiElementContainer ui, string parent, string value, string min, string max, int size)
@@ -1246,6 +1252,7 @@ namespace Oxide.Plugins
             conversations.Remove(player.userID);
             conversationDefinitions.Remove(player.userID);
             conversationNode.Remove(player.userID);
+            conversationPlacement.Remove(player.userID);
             CuiHelper.DestroyUi(player, UiName);
             CuiHelper.DestroyUi(player, PromptUiName);
             showingPrompt.Remove(player.userID);
@@ -1261,6 +1268,7 @@ namespace Oxide.Plugins
                 conversations.Remove(player.userID);
                 conversationDefinitions.Remove(player.userID);
                 conversationNode.Remove(player.userID);
+                conversationPlacement.Remove(player.userID);
                 showingPrompt.Remove(player.userID);
                 DiscardPreview(player.userID);
                 CuiHelper.DestroyUi(player, UiName);
