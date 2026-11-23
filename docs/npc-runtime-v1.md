@@ -1,9 +1,24 @@
 # resil.me NPC Studio — Rust runtime V1
 
-## Status (November 2026)
-The canonical Oxide/uMod plugin source is `rust-plugin/RENPCStudio.cs` (v0.4.0, development branch `npc-studio-full-v1`). The duplicate experimental `ResilNpcRuntime.cs` has been removed to prevent accidental installation. The web application is deployed; the Rust plugin has **not been compiled against the target Rust/Oxide build or installed on Shockbyte**. Do not assume production readiness.
+## Implementation status (November 2026)
+The implementation branch is `npc-studio-full-v1`. The website editor, authenticated NPC manifest, definition synchronization, manual apply, NPC placement, E-to-talk dialogue, and first-party audio conversion/playback code are present. Uploaded audio is converted by FFmpeg to 20-ms Opus packets; the Rust plugin fetches those packets using the runtime token and sends them to the interacting client as native Rust voice data. Optional in-game push-to-talk recording provides an alternate source via `clip:<id>`.
 
-Implemented in source: owner-only commands, persistent civilian placements, configurable clothing and health, E-to-talk dialogue, definition sync, cached revision snapshots, explicit apply, and staged textual placement confirmation. **Not implemented:** verified in-world voice playback, a visual ghost preview, or server-side evaluation of conditional dialogue choices. Combat AI, movement, and 3D web previews are outside V1.
+**No end-to-end testing or Shockbyte installation has occurred.** Rust packet serialization, Opus compatibility, Oxide hook signatures, website build, and the actual audio experience remain unverified. These are release gates, not completed functionality. Testing is intentionally deferred until implementation handoff at the user's direction.
+
+## Audio integration
+- Website upload: `POST /api/devtools/npcs/audio` accepts MP3/WAV/OGG, stores the original and its bounded Opus packets.
+- Website preview: `GET /api/devtools/npcs/audio/:id` returns the original to an authenticated site administrator.
+- Rust voice: `GET /api/devtools/npcs/runtime/audio/:id/frames` returns Opus packet JSON to the runtime bearer token only.
+- Node audio reference: `/api/devtools/npcs/audio/voice-<id>` for uploads, or `clip:<id>` for in-game recorded voice.
+- Runtime: E opens dialogue; each node can play its own audio. Choice/close interrupts previous playback. The website audio packets are fetched on first use and cached in memory; existing placed NPC definition snapshots are not updated by sync alone.
+- FFmpeg is already included in the app Dockerfile; voice conversion has a 20-second process watchdog and a 30-second output limit.
+
+## Release testing (deferred)
+1. Verify website TypeScript build and audio upload conversion, including Opus packet decode.
+2. Compile the Rust plugin on the actual current Oxide build; adjust voice callback and packet writer API if necessary.
+3. Verify a spoken line actually plays from an NPC and that branching interrupts playback.
+4. Verify placement, persistence, invulnerability, equipment, and manual updates.
+5. Verify runtime token configuration and offline/failed network behavior.
 
 ## Configuration and secrets
 1. In Railway for the `zipline` service, configure `RESIL_NPC_RUNTIME_TOKEN` to a randomly generated secret of at least 32 characters. Keep it private.
@@ -14,13 +29,13 @@ Implemented in source: owner-only commands, persistent civilian placements, conf
 6. When a web definition changes, `/npcstudio sync` imports it; `/npcstudio apply` explicitly replaces affected placed instances. Existing placements retain pinned snapshots until apply. Keep a backup of `oxide/data/RENPCStudio.json` and `oxide/data/RENPCStudio_Definitions.json` before updating.
 
 ## API contract
-`GET /api/devtools/npcs/runtime` with `Authorization: Bearer <token>` returns a versioned NPC manifest. `GET /api/devtools/npcs/runtime/audio/:id` serves audio bytes to authorized runtime callers. Web-editor audio preview and storage **do not imply in-game audio playback**. The runtime currently imports node audio references but does not play them in Rust.
+`GET /api/devtools/npcs/runtime` with `Authorization: Bearer <token>` returns a versioned NPC manifest. `GET /api/devtools/npcs/runtime/audio/:id` serves audio bytes to authorized runtime callers. Website voice conversion and native voice packet replay are implemented in source, but in-game playback has not been verified.
 
 ## Known limitations and release gates
 - **Compile gate:** Compile the exact canonical plugin against the target Oxide/uMod Rust build; resolve API signatures and warnings.
 - **Placement gate:** Verify civilian spawn, network registration, owner-only access, orientation, restart persistence, removal, and killable/invulnerable settings.
 - **Dialogue gate:** Verify E-to-talk, all choice branches, disconnect/close cleanup, and that old placements do not change after sync without apply.
-- **Audio gate:** Determine a supported, tested Rust client playback path for custom recorded voices, including supported format, distribution, proximity, interruption, and cleanup. No such mechanism is yet implemented.
+- **Audio gate:** Determine a supported, tested Rust client playback path for custom recorded voices, including supported format, distribution, proximity, interruption, and cleanup. The native voice packet mechanism is implemented but has not been validated on the target Rust build.
 - **Failure gate:** Test unreachable backend, invalid/expired token, malformed manifest, failed replacement spawn, and rollback. Do not run on the production Rust server before staging tests.
 - **Editor/runtime mismatch:** Conditional choices are explicitly rejected at sync, not silently exposed. Only four choices are rendered per node by the current in-game UI. The first dialogue node is treated as the entry point.
 
