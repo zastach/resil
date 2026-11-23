@@ -194,7 +194,7 @@ namespace Oxide.Plugins
                     foreach (var node in npc.Dialogue)
                         if (node == null || string.IsNullOrWhiteSpace(node.Id) ||
                             string.IsNullOrWhiteSpace(node.Text) || !nodes.Add(node.Id) ||
-                            node.Choices == null || node.Choices.Count > 4)
+                            node.Choices == null || node.Choices.Count > 4 || (node.Audio != null && node.Audio.Length > 2048))
                         {
                             message = "Invalid dialogue node, missing text, or more than four choices in " + npc.Id;
                             return false;
@@ -250,6 +250,7 @@ namespace Oxide.Plugins
                 }
                 try
                 {
+                    if (body.Length > 4000000) throw new Exception("NPC manifest exceeds size limit.");
                     var root = JObject.Parse(body);
                     if ((int?)root["version"] != 1) throw new Exception("Unsupported manifest version");
                     var incoming = new DefinitionFile();
@@ -260,6 +261,7 @@ namespace Oxide.Plugins
                         throw new Exception("Refusing to replace existing definitions with an empty manifest.");
                     foreach (var item in items)
                     {
+                        if (item == null || item.Type != JTokenType.Object) throw new Exception("Malformed NPC manifest entry.");
                         var definition = item["definition"] as JObject;
                         if (definition == null) throw new Exception("Manifest contains an NPC without a definition.");
                         var npc = new NpcDefinition();
@@ -273,6 +275,7 @@ namespace Oxide.Plugins
                         var clothing = definition["equipment"] as JArray;
                         if (clothing != null) foreach (var piece in clothing)
                         {
+                            if (piece == null || piece.Type != JTokenType.Object) throw new Exception("Malformed equipment entry.");
                             var shortname = (string)piece["shortname"];
                             ulong skin;
                             if (string.IsNullOrWhiteSpace(shortname) || !ulong.TryParse((string)piece["skinId"] ?? "0", out skin)) continue;
@@ -281,10 +284,12 @@ namespace Oxide.Plugins
                         var dialogue = definition["dialogue"] as JArray;
                         if (dialogue != null) foreach (var node in dialogue)
                         {
+                            if (node == null || node.Type != JTokenType.Object) throw new Exception("Malformed dialogue node.");
                             var n = new DialogueNode { Id = (string)node["id"], Text = (string)node["text"], Audio = (string)node["audio"] };
                             var choices = node["choices"] as JArray;
                             if (choices != null) foreach (var choice in choices)
                             {
+                                if (choice == null || choice.Type != JTokenType.Object) throw new Exception("Malformed dialogue choice.");
                                 // Conditional choices cannot be evaluated by the V1 runtime.
                                 // Fail closed instead of exposing a restricted response.
                                 if (!string.IsNullOrWhiteSpace((string)choice["condition"]))
@@ -332,6 +337,7 @@ namespace Oxide.Plugins
         private void Init()
         {
             config = Config.ReadObject<Configuration>() ?? new Configuration();
+            if (config.OwnerSteamIds == null) config.OwnerSteamIds = new List<ulong>();
             if (config.Clothing == null || config.Clothing.Count == 0)
             {
                 config.Clothing = new List<Equipment>
@@ -357,6 +363,7 @@ namespace Oxide.Plugins
             Config.WriteObject(config, true);
             data = Interface.Oxide.DataFileSystem.ReadObject<StoredData>(Name) ?? new StoredData();
             if (data.Placements == null) data.Placements = new List<Placement>();
+            data.Placements.RemoveAll(p => p == null);
             if (data.NextShortId < 1) data.NextShortId = 1;
             // Migrate existing placements without changing their original persistent IDs.
             var used = new HashSet<int>();
@@ -407,8 +414,12 @@ namespace Oxide.Plugins
 
         private void OnServerInitialized()
         {
+            int restored = 0, failed = 0;
             foreach (var placement in data.Placements)
-                Spawn(placement);
+            {
+                if (Spawn(placement)) restored++; else failed++;
+            }
+            Puts("NPC Studio startup: restored " + restored + ", failed " + failed + ".");
             timer.Every(0.2f, UpdateTalkPrompts);
         }
 
@@ -444,7 +455,7 @@ namespace Oxide.Plugins
                 player.ChatMessage("You are not authorized to manage NPC Studio.");
                 return;
             }
-            if (args.Length == 0)
+            if (args == null || args.Length == 0)
             {
                 player.ChatMessage("/npcstudio status | /npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list");
                 return;
@@ -683,7 +694,7 @@ namespace Oxide.Plugins
         {
             int number;
             if (string.IsNullOrWhiteSpace(token)) return null;
-            if (int.TryParse(token.TrimStart('#'), out number))
+            if (int.TryParse(token.Trim().TrimStart('#'), out number))
                 return data.Placements.Find(p => p.ShortId == number);
             ulong legacyId;
             if (ulong.TryParse(token, out legacyId))
@@ -840,7 +851,7 @@ namespace Oxide.Plugins
 
         private bool IsLookingAtStudioNpc(BasePlayer player)
         {
-            if (player == null || !player.IsConnected || player.IsDead() || conversations.Contains(player.userID)) return false;
+            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || conversations.Contains(player.userID)) return false;
             RaycastHit hit;
             if (!Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return false;
             var entity = hit.GetEntity();
@@ -861,6 +872,7 @@ namespace Oxide.Plugins
         {
             foreach (var player in BasePlayer.activePlayerList)
             {
+                if (player == null || !player.IsConnected) continue;
                 bool visible = IsLookingAtStudioNpc(player);
                 if (visible && showingPrompt.Add(player.userID))
                 {
@@ -956,7 +968,7 @@ namespace Oxide.Plugins
 
         private void OnPlayerInput(BasePlayer player, InputState input)
         {
-            if (player == null || !player.IsConnected || player.IsDead() || !input.WasJustPressed(BUTTON.USE)) return;
+            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || input == null || !input.WasJustPressed(BUTTON.USE)) return;
             if (conversations.Contains(player.userID)) return;
             if (IsLookingAtStudioNpc(player))
             {
@@ -1012,6 +1024,7 @@ namespace Oxide.Plugins
             conversationNode.TryGetValue(player.userID, out currentNode);
             var activeNode = activeDefinition != null && activeDefinition.Dialogue != null
                 ? activeDefinition.Dialogue.Find(n => n.Id == currentNode) : null;
+            if (activeDefinition != null && activeNode == null) { CloseDialogue(player); return; }
             var ui = new CuiElementContainer();
             var panel = ui.Add(new CuiPanel
             {
