@@ -557,11 +557,19 @@ namespace Oxide.Plugins
             data = Interface.Oxide.DataFileSystem.ReadObject<StoredData>(Name) ?? new StoredData();
             if (data.Placements == null) data.Placements = new List<Placement>();
             if (data.CompletedConversations == null) data.CompletedConversations = new Dictionary<ulong, List<ulong>>();
-            // Retain only completion entries for placements that still exist.
-            var activePlacementIds = new HashSet<ulong>(data.Placements.ConvertAll(p => p.Id));
-            foreach (var completed in data.CompletedConversations.Values)
-                if (completed != null) completed.RemoveAll(id => !activePlacementIds.Contains(id));
+            // Older data files may contain null placements or null completion lists.
+            // Normalize before accessing placement IDs so a single corrupt entry
+            // cannot prevent the entire NPC plugin from loading.
             data.Placements.RemoveAll(p => p == null);
+            var activePlacementIds = new HashSet<ulong>(data.Placements.ConvertAll(p => p.Id));
+            var stalePlayers = new List<ulong>();
+            foreach (var completed in data.CompletedConversations)
+            {
+                if (completed.Value == null) { stalePlayers.Add(completed.Key); continue; }
+                completed.Value.RemoveAll(id => !activePlacementIds.Contains(id));
+                if (completed.Value.Count == 0) stalePlayers.Add(completed.Key);
+            }
+            foreach (var playerId in stalePlayers) data.CompletedConversations.Remove(playerId);
             if (data.NextShortId < 1) data.NextShortId = 1;
             // Migrate existing placements without changing their original persistent IDs.
             var used = new HashSet<int>();
