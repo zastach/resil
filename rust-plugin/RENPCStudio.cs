@@ -33,6 +33,7 @@ namespace Oxide.Plugins
         // Native voice packets are already encoded by the Rust client. Recording them
         // avoids attempting to send unsupported MP3 bytes as VoiceData.
         private readonly Dictionary<string, List<string>> voiceClips = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<string>> remoteVoiceCache = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<ulong, List<string>> recordingFrames = new Dictionary<ulong, List<string>>();
         private readonly Dictionary<ulong, string> recordingNames = new Dictionary<ulong, string>();
         private readonly Dictionary<ulong, int> playbackGeneration = new Dictionary<ulong, int>();
@@ -53,6 +54,7 @@ namespace Oxide.Plugins
             catch (Exception ex) { PrintWarning("Could not load recorded voice clips: " + ex.Message); }
         }
 
+        // Only local recordings are saved. Website audio is an ephemeral runtime cache.
         private void SaveVoiceClips() => Interface.Oxide.DataFileSystem.WriteObject(VoiceDataFile, voiceClips);
 
         // Record actual Rust voice packets, not PCM/MP3. The recording admin
@@ -97,7 +99,8 @@ namespace Oxide.Plugins
             if (!spawned.TryGetValue(placementId, out source) || source == null || source.net == null) return;
             int generation = playbackGeneration[listener.userID];
             List<string> frames;
-            if (voiceClips.TryGetValue(clipId, out frames))
+            if (voiceClips.TryGetValue(clipId, out frames) ||
+                remoteVoiceCache.TryGetValue(clipId, out frames))
             {
                 StartVoicePackets(listener, source, frames, generation);
                 return;
@@ -135,7 +138,7 @@ namespace Oxide.Plugins
                     // A voice clip can be reused by multiple NPC definitions.
                     // Keep remote audio bounded in memory. Native admin recordings
                     // remain persisted separately in the data file.
-                    if (voiceClips.Count < 64) voiceClips[clipId] = decoded;
+                    if (remoteVoiceCache.Count < 64) remoteVoiceCache[clipId] = decoded;
                     StartVoicePackets(listener, source, decoded, generation);
                 }
                 catch (Exception ex) { PrintWarning("NPC voice response invalid: " + ex.Message); }
@@ -630,7 +633,7 @@ namespace Oxide.Plugins
                     player.ChatMessage("NPC Studio: " + definitions.Npcs.Count + " definitions, " + data.Placements.Count +
                         " placements, " + updates + " pending updates, " + missing + " missing definitions. " +
                         (syncInProgress ? "Sync in progress." : "Sync idle.") +
-                        " Native voice clips: " + voiceClips.Count + " (record/stoprecord/clips). Website audio conversion pending.");
+                        " Native voice clips: " + voiceClips.Count + ", cached website clips: " + remoteVoiceCache.Count + ". Voice compatibility awaits final testing.");
                     break;
                 }
                 case "record":
