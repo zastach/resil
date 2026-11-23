@@ -79,35 +79,87 @@ namespace Oxide.Plugins
         {
             StopVoice(listener);
             if (listener == null || node == null || string.IsNullOrWhiteSpace(node.Audio)) return;
-            // Voice references use clip:<id> for first-party native recordings.
-            if (!node.Audio.StartsWith("clip:", StringComparison.OrdinalIgnoreCase)) return;
-            List<string> frames;
-            if (!voiceClips.TryGetValue(node.Audio.Substring(5), out frames) || frames.Count == 0) return;
+            var reference = node.Audio.Trim();
+            var clipId = reference.StartsWith("clip:", StringComparison.OrdinalIgnoreCase) ? reference.Substring(5) : null;
+            if (clipId == null)
+            {
+                // The website returns a site-relative preview URL. Only URLs from
+                // our own audio endpoint may be fetched with the runtime token.
+                const string prefix = "/api/devtools/npcs/audio/";
+                if (reference.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    clipId = reference.Substring(prefix.Length);
+            }
+            if (string.IsNullOrWhiteSpace(clipId) ||
+                !System.Text.RegularExpressions.Regex.IsMatch(clipId, "^[A-Za-z0-9_-]+$")) return;
             ulong placementId;
             if (!conversationPlacement.TryGetValue(listener.userID, out placementId)) return;
-            BaseEntity npc;
-            if (!spawned.TryGetValue(placementId, out npc) || npc == null || npc.net == null) return;
-            var source = npc;
-            var listenerId = listener.userID;
-            int generation = playbackGeneration[listenerId];
-            // Each packet is dispatched at the normal voice cadence. Only the
-            // initiating listener hears this conversation; proximity alone does nothing.
+            BaseEntity source;
+            if (!spawned.TryGetValue(placementId, out source) || source == null || source.net == null) return;
+            int generation = playbackGeneration[listener.userID];
+            List<string> frames;
+            if (voiceClips.TryGetValue(clipId, out frames))
+            {
+                StartVoicePackets(listener, source, frames, generation);
+                return;
+            }
+            if (!clipId.StartsWith("voice-", StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(config.RuntimeToken) || config.RuntimeToken.Length < 32) return;
+            var headers = new Dictionary<string, string> { { "Authorization", "Bearer " + config.RuntimeToken } };
+            var url = config.StudioUrl.TrimEnd('/') + "/api/devtools/npcs/runtime/audio/" + clipId + "/frames";
+            webrequest.Enqueue(url, null, (code, response) =>
+            {
+                int current;
+                if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
+                    !listener.IsConnected || !conversations.Contains(listener.userID)) return;
+                if (code != 200 || string.IsNullOrWhiteSpace(response) || response.Length > 3000000)
+                {
+                    PrintWarning("NPC voice unavailable for " + clipId + " (HTTP " + code + ").");
+                    return;
+                }
+                try
+                {
+                    var payload = JObject.Parse(response);
+                    if ((int?)payload["version"] != 1 || (string)payload["codec"] != "opus" ||
+                        (int?)payload["frameDurationMs"] != 20) return;
+                    var packets = payload["frames"] as JArray;
+                    if (packets == null || packets.Count == 0 || packets.Count > MaxVoiceFrames) return;
+                    var decoded = new List<string>();
+                    foreach (var packet in packets)
+                    {
+                        var encoded = (string)packet;
+                        if (string.IsNullOrEmpty(encoded) || encoded.Length > 5500 ||
+                            Convert.FromBase64String(encoded).Length > 4096) return;
+                        decoded.Add(encoded);
+                    }
+                    // A voice clip can be reused by multiple NPC definitions.
+                    voiceClips[clipId] = decoded;
+                    StartVoicePackets(listener, source, decoded, generation);
+                }
+                catch (Exception ex) { PrintWarning("NPC voice response invalid: " + ex.Message); }
+            }, this, RequestMethod.GET, headers);
+        }
+
+        private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation)
+        {
+            if (frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
             int index = 0;
             timer.Repeat(0.02f, frames.Count, () =>
             {
                 int current;
-                if (!playbackGeneration.TryGetValue(listenerId, out current) || current != generation ||
-                    !listener.IsConnected || !conversations.Contains(listenerId) || source.IsDestroyed || source.net == null) return;
+                if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
+                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed || source.net == null) return;
                 if (index >= frames.Count) return;
                 try
                 {
                     var packet = Convert.FromBase64String(frames[index++]);
                     if (packet.Length == 0 || packet.Length > 4096) return;
-                    var writer = Network.Net.sv.StartWrite();
-                    writer.PacketID(Network.Message.Type.VoiceData);
-                    writer.EntityID(source.net.ID);
-                    writer.BytesWithSize(packet);
-                    writer.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
+                    if (Network.Net.sv.write.Start())
+                    {
+                        Network.Net.sv.write.PacketID(Network.Message.Type.VoiceData);
+                        Network.Net.sv.write.UInt32(source.net.ID);
+                        Network.Net.sv.write.BytesWithSize(packet);
+                        Network.Net.sv.write.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
+                    }
                 }
                 catch (Exception ex) { StopVoice(listener); PrintWarning("NPC voice playback failed: " + ex.Message); }
             });
