@@ -990,7 +990,7 @@ export function Component() {
       <Tabs value={tab} onChange={setTab}>
         <Tabs.List>
           <Tabs.Tab value='appearance'>Appearance & Equipment</Tabs.Tab>
-          <Tabs.Tab value='dialogue'>Dialogue Graph</Tabs.Tab>
+          <Tabs.Tab value='dialogue'>NPC Dialog</Tabs.Tab>
           <Tabs.Tab value='audio'>Audio</Tabs.Tab>
           <Tabs.Tab value='behavior'>Behavior</Tabs.Tab>
         </Tabs.List>
@@ -1314,14 +1314,14 @@ export function Component() {
             <Card withBorder>
               <Stack gap='xs'>
                 <Group justify='space-between'>
-                  <Text fw={600}>Conversation and voice test</Text>
+                  <Text fw={600}>NPC conversation preview</Text>
                   <Button size='xs' variant='light' onClick={() => setPreviewNode('start')}>
                     Restart conversation
                   </Button>
                 </Group>
                 <Text c='dimmed' size='xs'>
-                  Test dialogue branches and listen to assigned recordings in your browser. This does not
-                  simulate Rust spatial audio or in-game playback.
+                  Read the NPC’s line, play its recording, and choose a player response to preview the next
+                  line.
                 </Text>
                 {previewNode === null ? (
                   <Button onClick={() => setPreviewNode('start')}>Start test conversation</Button>
@@ -1331,7 +1331,9 @@ export function Component() {
                     return node ? (
                       <Stack gap='xs'>
                         <Badge>{node.id}</Badge>
-                        <Text>{node.text}</Text>
+                        <Text>
+                          <strong>NPC:</strong> {node.text}
+                        </Text>
                         {node.audio.trim() &&
                           (/^https?:\/\//i.test(node.audio) || node.audio.startsWith('/')) && (
                             <audio
@@ -1349,7 +1351,7 @@ export function Component() {
                               variant='light'
                               onClick={() => setPreviewNode(choice.next || null)}
                             >
-                              {choice.text || 'Unnamed response'}
+                              You: {choice.text || 'Unnamed response'}
                             </Button>
                           ))
                         ) : (
@@ -1371,15 +1373,15 @@ export function Component() {
               </Stack>
             </Card>
             <Group justify='space-between'>
-              <Text fw={600}>Dialogue voice recordings</Text>
+              <Text fw={600}>NPC voice recordings</Text>
               <Badge variant='light'>
                 {draft.dialogue.filter((n) => Boolean(n.audio.trim())).length} of {draft.dialogue.length}{' '}
                 nodes voiced
               </Badge>
             </Group>
             <Text c='dimmed' size='sm'>
-              Upload an MP3, WAV, or OGG recording for each voiced node. Preview the recording here and save
-              the NPC to make it available to the Rust server.
+              The NPC plays these recordings when it delivers the matching line in Rust. Player responses are
+              text choices.
             </Text>
             {draft.dialogue.map((n, i) => (
               <Card withBorder key={i}>
@@ -1390,9 +1392,11 @@ export function Component() {
                       {n.audio.trim() ? 'Voice assigned' : 'Unvoiced'}
                     </Badge>
                   </Group>
-                  <Text size='sm'>{n.text}</Text>
+                  <Text size='sm'>
+                    <strong>NPC:</strong> {n.text}
+                  </Text>
                   <FileInput
-                    label='Upload voice recording (MP3, WAV, OGG; max 8 MB)'
+                    label='Upload NPC voice (MP3, WAV, OGG; max 8 MB)'
                     placeholder='Choose audio file'
                     accept='.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg'
                     clearable
