@@ -15,13 +15,25 @@ function wav(seconds: number): Buffer {
   return result.stdout;
 }
 
-test('NPC voice conversion emits bounded, base64 Opus frames', { skip: !ffmpegAvailable }, async () => {
+test('NPC voice conversion emits bounded, CRC-validated Steam voice packets', { skip: !ffmpegAvailable }, async () => {
   const frames = await encodeVoicePackets(wav(0.5));
   assert.ok(frames.length >= 20 && frames.length <= 30, 'Expected roughly 50 frames per second');
   for (const encoded of frames) {
     const bytes = Buffer.from(encoded, 'base64');
     assert.ok(bytes.length > 0 && bytes.length <= 4096);
     assert.equal(bytes.toString('base64'), encoded);
+    assert.equal(bytes[8], 11);
+    assert.equal(bytes.readUInt16LE(9), 24000);
+    assert.equal(bytes[11], 6);
+    assert.equal(bytes.readUInt16LE(12), bytes.length - 18);
+    assert.equal(bytes.readUInt16LE(14), bytes.length - 22);
+    assert.equal(bytes.readUInt16LE(16), frames.indexOf(encoded));
+    let crc = 0xffffffff;
+    for (const byte of bytes.subarray(0,-4)) {
+      crc ^= byte;
+      for (let bit=0;bit<8;bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+    assert.equal(bytes.readUInt32LE(bytes.length-4), (crc ^ 0xffffffff) >>> 0);
   }
 });
 
