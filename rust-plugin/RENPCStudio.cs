@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.9")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.10")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -1315,6 +1315,22 @@ namespace Oxide.Plugins
                 }
             }
             npc.SendNetworkUpdateImmediate();
+        }
+
+        private object OnTeamMemberInvite(RelationshipManager.PlayerTeam team, BasePlayer inviter, ulong targetId, bool offline)
+        {
+            // Studio civilians use a player prefab. Rust can mistake the entity
+            // for a team-invite target when the player presses Use.
+            BaseEntity networkTarget = null;
+            if (offline && targetId < 76561197960265728UL)
+                networkTarget = BaseNetworkable.serverEntities.Find(new NetworkableId(targetId)) as BaseEntity;
+            foreach (var entity in spawned.Values)
+            {
+                var npc = entity as BasePlayer;
+                if (npc == null || npc.IsDestroyed) continue;
+                if ((targetId != 0 && npc.userID == targetId) || npc == networkTarget) return true;
+            }
+            return null;
         }
 
         private void OnPlayerInput(BasePlayer player, InputState input)
