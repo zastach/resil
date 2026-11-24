@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.4")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.5")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -172,13 +172,14 @@ namespace Oxide.Plugins
             }
             int index = 0;
             Oxide.Plugins.Timer playbackTimer = null;
-            playbackTimer = timer.Repeat(0.02f, packets.Count, () =>
+            playbackTimer = timer.Repeat(diagnostic ? 0.1f : 0.02f, packets.Count, () =>
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed || source.net == null)
+                    !listener.IsConnected || (!diagnostic && !conversations.Contains(listener.userID)) || source.IsDestroyed || source.net == null)
                 {
                     if (playbackTimer != null) playbackTimer.Destroy();
+                    if (diagnostic && listener.IsConnected) listener.ChatMessage("Voice diagnostic: canceled after " + index + " packets; generation=" + current + "/" + generation + ", source destroyed=" + source.IsDestroyed + ", source network missing=" + (source.net == null));
                     return;
                 }
                 if (index >= packets.Count) return;
@@ -197,6 +198,7 @@ namespace Oxide.Plugins
                     StopVoice(listener);
                     if (playbackTimer != null) playbackTimer.Destroy();
                     PrintWarning("NPC voice playback failed: " + ex.Message);
+                    if (diagnostic) listener.ChatMessage("Voice diagnostic: failed: " + ex.Message);
                 }
             });
         }
