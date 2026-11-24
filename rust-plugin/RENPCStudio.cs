@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.8")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.9")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -37,6 +37,7 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, List<string>> recordingFrames = new Dictionary<ulong, List<string>>();
         private readonly Dictionary<ulong, string> recordingNames = new Dictionary<ulong, string>();
         private readonly Dictionary<ulong, int> playbackGeneration = new Dictionary<ulong, int>();
+        private readonly HashSet<ulong> voiceDebug = new HashSet<ulong>();
         private const string VoiceDataFile = "RENPCStudio_VoiceClips";
         private const int MaxVoiceFrames = 1500; // Preserve compatibility with existing native recordings.
         private const int MaxGeneratedVoicePackets = 301;
@@ -173,6 +174,8 @@ namespace Oxide.Plugins
                 return;
             }
             int index = 0;
+            bool trace = voiceDebug.Contains(listener.userID);
+            if (trace) Puts("NPC voice: sending " + packets.Count + " packets at 100 ms intervals.");
             Oxide.Plugins.Timer playbackTimer = null;
             playbackTimer = timer.Repeat(0.1f, packets.Count, () =>
             {
@@ -181,6 +184,11 @@ namespace Oxide.Plugins
                     !listener.IsConnected || (!diagnostic && !conversations.Contains(listener.userID)) || source.IsDestroyed || source.net == null)
                 {
                     if (playbackTimer != null) playbackTimer.Destroy();
+                    if (trace) Puts("NPC voice: stopped after " + index + "/" + packets.Count +
+                        " packets; dialogue open=" + conversations.Contains(listener.userID) +
+                        ", playback replaced or stopped=" + (current != generation) +
+                        ", listener connected=" + listener.IsConnected +
+                        ", source available=" + (!source.IsDestroyed && source.net != null) + ".");
                     if (diagnostic && listener.IsConnected) listener.ChatMessage("Voice diagnostic: canceled after " + index + " packets; generation=" + current + "/" + generation + ", source destroyed=" + source.IsDestroyed + ", source network missing=" + (source.net == null));
                     return;
                 }
@@ -193,6 +201,7 @@ namespace Oxide.Plugins
                     writer.EntityID(source.net.ID);
                     writer.BytesWithSize(packet);
                     writer.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
+                    if (trace && index == packets.Count) Puts("NPC voice: sent all " + index + " packets.");
                     if (diagnostic && index == packets.Count) listener.ChatMessage("Voice diagnostic: sent " + index + " packets. Confirm whether you heard audio.");
                 }
                 catch (Exception ex)
@@ -771,6 +780,11 @@ namespace Oxide.Plugins
                     StartVoicePackets(player, source, frames, playbackGeneration[player.userID], true);
                     break;
                 }
+                case "voicedebug":
+                    bool enabled = voiceDebug.Add(player.userID);
+                    if (!enabled) voiceDebug.Remove(player.userID);
+                    player.ChatMessage("NPC voice logging " + (enabled ? "enabled" : "disabled") + " in server console.");
+                    break;
                 case "clips":
                     player.ChatMessage("Native voice clips: " + (voiceClips.Count == 0 ? "(none)" : string.Join(", ", voiceClips.Keys)));
                     break;
@@ -818,17 +832,27 @@ namespace Oxide.Plugins
                 }
                 case "definitions":
                     player.ChatMessage(definitions.Npcs.Count == 0 ? "No imported definitions." :
-                        "Definitions: " + string.Join(", ", definitions.Npcs.ConvertAll(n => n.Id).ToArray()));
+                        "Definitions: " + string.Join(", ", definitions.Npcs.ConvertAll(n => n.Name + " [" + n.Id + "]").ToArray()));
                     break;
                 case "spawn":
                 {
                     // Stage a placement without spawning or saving it. Confirmation
                     // uses the exact location/facing captured when previewed.
-                    string definitionId = args.Length > 1 ? args[1] : null;
-                    var definition = GetDefinition(definitionId);
-                    if (string.IsNullOrEmpty(definitionId) || definition == null)
+                    string query = args.Length > 1 ? string.Join(" ", args, 1, args.Length - 1) : null;
+                    var definition = GetDefinition(query);
+                    if (definition == null && !string.IsNullOrWhiteSpace(query))
                     {
-                        player.ChatMessage("Usage: /npcstudio spawn <definition-id>. See /npcstudio definitions.");
+                        var matches = definitions.Npcs.FindAll(n => string.Equals(n.Name, query, StringComparison.OrdinalIgnoreCase));
+                        if (matches.Count > 1)
+                        {
+                            player.ChatMessage("More than one NPC has that name. Use the ID shown by /npcstudio definitions.");
+                            return;
+                        }
+                        if (matches.Count == 1) definition = matches[0];
+                    }
+                    if (definition == null)
+                    {
+                        player.ChatMessage("Usage: /npcstudio spawn <name or ID>. See /npcstudio definitions.");
                         return;
                     }
                     var preview = new Placement
@@ -837,7 +861,7 @@ namespace Oxide.Plugins
                         ShortId = data.NextShortId,
                         Position = GroundPosition(player.transform.position),
                         Yaw = player.eyes.rotation.eulerAngles.y,
-                        DefinitionId = definitionId,
+                        DefinitionId = definition.Id,
                         Revision = definition.Revision,
                         Snapshot = definition
                     };
