@@ -35,7 +35,7 @@ export default typedPlugin(async server=>{
   const audioId=id.parse((req.params as {id:string}).id);await setup();
   const result=await db.execute(sql`SELECT frames FROM resil_npc_voice_frames WHERE audio_id=${audioId}`);
   if(!result.rows.length)return res.code(404).send({error:'Voice packets unavailable'});
-  return res.header('Cache-Control','no-store').send({version:1,codec:'opus',sampleRate:48000,frameDurationMs:20,frames:result.rows[0].frames});
+  return res.header('Cache-Control','no-store').send({version:1,codec:'steam-opus',sampleRate:24000,frameDurationMs:20,frames:result.rows[0].frames});
  });
  server.post(PATH+'/audio',{preHandler:[guard],bodyLimit:12000000},async(req,res)=>{
   const body=audioBody.parse(req.body);
@@ -129,7 +129,7 @@ export default typedPlugin(async server=>{
    audioRefs.push(match[1]);
   }
   if(audioRefs.length){
-   const available=await db.execute(sql`SELECT id FROM resil_npc_voice_frames WHERE audio_id IN (${sql.join([...new Set(audioRefs)].map(ref=>sql`${ref}`),sql`,`)})`);
+   const available=await db.execute(sql`SELECT audio_id AS id FROM resil_npc_voice_frames WHERE audio_id IN (${sql.join([...new Set(audioRefs)].map(ref=>sql`${ref}`),sql`,`)})`);
    const found=new Set(available.rows.map(row=>String(row.id)));
    if(audioRefs.some(ref=>!found.has(ref)))return res.code(400).send({error:'One or more uploaded voice recordings are unavailable'});
   }
