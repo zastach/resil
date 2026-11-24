@@ -9,13 +9,13 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.12")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.13")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
         private const string UiName = "RENPCStudio.Dialogue";
         private const string PromptUiName = "RENPCStudio.TalkPrompt";
-        private readonly HashSet<ulong> showingPrompt = new HashSet<ulong>();
+        private readonly Dictionary<ulong, string> showingPrompt = new Dictionary<ulong, string>();
         private const string DefaultPrefab = "assets/prefabs/player/player.prefab";
 
         private Configuration config;
@@ -1249,11 +1249,11 @@ namespace Oxide.Plugins
             entity.SendNetworkUpdateImmediate();
         }
 
-        private bool IsLookingAtStudioNpc(BasePlayer player)
+        private string GetTalkPromptName(BasePlayer player)
         {
-            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || conversations.Contains(player.userID) || config.InteractionDistance <= 0f) return false;
+            if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || conversations.Contains(player.userID) || config.InteractionDistance <= 0f) return null;
             var placement = FindLookedAtPlacement(player);
-            return placement != null && GetPlacementDefinition(placement) != null;
+            return GetPlacementDefinition(placement)?.Name;
         }
 
         private void UpdateTalkPrompts()
@@ -1261,9 +1261,13 @@ namespace Oxide.Plugins
             foreach (var player in BasePlayer.activePlayerList)
             {
                 if (player == null || !player.IsConnected) continue;
-                bool visible = IsLookingAtStudioNpc(player);
-                if (visible && showingPrompt.Add(player.userID))
+                var name = GetTalkPromptName(player);
+                string previousName;
+                if (!string.IsNullOrWhiteSpace(name) &&
+                    (!showingPrompt.TryGetValue(player.userID, out previousName) || previousName != name))
                 {
+                    showingPrompt[player.userID] = name;
+                    CuiHelper.DestroyUi(player, PromptUiName);
                     var ui = new CuiElementContainer();
                     // CUI cannot reliably project NPC world coordinates on the server.
                     // Offset the prompt above/right of the player's aim point, near the
@@ -1271,13 +1275,13 @@ namespace Oxide.Plugins
                     ui.Add(new CuiPanel
                     {
                         Image = { Color = "0.10 0.12 0.12 0.84" },
-                        RectTransform = { AnchorMin = "0.555 0.545", AnchorMax = "0.605 0.578" },
+                        RectTransform = { AnchorMin = "0.555 0.545", AnchorMax = "0.735 0.578" },
                         CursorEnabled = false
                     }, "Overlay", PromptUiName);
                     ui.Add(new CuiPanel
                     {
                         Image = { Color = "0.30 0.34 0.33 0.95" },
-                        RectTransform = { AnchorMin = "0.080 0.15", AnchorMax = "0.438 0.85" }
+                        RectTransform = { AnchorMin = "0.025 0.15", AnchorMax = "0.13 0.85" }
                     }, PromptUiName, PromptUiName + ".Key");
                     ui.Add(new CuiLabel
                     {
@@ -1286,12 +1290,12 @@ namespace Oxide.Plugins
                     }, PromptUiName + ".Key");
                     ui.Add(new CuiLabel
                     {
-                        Text = { Text = "TALK", FontSize = 10, Align = TextAnchor.MiddleCenter, Color = "0.92 0.93 0.89 1" },
-                        RectTransform = { AnchorMin = "0.46 0", AnchorMax = "0.98 1" }
+                        Text = { Text = "Talk to " + name, FontSize = 11, Align = TextAnchor.MiddleLeft, Color = "0.92 0.93 0.89 1" },
+                        RectTransform = { AnchorMin = "0.16 0", AnchorMax = "0.98 1" }
                     }, PromptUiName);
                     CuiHelper.AddUi(player, ui);
                 }
-                else if (!visible && showingPrompt.Remove(player.userID))
+                else if (string.IsNullOrWhiteSpace(name) && showingPrompt.Remove(player.userID))
                     CuiHelper.DestroyUi(player, PromptUiName);
             }
         }
@@ -1352,6 +1356,23 @@ namespace Oxide.Plugins
                 }
             }
             npc.SendNetworkUpdateImmediate();
+        }
+
+        private object OnServerCommand(ConsoleSystem.Arg arg)
+        {
+            var command = arg?.cmd?.FullName;
+            if (command == null || arg.Player() == null) return null;
+            bool offline = command.EndsWith(".sendofflineinvite", StringComparison.OrdinalIgnoreCase);
+            if (!offline && !command.EndsWith(".sendinvite", StringComparison.OrdinalIgnoreCase)) return null;
+
+            ulong targetId;
+            if (!ulong.TryParse(arg.GetString(0, ""), out targetId) || targetId == 0) return null;
+            if (!offline)
+            {
+                var target = BaseNetworkable.serverEntities.Find(new NetworkableId(targetId)) as BasePlayer;
+                return target != null && target.GetComponent<StudioNpcMarker>() != null ? (object)true : null;
+            }
+            return OnTeamMemberInvite(null, arg.Player(), targetId, true);
         }
 
         private object OnTeamMemberInvite(RelationshipManager.PlayerTeam team, BasePlayer inviter, ulong targetId, bool offline)
