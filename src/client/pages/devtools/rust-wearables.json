@@ -2,1195 +2,879 @@
   {
     "shortname": "alien.costume",
     "name": "Alien Costume",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.arcticsuit",
     "name": "Arctic Suit",
     "itemId": -470439097,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.banditguard",
     "name": "Attire Banditguard",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.bunnyears",
     "name": "Attire Bunnyears",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "attire.egg.suit",
     "name": "Attire Egg Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.hide.boots",
     "name": "Attire Hide Boots",
-    "slots": [
-      "Feet"
-    ]
+    "slots": ["Feet"]
   },
   {
     "shortname": "attire.hide.helterneck",
     "name": "Attire Hide Helterneck",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.hide.pants",
     "name": "Attire Hide Pants",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "attire.hide.poncho",
     "name": "Attire Hide Poncho",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.hide.skirt",
     "name": "Attire Hide Skirt",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "attire.hide.vest",
     "name": "Attire Hide Vest",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.nesthat",
     "name": "Attire Nesthat",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "attire.ninja.suit",
     "name": "Attire Ninja Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "attire.reindeer.headband",
     "name": "Attire Reindeer Headband",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "attire.snowman.helmet",
     "name": "Attire Snowman Helmet",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "ballistic.helmet",
     "name": "Ballistic Helmet",
     "itemId": 1127732084,
     "hasSkins": false,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "ballistic.legarmor",
     "name": "Ballistic Leg Armor",
     "itemId": 1983541158,
     "hasSkins": false,
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "ballistic.vest",
     "name": "Ballistic Vest",
     "itemId": -1780402255,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "barrelcostume",
     "name": "Barrel Costume",
     "itemId": -1215166612,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hat.cap",
     "name": "Baseball Cap",
     "itemId": -1022661119,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "bdu.pants",
     "name": "Bdu Pants",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "bdu.shirt",
     "name": "Bdu Shirt",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hat.beenie",
     "name": "Beenie Hat",
     "itemId": 1675639563,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "bone.armor.suit",
     "name": "Bone Armor Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hat.boonie",
     "name": "Boonie Hat",
     "itemId": -23994173,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "shoes.boots",
     "name": "Boots",
     "itemId": -1549739227,
     "hasSkins": true,
-    "slots": [
-      "Feet"
-    ]
+    "slots": ["Feet"]
   },
   {
     "shortname": "bucket.helmet",
     "name": "Bucket Helmet",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "attire.bunny.onesie",
     "name": "Bunny Onesie",
     "itemId": -1266045928,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "bunny.suit",
     "name": "Bunny Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "burlap.gloves.new",
     "name": "Burlap Gloves",
     "itemId": 21402876,
     "hasSkins": false,
-    "slots": [
-      "Hands"
-    ]
+    "slots": ["Hands"]
   },
   {
     "shortname": "burlap.headwrap",
     "name": "Burlap Headwrap",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "burlap.shirt",
     "name": "Burlap Shirt",
     "itemId": 602741290,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "burlap.shoes",
     "name": "Burlap Shoes",
-    "slots": [
-      "Feet"
-    ]
+    "slots": ["Feet"]
   },
   {
     "shortname": "burlap.trousers",
     "name": "Burlap Trousers",
     "itemId": 1992974553,
     "hasSkins": false,
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "chicken.costume",
     "name": "Chicken Costume",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "clatter.helmet",
     "name": "Clatter Helmet",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "cocoknight.armor.gloves",
     "name": "Cocoknight Armor Gloves",
-    "slots": [
-      "Hands"
-    ]
+    "slots": ["Hands"]
   },
   {
     "shortname": "cocoknight.armor.helmet",
     "name": "Cocoknight Armor Helmet",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "cocoknight.armor.pants",
     "name": "Cocoknight Armor Pants",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "cocoknight.armor.torso",
     "name": "Cocoknight Armor Torso",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "coffeecan.helmet",
     "name": "Coffee Can Helmet",
     "itemId": -803263829,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "cratecostume",
     "name": "Crate Costume",
     "itemId": 1189981699,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "deer.skull.mask",
     "name": "Deer Skull Mask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "diving.fins",
     "name": "Diving Fins",
-    "slots": [
-      "Feet"
-    ]
+    "slots": ["Feet"]
   },
   {
     "shortname": "diving.mask",
     "name": "Diving Mask",
     "itemId": -113413047,
     "hasSkins": false,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "diving.tank",
     "name": "Diving Tank",
     "itemId": -2022172587,
     "hasSkins": false,
-    "slots": [
-      "Accessory"
-    ]
+    "slots": ["Accessory"]
   },
   {
     "shortname": "diving.tank.double",
     "name": "Double Diving Tank",
     "itemId": -1559420426,
     "hasSkins": false,
-    "slots": [
-      "Accessory"
-    ]
+    "slots": ["Accessory"]
   },
   {
     "shortname": "draculacape",
     "name": "Draculacape",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "draculamask",
     "name": "Draculamask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "frankensteinmask",
     "name": "Frankensteinmask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "frankensteins.monster.01.head",
     "name": "Frankensteins Monster 01 Head",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "frankensteins.monster.01.legs",
     "name": "Frankensteins Monster 01 Legs",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "frankensteins.monster.01.torso",
     "name": "Frankensteins Monster 01 Torso",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "frankensteins.monster.02.head",
     "name": "Frankensteins Monster 02 Head",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "frankensteins.monster.02.legs",
     "name": "Frankensteins Monster 02 Legs",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "frankensteins.monster.02.torso",
     "name": "Frankensteins Monster 02 Torso",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "frankensteins.monster.03.head",
     "name": "Frankensteins Monster 03 Head",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "frankensteins.monster.03.legs",
     "name": "Frankensteins Monster 03 Legs",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "frankensteins.monster.03.torso",
     "name": "Frankensteins Monster 03 Torso",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "boots.frog",
     "name": "Frog Boots",
     "itemId": -1000573653,
     "hasSkins": false,
-    "slots": [
-      "Feet"
-    ]
+    "slots": ["Feet"]
   },
   {
     "shortname": "ghostsheet",
     "name": "Ghostsheet",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "gingerbreadsuit",
     "name": "Gingerbreadsuit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "gloweyes",
     "name": "Gloweyes",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "halloween.mummysuit",
     "name": "Halloween Mummysuit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "halloween.surgeonsuit",
     "name": "Halloween Surgeonsuit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hat.bunnyhat",
     "name": "Hat Bunnyhat",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.candle",
     "name": "Hat Candle",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.candle.birthday",
     "name": "Hat Candle Birthday",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.dragonmask",
     "name": "Hat Dragonmask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.gas.mask",
     "name": "Hat Gas Mask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.horsemask",
     "name": "Hat Horsemask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.miner",
     "name": "Hat Miner",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.oxmask",
     "name": "Hat Oxmask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.rabbitmask",
     "name": "Hat Rabbitmask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.ratmask",
     "name": "Hat Ratmask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.snakemask",
     "name": "Hat Snakemask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.tigermask",
     "name": "Hat Tigermask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hat.wellipets",
     "name": "Hat Wellipets",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "hazmat.krieg",
     "name": "Hazmat Krieg",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmat.plague",
     "name": "Hazmat Plague",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit",
     "name": "Hazmat Suit",
     "itemId": 1266491000,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.diver",
     "name": "Hazmatsuit Diver",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.frontier",
     "name": "Hazmatsuit Frontier",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.kick",
     "name": "Hazmatsuit Kick",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.lumberjack",
     "name": "Hazmatsuit Lumberjack",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.nomadsuit",
     "name": "Hazmatsuit Nomadsuit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.pilot",
     "name": "Hazmatsuit Pilot",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit.spacesuit",
     "name": "Hazmatsuit Spacesuit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit_scientist",
     "name": "Hazmatsuit_scientist",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit_scientist_arctic",
     "name": "Hazmatsuit_scientist_arctic",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit_scientist_naval",
     "name": "Hazmatsuit_scientist_naval",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit_scientist_nvgm",
     "name": "Hazmatsuit_scientist_nvgm",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuit_scientist_peacekeeper",
     "name": "Hazmatsuit_scientist_peacekeeper",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hazmatsuittwitch",
     "name": "Hazmatsuittwitch",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "heavy.plate.helmet",
     "name": "Heavy Plate Helmet",
     "itemId": 1181207482,
     "hasSkins": false,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "heavy.plate.jacket",
     "name": "Heavy Plate Jacket",
     "itemId": -1102429027,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "heavy.plate.pants",
     "name": "Heavy Plate Pants",
     "itemId": -1778159885,
     "hasSkins": false,
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "hoodie",
     "name": "Hoodie",
     "itemId": 1751045826,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "horse.costume",
     "name": "Horse Costume",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "jacket",
     "name": "Jacket",
     "itemId": -1163532624,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "jumpsuit.suit",
     "name": "Jumpsuit Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "jumpsuit.suit.blue",
     "name": "Jumpsuit Suit Blue",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "jumpsuit.waterwellnpc",
     "name": "Jumpsuit Waterwellnpc",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "knightsarmour.helmet",
     "name": "Knightsarmour Helmet",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "knightsarmour.skirt",
     "name": "Knightsarmour Skirt",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "knighttorso.armour",
     "name": "Knighttorso Armour",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "kriegbackpack",
     "name": "Krieg Large Backpack",
     "itemId": -874650016,
     "hasSkins": false,
-    "slots": [
-      "Accessory"
-    ]
+    "slots": ["Accessory"]
   },
   {
     "shortname": "largebackpack",
     "name": "Large Backpack",
     "itemId": -907422733,
     "hasSkins": true,
-    "slots": [
-      "Accessory"
-    ]
+    "slots": ["Accessory"]
   },
   {
     "shortname": "burlap.gloves",
     "name": "Leather Gloves",
     "itemId": 1366282552,
     "hasSkins": true,
-    "slots": [
-      "Hands"
-    ]
+    "slots": ["Hands"]
   },
   {
     "shortname": "tshirt.long",
     "name": "Longsleeve T-Shirt",
     "itemId": 935692442,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "mask.balaclava",
     "name": "Mask Balaclava",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "mask.bandana",
     "name": "Mask Bandana",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "metal.plate.torso",
     "name": "Metal Chest Plate",
     "itemId": 1110385766,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "metal.facemask",
     "name": "Metal Facemask",
     "itemId": -194953424,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "metal.facemask.hockey",
     "name": "Metal Facemask Hockey",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "metal.facemask.icemask",
     "name": "Metal Facemask Icemask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "metal.plate.torso.icevest",
     "name": "Metal Plate Torso Icevest",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "movembermoustache",
     "name": "Movembermoustache",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "mummymask",
     "name": "Mummymask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "nightvisiongoggles",
     "name": "Nightvisiongoggles",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "oubreak_scientist",
     "name": "Oubreak_scientist",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "paintballoveralls.suit",
     "name": "Paintballoveralls Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "pants",
     "name": "Pants",
     "itemId": 237239288,
     "hasSkins": true,
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "pants.shorts",
     "name": "Pants Shorts",
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "partyhat",
     "name": "Partyhat",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "prisonerhood",
     "name": "Prisonerhood",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "riot.helmet",
     "name": "Riot Helmet",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "roadsign.jacket",
     "name": "Road Sign Jacket",
     "itemId": -2002277461,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "roadsign.kilt",
     "name": "Road Sign Kilt",
     "itemId": 1850456855,
     "hasSkins": true,
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "roadsign.gloves",
     "name": "Roadsign Gloves",
-    "slots": [
-      "Hands"
-    ]
+    "slots": ["Hands"]
   },
   {
     "shortname": "santabeard",
     "name": "Santabeard",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "santahat",
     "name": "Santahat",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "scarecrow.suit",
     "name": "Scarecrow Suit",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "scarecrowhead",
     "name": "Scarecrowhead",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "scientistsuit_heavy",
     "name": "Scientistsuit_heavy",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "shirt.collared",
     "name": "Shirt Collared",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "shirt.tanktop",
     "name": "Shirt Tanktop",
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "silly.horse.mask",
     "name": "Silly Horse Mask",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "smallbackpack",
     "name": "Small Backpack",
     "itemId": 2068884361,
     "hasSkins": false,
-    "slots": [
-      "Accessory"
-    ]
+    "slots": ["Accessory"]
   },
   {
     "shortname": "jacket.snow",
     "name": "Snow Jacket",
     "itemId": -48090175,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "sunglasses",
     "name": "Sunglasses",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "sunglasses02black",
     "name": "Sunglasses02black",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "sunglasses02camo",
     "name": "Sunglasses02camo",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "sunglasses02red",
     "name": "Sunglasses02red",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "sunglasses03black",
     "name": "Sunglasses03black",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "sunglasses03chrome",
     "name": "Sunglasses03chrome",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "sunglasses03gold",
     "name": "Sunglasses03gold",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "tshirt",
     "name": "T-Shirt",
     "itemId": 223891266,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "tactical.gloves",
     "name": "Tactical Gloves",
     "itemId": -1108136649,
     "hasSkins": false,
-    "slots": [
-      "Hands"
-    ]
+    "slots": ["Hands"]
   },
   {
     "shortname": "twitch.headset",
     "name": "Twitch Headset",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "twitchrivalsflag",
     "name": "Twitchrivalsflag",
-    "slots": [
-      "Accessory"
-    ]
+    "slots": ["Accessory"]
   },
   {
     "shortname": "twitchsunglasses",
     "name": "Twitchsunglasses",
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "diving.wetsuit",
     "name": "Wetsuit",
     "itemId": -1101924344,
     "hasSkins": false,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   },
   {
     "shortname": "hat.wolf",
     "name": "Wolf Headdress",
     "itemId": -1478212975,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "woodarmor.gloves",
     "name": "Wood Armor Gloves",
     "itemId": -459159118,
     "hasSkins": true,
-    "slots": [
-      "Hands"
-    ]
+    "slots": ["Hands"]
   },
   {
     "shortname": "wood.armor.helmet",
     "name": "Wood Armor Helmet",
     "itemId": -2094954543,
     "hasSkins": true,
-    "slots": [
-      "Head"
-    ]
+    "slots": ["Head"]
   },
   {
     "shortname": "wood.armor.pants",
     "name": "Wood Armor Pants",
     "itemId": 832133926,
     "hasSkins": true,
-    "slots": [
-      "Legs"
-    ]
+    "slots": ["Legs"]
   },
   {
     "shortname": "wood.armor.jacket",
     "name": "Wood Chestplate",
     "itemId": 418081930,
     "hasSkins": true,
-    "slots": [
-      "Chest"
-    ]
+    "slots": ["Chest"]
   }
 ]

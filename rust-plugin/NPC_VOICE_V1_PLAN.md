@@ -17,7 +17,7 @@ The web API stores original audio bytes and returns audio URLs. The Rust plugin 
 3. **Distribute:** Provide an authenticated `/api/devtools/npcs/runtime/audio/:id/frames` endpoint, using the same runtime bearer token as the definitions endpoint. Include format version, sample rate, frame duration, packet encoding, total duration, and bounded frame count. Add response-size and access controls. Keep the existing admin audio preview endpoint.
 4. **Cache:** During explicit `/npcstudio sync`, download and validate only audio referenced by definitions, cache packets locally, and retain the previous cache on failure. No automatic refresh of placed NPCs.
 5. **Play:** On E-to-talk, send the node's packet sequence to the interacting player using Rust's native voice packet path, with the NPC network ID as source. Pace packets at the encoded frame interval; stop immediately on choice, close, disconnect, death, or NPC removal. Use a generation token per conversation to prevent old timers leaking into new dialogue.
-6. **Scope:** Begin with *listener-only* voice to match an E-initiated private dialogue. Optionally add nearby-listener voice later, once the format is verified.
+6. **Scope:** Begin with _listener-only_ voice to match an E-initiated private dialogue. Optionally add nearby-listener voice later, once the format is verified.
 7. **Compatibility gate:** On Shockbyte, test one short, known-good Opus frame sequence with the actual current Rust server build. Verify that it compiles, produces audible voice, originates at the NPC, and stops on close. **Do not build a large transcoding pipeline until this gate passes.**
 
 ## Acceptance tests

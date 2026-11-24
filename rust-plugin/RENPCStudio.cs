@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.7")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.8")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -38,7 +38,8 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, string> recordingNames = new Dictionary<ulong, string>();
         private readonly Dictionary<ulong, int> playbackGeneration = new Dictionary<ulong, int>();
         private const string VoiceDataFile = "RENPCStudio_VoiceClips";
-        private const int MaxVoiceFrames = 1500; // 30 seconds at ~50 frames/sec
+        private const int MaxVoiceFrames = 1500; // Preserve compatibility with existing native recordings.
+        private const int MaxGeneratedVoicePackets = 301;
 
         private void LoadVoiceClips()
         {
@@ -103,13 +104,13 @@ namespace Oxide.Plugins
             if (!spawned.TryGetValue(placementId, out source) || source == null || source.net == null) return;
             int generation = playbackGeneration[listener.userID];
             List<string> frames;
-            if (voiceClips.TryGetValue(clipId, out frames) ||
-                remoteVoiceCache.TryGetValue(clipId, out frames))
+            bool generated = !reference.StartsWith("clip:", StringComparison.OrdinalIgnoreCase);
+            if ((generated ? remoteVoiceCache : voiceClips).TryGetValue(clipId, out frames))
             {
-                StartVoicePackets(listener, source, frames, generation);
+                StartVoicePackets(listener, source, frames, generation, generated: generated);
                 return;
             }
-            if (!clipId.StartsWith("voice-", StringComparison.OrdinalIgnoreCase) ||
+            if (!generated || !clipId.StartsWith("voice-", StringComparison.OrdinalIgnoreCase) ||
                 string.IsNullOrWhiteSpace(config.RuntimeToken) || config.RuntimeToken.Length < 32) return;
             var headers = new Dictionary<string, string> { { "Authorization", "Bearer " + config.RuntimeToken } };
             var url = config.StudioUrl.TrimEnd('/') + "/api/devtools/npcs/runtime/audio/" + clipId + "/frames";
@@ -130,7 +131,7 @@ namespace Oxide.Plugins
                     if ((int?)payload["version"] != 1 || (string)payload["codec"] != "steam-opus" || (int?)payload["sampleRate"] != 24000 ||
                         (int?)payload["frameDurationMs"] != 100) return;
                     var packets = payload["frames"] as JArray;
-                    if (packets == null || packets.Count == 0 || packets.Count > MaxVoiceFrames) return;
+                    if (packets == null || packets.Count == 0 || packets.Count > MaxGeneratedVoicePackets) return;
                     var decoded = new List<string>();
                     foreach (var packet in packets)
                     {
@@ -143,13 +144,13 @@ namespace Oxide.Plugins
                     // Keep remote audio bounded in memory. Native admin recordings
                     // remain persisted separately in the data file.
                     if (remoteVoiceCache.Count < 64) remoteVoiceCache[clipId] = decoded;
-                    StartVoicePackets(listener, source, decoded, generation);
+                    StartVoicePackets(listener, source, decoded, generation, generated: true);
                 }
                 catch (Exception ex) { PrintWarning("NPC voice response invalid: " + ex.Message); }
             }, this, RequestMethod.GET, headers);
         }
 
-        private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation, bool diagnostic = false)
+        private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation, bool diagnostic = false, bool generated = false)
         {
             if (listener == null || source == null || frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
             // Decode and validate before scheduling. A corrupt clip must not leave
@@ -162,6 +163,7 @@ namespace Oxide.Plugins
                     if (string.IsNullOrWhiteSpace(encoded) || encoded.Length > 5500) return;
                     var bytes = Convert.FromBase64String(encoded);
                     if (bytes.Length == 0 || bytes.Length > 4096) return;
+                    if (generated && !SetGeneratedVoiceIdentity(bytes, listener.userID)) return;
                     packets.Add(bytes);
                 }
             }
@@ -201,6 +203,27 @@ namespace Oxide.Plugins
                     if (diagnostic) listener.ChatMessage("Voice diagnostic: failed: " + ex.Message);
                 }
             });
+        }
+
+        // Generated clips use the recipient's Steam identity inside the codec payload,
+        // as in the audible diagnostic. The outer Rust packet still identifies the NPC.
+        private static bool SetGeneratedVoiceIdentity(byte[] packet, ulong steamId)
+        {
+            if (packet.Length < 23 || packet[8] != 11 || packet[11] != 6 ||
+                (packet[12] | packet[13] << 8) != packet.Length - 18) return false;
+
+            for (int i = 0; i < 8; i++) packet[i] = (byte)((steamId >> (8 * i)) & 0xff);
+            int checksumOffset = packet.Length - 4;
+            uint crc = 0xffffffffu;
+            for (int i = 0; i < checksumOffset; i++)
+            {
+                crc ^= packet[i];
+                for (int bit = 0; bit < 8; bit++)
+                    crc = (crc >> 1) ^ ((crc & 1u) != 0 ? 0xedb88320u : 0u);
+            }
+            crc ^= 0xffffffffu;
+            for (int i = 0; i < 4; i++) packet[checksumOffset + i] = (byte)((crc >> (8 * i)) & 0xff);
+            return true;
         }
 
         private void DiscardPreview(ulong ownerId)
@@ -479,6 +502,9 @@ namespace Oxide.Plugins
                             if (string.IsNullOrWhiteSpace(shortname) || !ulong.TryParse((string)piece["skinId"] ?? "0", out skin)) continue;
                             npc.Clothing.Add(new Equipment { Shortname = shortname, SkinId = skin });
                         }
+                        var backpack = (string)definition["backpack"];
+                        if (backpack == "smallbackpack" || backpack == "largebackpack" || backpack == "kriegbackpack")
+                            npc.Clothing.Add(new Equipment { Shortname = backpack });
                         var dialogue = definition["dialogue"] as JArray;
                         if (dialogue != null) foreach (var node in dialogue)
                         {

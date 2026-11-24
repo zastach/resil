@@ -1,143 +1,1456 @@
 import { useEffect, useState } from 'react';
-import { Alert, Badge, Button, Card, FileInput, Group, NumberInput, Select, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Textarea, Title } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FileInput,
+  Group,
+  NumberInput,
+  Select,
+  SimpleGrid,
+  Stack,
+  Switch,
+  Tabs,
+  Text,
+  TextInput,
+  Textarea,
+  Title,
+} from '@mantine/core';
 import { IconDownload, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react';
 import bundledWearables from './rust-wearables.json';
 
 type Equipment = { slot: string; shortname: string; skinId: string };
-type CatalogItem = { shortname: string; name: string; slots: string[]; itemId?: number; hasSkins?: boolean; icon?: string; special?: boolean; conflicts?: string[] };
+type CatalogItem = {
+  shortname: string;
+  name: string;
+  slots: string[];
+  itemId?: number;
+  hasSkins?: boolean;
+  icon?: string;
+  special?: boolean;
+  conflicts?: string[];
+};
 type Choice = { text: string; next: string; condition: string };
 type Node = { id: string; text: string; audio: string; choices: Choice[] };
-type Npc = { folderId?: string|null; createdBy?: string; updatedBy?: string; updatedAt?: string; id: string; name: string; description: string; equipment: Equipment[]; backpack: string; killable: boolean; hp: number; repeatable: boolean; dialogue: Node[]; revision: number };
-const slots = ['Head L1', 'Head L2', 'Chest L1', 'Chest L2', 'Legs L1', 'Legs L2', 'Hands', 'Feet', 'Accessory'];
-const baseArea = (slot:string) => slot.split(' ')[0];
-const slotLabel = (slot:string) => ({'Head L1':'Headwear','Head L2':'Head Armor','Chest L1':'Shirt / Base Layer','Chest L2':'Jacket / Chest Armor','Legs L1':'Pants / Base Layer','Legs L2':'Leg Armor'} as Record<string,string>)[slot]||slot;
-const describeSlot = (slot:string) => slotLabel(slot);
-const fullBodyShortnames = ["hazmatsuit.diver","alien.costume","hazmatsuit_scientist_arctic","hazmatsuit.arcticsuit","attire.banditguard","bunny.suit","attire.egg.suit","hazmatsuit.frontier","ghostsheet","gingerbreadsuit","hazmatsuit","scientistsuit_heavy","horse.costume","hazmatsuit.kick","hazmat.krieg","hazmatsuit.lumberjack","halloween.mummysuit","hazmatsuit_scientist_naval","attire.ninja.suit","hazmatsuit.nomadsuit","hazmatsuit_scientist_nvgm","oubreak_scientist","paintballoveralls.suit","hazmatsuit.pilot","hazmat.plague","scarecrow.suit","hazmatsuit_scientist","hazmatsuit_scientist_peacekeeper","hazmatsuit.spacesuit","halloween.surgeonsuit","hazmatsuittwitch","jumpsuit.waterwellnpc",];
-const backpackShortnames = ["largebackpack","smallbackpack","kriegbackpack"];
-const itemGroups: Record<string,string[]> = {"Head":["ballistic.helmet","mask.bandana","hat.cap","hat.beenie","hat.candle.birthday","hat.boonie","bucket.helmet","attire.bunnyears","hat.bunnyhat","burlap.headwrap","hat.candle","clatter.helmet","cocoknight.armor.helmet","coffeecan.helmet","draculamask","hat.dragonmask","frankensteinmask","hat.gas.mask","gloweyes","frankensteins.monster.03.head","heavy.plate.helmet","deer.skull.mask","metal.facemask.hockey","hat.horsemask","metal.facemask.icemask","mask.balaclava","knightsarmour.helmet","frankensteins.monster.01.head","frankensteins.monster.02.head","metal.facemask","hat.miner","movembermoustache","mummymask","attire.nesthat","nightvisiongoggles","hat.oxmask","partyhat","prisonerhood","twitchsunglasses","hat.rabbitmask","hat.ratmask","attire.reindeer.headband","riot.helmet","santabeard","santahat","scarecrowhead","silly.horse.mask","hat.snakemask","attire.snowman.helmet","sunglasses","sunglasses02black","sunglasses02camo","sunglasses02red","sunglasses03black","sunglasses03chrome","sunglasses03gold","hat.tigermask","twitch.headset","hat.wellipets","hat.wolf","wood.armor.helmet"],"Chest":["ballistic.vest","bdu.shirt","bone.armor.suit","burlap.shirt","cocoknight.armor.torso","draculacape","heavy.plate.jacket","attire.hide.helterneck","attire.hide.poncho","attire.hide.vest","hoodie","jacket","jumpsuit.suit","jumpsuit.suit.blue","knighttorso.armour","metal.plate.torso","metal.plate.torso.icevest","shirt.collared","shirt.tanktop","tshirt","tshirt.long","roadsign.jacket","wood.armor.jacket"],"Legs":["ballistic.legarmor","bdu.pants","burlap.trousers","cocoknight.armor.pants","heavy.plate.pants","attire.hide.pants","attire.hide.skirt","pants","pants.shorts","roadsign.kilt","knightsarmour.skirt","wood.armor.pants"],"Feet":["shoes.boots","burlap.shoes","boots.frog","attire.hide.boots","diving.fins"],"Hands":["burlap.gloves.new","burlap.gloves","cocoknight.armor.gloves","roadsign.gloves","tactical.gloves","woodarmor.gloves"],"Accessory":["diving.mask","diving.tank","diving.tank.double","minigunammopack","twitchrivalsflag"]};
-itemGroups.Chest.push(...fullBodyShortnames, 'attire.bunny.onesie','chicken.costume','diving.wetsuit','barrelcostume','cratecostume');
+type Npc = {
+  folderId?: string | null;
+  createdBy?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+  id: string;
+  name: string;
+  description: string;
+  equipment: Equipment[];
+  backpack: string;
+  killable: boolean;
+  hp: number;
+  repeatable: boolean;
+  dialogue: Node[];
+  revision: number;
+};
+const slots = [
+  'Head L1',
+  'Head L2',
+  'Chest L1',
+  'Chest L2',
+  'Legs L1',
+  'Legs L2',
+  'Hands',
+  'Feet',
+  'Accessory',
+];
+const baseArea = (slot: string) => slot.split(' ')[0];
+const slotLabel = (slot: string) =>
+  (
+    {
+      'Head L1': 'Headwear',
+      'Head L2': 'Head Armor',
+      'Chest L1': 'Shirt / Base Layer',
+      'Chest L2': 'Jacket / Chest Armor',
+      'Legs L1': 'Pants / Base Layer',
+      'Legs L2': 'Leg Armor',
+    } as Record<string, string>
+  )[slot] || slot;
+const describeSlot = (slot: string) => slotLabel(slot);
+const fullBodyShortnames = [
+  'hazmatsuit.diver',
+  'alien.costume',
+  'hazmatsuit_scientist_arctic',
+  'hazmatsuit.arcticsuit',
+  'attire.banditguard',
+  'bunny.suit',
+  'attire.egg.suit',
+  'hazmatsuit.frontier',
+  'ghostsheet',
+  'gingerbreadsuit',
+  'hazmatsuit',
+  'scientistsuit_heavy',
+  'horse.costume',
+  'hazmatsuit.kick',
+  'hazmat.krieg',
+  'hazmatsuit.lumberjack',
+  'halloween.mummysuit',
+  'hazmatsuit_scientist_naval',
+  'attire.ninja.suit',
+  'hazmatsuit.nomadsuit',
+  'hazmatsuit_scientist_nvgm',
+  'oubreak_scientist',
+  'paintballoveralls.suit',
+  'hazmatsuit.pilot',
+  'hazmat.plague',
+  'scarecrow.suit',
+  'hazmatsuit_scientist',
+  'hazmatsuit_scientist_peacekeeper',
+  'hazmatsuit.spacesuit',
+  'halloween.surgeonsuit',
+  'hazmatsuittwitch',
+  'jumpsuit.waterwellnpc',
+];
+const backpackShortnames = ['largebackpack', 'smallbackpack', 'kriegbackpack'];
+const itemGroups: Record<string, string[]> = {
+  Head: [
+    'ballistic.helmet',
+    'mask.bandana',
+    'hat.cap',
+    'hat.beenie',
+    'hat.candle.birthday',
+    'hat.boonie',
+    'bucket.helmet',
+    'attire.bunnyears',
+    'hat.bunnyhat',
+    'burlap.headwrap',
+    'hat.candle',
+    'clatter.helmet',
+    'cocoknight.armor.helmet',
+    'coffeecan.helmet',
+    'draculamask',
+    'hat.dragonmask',
+    'frankensteinmask',
+    'hat.gas.mask',
+    'gloweyes',
+    'frankensteins.monster.03.head',
+    'heavy.plate.helmet',
+    'deer.skull.mask',
+    'metal.facemask.hockey',
+    'hat.horsemask',
+    'metal.facemask.icemask',
+    'mask.balaclava',
+    'knightsarmour.helmet',
+    'frankensteins.monster.01.head',
+    'frankensteins.monster.02.head',
+    'metal.facemask',
+    'hat.miner',
+    'movembermoustache',
+    'mummymask',
+    'attire.nesthat',
+    'nightvisiongoggles',
+    'hat.oxmask',
+    'partyhat',
+    'prisonerhood',
+    'twitchsunglasses',
+    'hat.rabbitmask',
+    'hat.ratmask',
+    'attire.reindeer.headband',
+    'riot.helmet',
+    'santabeard',
+    'santahat',
+    'scarecrowhead',
+    'silly.horse.mask',
+    'hat.snakemask',
+    'attire.snowman.helmet',
+    'sunglasses',
+    'sunglasses02black',
+    'sunglasses02camo',
+    'sunglasses02red',
+    'sunglasses03black',
+    'sunglasses03chrome',
+    'sunglasses03gold',
+    'hat.tigermask',
+    'twitch.headset',
+    'hat.wellipets',
+    'hat.wolf',
+    'wood.armor.helmet',
+  ],
+  Chest: [
+    'ballistic.vest',
+    'bdu.shirt',
+    'bone.armor.suit',
+    'burlap.shirt',
+    'cocoknight.armor.torso',
+    'draculacape',
+    'heavy.plate.jacket',
+    'attire.hide.helterneck',
+    'attire.hide.poncho',
+    'attire.hide.vest',
+    'hoodie',
+    'jacket',
+    'jumpsuit.suit',
+    'jumpsuit.suit.blue',
+    'knighttorso.armour',
+    'metal.plate.torso',
+    'metal.plate.torso.icevest',
+    'shirt.collared',
+    'shirt.tanktop',
+    'tshirt',
+    'tshirt.long',
+    'roadsign.jacket',
+    'wood.armor.jacket',
+  ],
+  Legs: [
+    'ballistic.legarmor',
+    'bdu.pants',
+    'burlap.trousers',
+    'cocoknight.armor.pants',
+    'heavy.plate.pants',
+    'attire.hide.pants',
+    'attire.hide.skirt',
+    'pants',
+    'pants.shorts',
+    'roadsign.kilt',
+    'knightsarmour.skirt',
+    'wood.armor.pants',
+  ],
+  Feet: ['shoes.boots', 'burlap.shoes', 'boots.frog', 'attire.hide.boots', 'diving.fins'],
+  Hands: [
+    'burlap.gloves.new',
+    'burlap.gloves',
+    'cocoknight.armor.gloves',
+    'roadsign.gloves',
+    'tactical.gloves',
+    'woodarmor.gloves',
+  ],
+  Accessory: ['diving.mask', 'diving.tank', 'diving.tank.double', 'minigunammopack', 'twitchrivalsflag'],
+};
+itemGroups.Chest.push(
+  ...fullBodyShortnames,
+  'attire.bunny.onesie',
+  'chicken.costume',
+  'diving.wetsuit',
+  'barrelcostume',
+  'cratecostume',
+);
 // The six UI groups are an editor simplification, not the game's full layered wearable model.
 // Rust server ItemModWearable slot and conflict data must be checked before publishing.
-const itemSlots: Record<string,string[]> = {};
+const itemSlots: Record<string, string[]> = {};
 for (const [slot, ids] of Object.entries(itemGroups)) for (const id of ids) (itemSlots[id] ||= []).push(slot);
-const allowedItemsForSlot=(slot:string)=>itemGroups[baseArea(slot)]||[];
-const emptyEquipment = () => slots.map(slot => ({ slot, shortname: '', skinId: '0' }));
-const starter = (): Npc => ({ id:'npc-'+Math.random().toString(36).slice(2,10), name:'', description:'', equipment:emptyEquipment(), backpack:'', killable:false, hp:100, repeatable:true, revision:1, dialogue:[{id:'start',text:'Can I help you?',audio:'',choices:[{text:'What happened here?',next:'answer',condition:''}]},{id:'answer',text:'I am not sure what I saw.',audio:'',choices:[]}] });
-const blankNode = (id:string):Node => ({id,text:'',audio:'',choices:[]});
+const allowedItemsForSlot = (slot: string) => itemGroups[baseArea(slot)] || [];
+const emptyEquipment = () => slots.map((slot) => ({ slot, shortname: '', skinId: '0' }));
+const starter = (): Npc => ({
+  id: 'npc-' + Math.random().toString(36).slice(2, 10),
+  name: '',
+  description: '',
+  equipment: emptyEquipment(),
+  backpack: '',
+  killable: false,
+  hp: 100,
+  repeatable: true,
+  revision: 1,
+  dialogue: [
+    {
+      id: 'start',
+      text: 'Can I help you?',
+      audio: '',
+      choices: [{ text: 'What happened here?', next: 'answer', condition: '' }],
+    },
+    { id: 'answer', text: 'I am not sure what I saw.', audio: '', choices: [] },
+  ],
+});
+const blankNode = (id: string): Node => ({ id, text: '', audio: '', choices: [] });
 const fullBodyItems = new Set(fullBodyShortnames);
 // Facepunch Clothing Slots: these occupy multiple layers, but not the entire wear inventory.
-const dualLayers: Record<string,string[]> = {
- 'jacket':['Chest L1','Chest L2'],'jacket.snow':['Chest L1','Chest L2'],'heavy.plate.jacket':['Chest L1','Chest L2'],
- 'heavy.plate.pants':['Legs L1','Legs L2'],'metal.facemask':['Head L1','Head L2'],
- 'coffeecan.helmet':['Head L1','Head L2'],'heavy.plate.helmet':['Head L1','Head L2'],
- 'ballistic.helmet':['Head L1','Head L2'],'diving.tank':['Chest L2','Back'],
- 'diving.tank.double':['Chest L2','Back'],'diving.wetsuit':['Chest L1','Legs L1'],
- 'chicken.costume':['Chest L2','Legs L2'],
- 'attire.bunny.onesie':['Chest L1','Chest L2','Legs L1','Legs L2'],
- 'barrelcostume':['Chest L1','Chest L2','Legs L1','Legs L2'],
- 'cratecostume':['Chest L1','Chest L2','Legs L1','Legs L2'],
- 'bone.armor.suit':['Chest L1','Chest L2','Legs L1','Legs L2','Hands','Feet']
+const dualLayers: Record<string, string[]> = {
+  jacket: ['Chest L1', 'Chest L2'],
+  'jacket.snow': ['Chest L1', 'Chest L2'],
+  'heavy.plate.jacket': ['Chest L1', 'Chest L2'],
+  'heavy.plate.pants': ['Legs L1', 'Legs L2'],
+  'metal.facemask': ['Head L1', 'Head L2'],
+  'coffeecan.helmet': ['Head L1', 'Head L2'],
+  'heavy.plate.helmet': ['Head L1', 'Head L2'],
+  'ballistic.helmet': ['Head L1', 'Head L2'],
+  'diving.tank': ['Chest L2', 'Back'],
+  'diving.tank.double': ['Chest L2', 'Back'],
+  'diving.wetsuit': ['Chest L1', 'Legs L1'],
+  'chicken.costume': ['Chest L2', 'Legs L2'],
+  'attire.bunny.onesie': ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2'],
+  barrelcostume: ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2'],
+  cratecostume: ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2'],
+  'bone.armor.suit': ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2', 'Hands', 'Feet'],
 };
-const allWearSlots=['Head L1','Head L2','Chest L1','Chest L2','Legs L1','Legs L2','Hands','Feet','Back'];
-const headArmor=new Set(['metal.facemask','coffeecan.helmet','heavy.plate.helmet','ballistic.helmet','riot.helmet','wood.armor.helmet']);
-const chestArmor=new Set(['metal.plate.torso','metal.plate.torso.icevest','roadsign.jacket','wood.armor.jacket','ballistic.vest']);
-const legArmor=new Set(['roadsign.kilt','wood.armor.pants','ballistic.legarmor']);
-function occupiedSlots(eq:Equipment):string[]{
- if(fullBodyItems.has(eq.shortname)||['jumpsuit.suit','jumpsuit.suit.blue'].includes(eq.shortname))return allWearSlots;
- if(dualLayers[eq.shortname])return dualLayers[eq.shortname];
- if(eq.slot==='Accessory'&&eq.shortname==='diving.mask')return ['Head L1'];
- if(eq.slot==='Accessory'&&eq.shortname==='minigunammopack')return ['Back'];
- if(eq.slot==='Head L1'&&headArmor.has(eq.shortname))return ['Head L2'];
- if(eq.slot==='Chest L1'&&chestArmor.has(eq.shortname))return ['Chest L2'];
- if(eq.slot==='Legs L1'&&legArmor.has(eq.shortname))return ['Legs L2'];
- return [eq.slot];
+const allWearSlots = [
+  'Head L1',
+  'Head L2',
+  'Chest L1',
+  'Chest L2',
+  'Legs L1',
+  'Legs L2',
+  'Hands',
+  'Feet',
+  'Back',
+];
+const headArmor = new Set([
+  'metal.facemask',
+  'coffeecan.helmet',
+  'heavy.plate.helmet',
+  'ballistic.helmet',
+  'riot.helmet',
+  'wood.armor.helmet',
+]);
+const chestArmor = new Set([
+  'metal.plate.torso',
+  'metal.plate.torso.icevest',
+  'roadsign.jacket',
+  'wood.armor.jacket',
+  'ballistic.vest',
+]);
+const legArmor = new Set(['roadsign.kilt', 'wood.armor.pants', 'ballistic.legarmor']);
+function occupiedSlots(eq: Equipment): string[] {
+  if (fullBodyItems.has(eq.shortname) || ['jumpsuit.suit', 'jumpsuit.suit.blue'].includes(eq.shortname))
+    return allWearSlots;
+  if (dualLayers[eq.shortname]) return dualLayers[eq.shortname];
+  if (eq.slot === 'Accessory' && eq.shortname === 'diving.mask') return ['Head L1'];
+  if (eq.slot === 'Accessory' && eq.shortname === 'minigunammopack') return ['Back'];
+  if (eq.slot === 'Head L1' && headArmor.has(eq.shortname)) return ['Head L2'];
+  if (eq.slot === 'Chest L1' && chestArmor.has(eq.shortname)) return ['Chest L2'];
+  if (eq.slot === 'Legs L1' && legArmor.has(eq.shortname)) return ['Legs L2'];
+  return [eq.slot];
 }
-function equipmentConflicts(equipment:Equipment[]):string[]{
- const equipped=equipment.filter(x=>x.shortname.trim());
- const issues:string[]=[];
- for(const eq of equipped){
-  const valid=itemSlots[eq.shortname];
-  if(!valid)issues.push('Unverified Rust item: '+eq.shortname);
-  else if(!valid.includes(baseArea(eq.slot)))issues.push(itemLabel(eq.shortname)+' is not assigned to its expected body area ('+slotLabel(eq.slot)+').');
-  if(!/^(0|[1-9][0-9]*)$/.test(eq.skinId||'0'))issues.push('Invalid skin ID for '+itemLabel(eq.shortname));
- }
- for(let i=0;i<equipped.length;i++)for(let j=i+1;j<equipped.length;j++){
-  const a=equipped[i],b=equipped[j];
-  const overlap=occupiedSlots(a).filter(x=>occupiedSlots(b).includes(x));
-  if(overlap.length)issues.push(itemLabel(a.shortname)+' conflicts with '+itemLabel(b.shortname)+' in '+overlap.map(describeSlot).join(', ')+'.');
-  if(a.shortname===b.shortname)issues.push('Duplicate wearable: '+itemLabel(a.shortname));
- }
- return [...new Set(issues)];
+function equipmentConflicts(equipment: Equipment[]): string[] {
+  const equipped = equipment.filter((x) => x.shortname.trim());
+  const issues: string[] = [];
+  for (const eq of equipped) {
+    const valid = itemSlots[eq.shortname];
+    if (!valid) issues.push('Unverified Rust item: ' + eq.shortname);
+    else if (!valid.includes(baseArea(eq.slot)))
+      issues.push(
+        itemLabel(eq.shortname) + ' is not assigned to its expected body area (' + slotLabel(eq.slot) + ').',
+      );
+    if (!/^(0|[1-9][0-9]*)$/.test(eq.skinId || '0'))
+      issues.push('Invalid skin ID for ' + itemLabel(eq.shortname));
+  }
+  for (let i = 0; i < equipped.length; i++)
+    for (let j = i + 1; j < equipped.length; j++) {
+      const a = equipped[i],
+        b = equipped[j];
+      const overlap = occupiedSlots(a).filter((x) => occupiedSlots(b).includes(x));
+      if (overlap.length)
+        issues.push(
+          itemLabel(a.shortname) +
+            ' conflicts with ' +
+            itemLabel(b.shortname) +
+            ' in ' +
+            overlap.map(describeSlot).join(', ') +
+            '.',
+        );
+      if (a.shortname === b.shortname) issues.push('Duplicate wearable: ' + itemLabel(a.shortname));
+    }
+  return [...new Set(issues)];
 }
 
-const catalogKey='resil-npcstudio-wearable-catalog-v1';
-const legacyLibraryKey='resil-npcstudio-v1';
-function readLegacyNpcs():Npc[]{try{const parsed=JSON.parse(localStorage.getItem(legacyLibraryKey)||'[]');return Array.isArray(parsed)?parsed.filter((npc:unknown):npc is Npc=>typeof npc==='object'&&npc!==null&&typeof (npc as Npc).id==='string'&&Array.isArray((npc as Npc).dialogue)):[];}catch{return [];}}
+const catalogKey = 'resil-npcstudio-wearable-catalog-v1';
+const legacyLibraryKey = 'resil-npcstudio-v1';
+function readLegacyNpcs(): Npc[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(legacyLibraryKey) || '[]');
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (npc: unknown): npc is Npc =>
+            typeof npc === 'object' &&
+            npc !== null &&
+            typeof (npc as Npc).id === 'string' &&
+            Array.isArray((npc as Npc).dialogue),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
 
-function readCatalog():CatalogItem[]{try{const value=JSON.parse(localStorage.getItem(catalogKey)||'[]');return Array.isArray(value)?value.filter(x=>typeof x?.shortname==='string'&&typeof x?.name==='string'&&Array.isArray(x?.slots)):[];}catch{return [];}}
-const itemLabel=(id:string)=>({'gloweyes':'Glowing Eyes','bdu.shirt':'BDU Shirt','bdu.pants':'BDU Pants','burlap.gloves':'Leather Gloves','burlap.gloves.new':'Burlap Gloves','boots.frog':'Frog Boots','smallbackpack':'Small Backpack','largebackpack':'Large Backpack','kriegbackpack':'Krieg Large Backpack','bunny.suit':'Bunny Costume','attire.bunny.onesie':'Bunny Onesie'} as Record<string,string>)[id]||id.split('.').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');
-const itemIcon=(id:string)=>'https://rustlabs.com/img/items180/'+encodeURIComponent(id)+'.png';
-function download(name:string, body:string, mime:string) { const url=URL.createObjectURL(new Blob([body],{type:mime})); const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
-function validate(n:Npc) { const ids=n.dialogue.map(x=>x.id);if(!/^[a-z0-9][a-z0-9-]*$/.test(n.id))return 'NPC ID must use lowercase letters, numbers and hyphens.';if(!n.name.trim())return 'NPC name required.';if(n.name.length>150)return 'NPC name must be 150 characters or fewer.';if(n.dialogue.length===0||n.dialogue.length>128)return 'Rust V1 supports 1–128 dialogue nodes.';if(n.hp<1||n.hp>100000||!Number.isFinite(n.hp))return 'NPC health must be between 1 and 100000.';if(!ids.includes('start')||new Set(ids).size!==ids.length)return 'Dialogue must contain a start node and unique node IDs.';if(ids.some(x=>!/^[a-zA-Z0-9_-]+$/.test(x)))return 'Dialogue node IDs must contain only letters, numbers, underscores or hyphens.';if(n.dialogue.some(x=>!x.id.trim()||!x.text.trim()))return 'Every dialogue node needs an ID and dialogue text.';if(n.dialogue.some(x=>x.id.length>120||x.text.length>4096))return 'Dialogue node ID or text exceeds the Rust V1 length limit.';if(n.dialogue.some(x=>x.choices.some(c=>c.text.length>300)))return 'Dialogue response text must be 300 characters or fewer.';if(n.dialogue.some(x=>x.choices.some(c=>!c.text.trim())))return 'Every dialogue response needs text.';if(n.dialogue.some(x=>x.choices.length>4))return 'Rust V1 supports at most four responses per dialogue node.';if(n.dialogue.some(x=>x.choices.some(c=>c.condition.trim())))return 'Conditional responses are not supported by the Rust V1 runtime.';if(n.dialogue.some(x=>x.audio&&(!/^https?:\/\//i.test(x.audio)&&!x.audio.startsWith('/')&&!/^clip:[A-Za-z0-9_-]+$/.test(x.audio))))return 'Audio references must be uploaded NPC Studio audio or clip:<id> native recordings.';if(n.dialogue.some(x=>x.audio.length>200))return 'Voice reference exceeds the 200-character limit.';if(n.dialogue.some(x=>x.audio.trim()&&/^https?:\/\//i.test(x.audio)))return 'Rust NPC voice must use an uploaded recording or a clip:<id> native recording. External URLs cannot play in-game.';if(n.dialogue.some(x=>x.audio.trim()&&x.audio.startsWith('/')&&!/^\/api\/devtools\/npcs\/audio\/voice-[A-Za-z0-9_-]+$/.test(x.audio)))return 'Upload a voice recording through NPC Studio to create a playable audio reference.';if(n.dialogue.some(x=>x.choices.some(c=>c.next&&!ids.includes(c.next))))return 'A dialogue response links to a missing node.';const visited=new Set<string>();const pending=['start'];while(pending.length){const current=pending.pop()!;if(visited.has(current))continue;visited.add(current);const node=n.dialogue.find(x=>x.id===current);for(const choice of node?.choices||[])if(choice.next&&!visited.has(choice.next))pending.push(choice.next);}if(visited.size!==ids.length)return 'Some dialogue nodes cannot be reached from start: '+ids.filter(x=>!visited.has(x)).join(', ');return ''; }
+function readCatalog(): CatalogItem[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(catalogKey) || '[]');
+    return Array.isArray(value)
+      ? value.filter(
+          (x) => typeof x?.shortname === 'string' && typeof x?.name === 'string' && Array.isArray(x?.slots),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+const itemLabel = (id: string) =>
+  (
+    {
+      gloweyes: 'Glowing Eyes',
+      'bdu.shirt': 'BDU Shirt',
+      'bdu.pants': 'BDU Pants',
+      'burlap.gloves': 'Leather Gloves',
+      'burlap.gloves.new': 'Burlap Gloves',
+      'boots.frog': 'Frog Boots',
+      smallbackpack: 'Small Backpack',
+      largebackpack: 'Large Backpack',
+      kriegbackpack: 'Krieg Large Backpack',
+      'bunny.suit': 'Bunny Costume',
+      'attire.bunny.onesie': 'Bunny Onesie',
+    } as Record<string, string>
+  )[id] ||
+  id
+    .split('.')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+const itemIcon = (id: string) => 'https://rustlabs.com/img/items180/' + encodeURIComponent(id) + '.png';
+function download(name: string, body: string, mime: string) {
+  const url = URL.createObjectURL(new Blob([body], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function validate(n: Npc) {
+  const ids = n.dialogue.map((x) => x.id);
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(n.id)) return 'NPC ID must use lowercase letters, numbers and hyphens.';
+  if (!n.name.trim()) return 'NPC name required.';
+  if (n.name.length > 150) return 'NPC name must be 150 characters or fewer.';
+  if (n.dialogue.length === 0 || n.dialogue.length > 128) return 'Rust V1 supports 1–128 dialogue nodes.';
+  if (n.hp < 1 || n.hp > 100000 || !Number.isFinite(n.hp)) return 'NPC health must be between 1 and 100000.';
+  if (!ids.includes('start') || new Set(ids).size !== ids.length)
+    return 'Dialogue must contain a start node and unique node IDs.';
+  if (ids.some((x) => !/^[a-zA-Z0-9_-]+$/.test(x)))
+    return 'Dialogue node IDs must contain only letters, numbers, underscores or hyphens.';
+  if (n.dialogue.some((x) => !x.id.trim() || !x.text.trim()))
+    return 'Every dialogue node needs an ID and dialogue text.';
+  if (n.dialogue.some((x) => x.id.length > 120 || x.text.length > 4096))
+    return 'Dialogue node ID or text exceeds the Rust V1 length limit.';
+  if (n.dialogue.some((x) => x.choices.some((c) => c.text.length > 300)))
+    return 'Dialogue response text must be 300 characters or fewer.';
+  if (n.dialogue.some((x) => x.choices.some((c) => !c.text.trim())))
+    return 'Every dialogue response needs text.';
+  if (n.dialogue.some((x) => x.choices.length > 4))
+    return 'Rust V1 supports at most four responses per dialogue node.';
+  if (n.dialogue.some((x) => x.choices.some((c) => c.condition.trim())))
+    return 'Conditional responses are not supported by the Rust V1 runtime.';
+  if (
+    n.dialogue.some(
+      (x) =>
+        x.audio &&
+        !/^https?:\/\//i.test(x.audio) &&
+        !x.audio.startsWith('/') &&
+        !/^clip:[A-Za-z0-9_-]+$/.test(x.audio),
+    )
+  )
+    return 'Audio references must be uploaded NPC Studio audio or clip:<id> native recordings.';
+  if (n.dialogue.some((x) => x.audio.length > 200)) return 'Voice reference exceeds the 200-character limit.';
+  if (n.dialogue.some((x) => x.audio.trim() && /^https?:\/\//i.test(x.audio)))
+    return 'Rust NPC voice must use an uploaded recording or a clip:<id> native recording. External URLs cannot play in-game.';
+  if (
+    n.dialogue.some(
+      (x) =>
+        x.audio.trim() &&
+        x.audio.startsWith('/') &&
+        !/^\/api\/devtools\/npcs\/audio\/voice-[A-Za-z0-9_-]+$/.test(x.audio),
+    )
+  )
+    return 'Upload a voice recording through NPC Studio to create a playable audio reference.';
+  if (n.dialogue.some((x) => x.choices.some((c) => c.next && !ids.includes(c.next))))
+    return 'A dialogue response links to a missing node.';
+  const visited = new Set<string>();
+  const pending = ['start'];
+  while (pending.length) {
+    const current = pending.pop()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    const node = n.dialogue.find((x) => x.id === current);
+    for (const choice of node?.choices || [])
+      if (choice.next && !visited.has(choice.next)) pending.push(choice.next);
+  }
+  if (visited.size !== ids.length)
+    return (
+      'Some dialogue nodes cannot be reached from start: ' + ids.filter((x) => !visited.has(x)).join(', ')
+    );
+  return '';
+}
 
 export function Component() {
- const [library,setLibrary]=useState<Npc[]>([]);
- const [legacyNpcs]=useState<Npc[]>(readLegacyNpcs);
- const [migrationBusy,setMigrationBusy]=useState(false);
- const [folders,setFolders]=useState<{id:string;name:string;parentId?:string|null}[]>([]);
- const [libraryReady,setLibraryReady]=useState(false);
- const [newFolderName,setNewFolderName]=useState('');
- const [activeFolder,setActiveFolder]=useState<string|null>(null);
- const [selected,setSelected]=useState('');
- const [draft,setDraft]=useState<Npc>(()=>starter());
- const [notice,setNotice]=useState('');
- const [previewNode,setPreviewNode]=useState<string|null>(null);
- const [acknowledgeConflicts,setAcknowledgeConflicts]=useState(false);
- const [catalog,setCatalog]=useState<CatalogItem[]>(()=>{const custom=readCatalog();const byId=new Map<string,CatalogItem>();for(const item of bundledWearables)byId.set(item.shortname,item);for(const item of custom)byId.set(item.shortname,{...byId.get(item.shortname),...item});return [...byId.values()];});
- const catalogItem=(shortname:string)=>catalog.find(x=>x.shortname===shortname);
- const catalogOptions=(slot:string)=>{const byId=new Map<string,{value:string;label:string}>();for(const shortname of allowedItemsForSlot(slot))byId.set(shortname,{value:shortname,label:itemLabel(shortname)});for(const item of catalog.filter(x=>x.slots.includes(baseArea(slot))))byId.set(item.shortname,{value:item.shortname,label:item.name+(item.special?' · Special':'')});return [...byId.values()].sort((a,b)=>a.label.localeCompare(b.label));};
- const catalogIssues=(equipment:Equipment[])=>{const issues=equipmentConflicts(equipment);if(!catalog.length)return issues;const worn=equipment.filter(x=>x.shortname.trim());if(worn.some(x=>fullBodyItems.has(x.shortname))&&worn.length>1)issues.push('Full-body suits cannot be combined with other wearable equipment.');for(const eq of worn){const item=catalogItem(eq.shortname);if(!item&&!allowedItemsForSlot(eq.slot).includes(eq.shortname))issues.push('Item is not in the catalog: '+eq.shortname);else if(item&&!item.slots.includes(baseArea(eq.slot)))issues.push(item.name+' cannot be equipped in '+slotLabel(eq.slot));if(!/^(0|[1-9][0-9]*)$/.test(eq.skinId||'0'))issues.push('Invalid skin ID in '+slotLabel(eq.slot));}for(let i=0;i<worn.length;i++)for(let j=i+1;j<worn.length;j++){const a=catalogItem(worn[i].shortname),b=catalogItem(worn[j].shortname);if(worn[i].shortname===worn[j].shortname||a?.conflicts?.includes(worn[j].shortname)||b?.conflicts?.includes(worn[i].shortname))issues.push('Incompatible items: '+worn[i].shortname+' and '+worn[j].shortname);}return issues;};
- const importCatalog=async(file:File|null)=>{if(!file)return;try{const parsed=JSON.parse(await file.text());if(!Array.isArray(parsed)||!parsed.length||parsed.some(x=>!x||typeof x.shortname!=='string'||typeof x.name!=='string'||!Array.isArray(x.slots)||x.slots.some((slot:unknown)=>!slots.includes(String(slot)))||x.conflicts!==undefined&&(!Array.isArray(x.conflicts)||x.conflicts.some((c:unknown)=>typeof c!=='string'))))throw Error('Catalog must be a nonempty array of {shortname, name, slots, conflicts?, icon?, special?}.');const ids=parsed.map(x=>x.shortname);if(new Set(ids).size!==ids.length)throw Error('Catalog has duplicate item shortnames.');setCatalog(()=>{const merged=new Map<string,CatalogItem>();for(const base of bundledWearables)merged.set(base.shortname,base);for(const override of parsed as CatalogItem[])merged.set(override.shortname,{...merged.get(override.shortname),...override});return [...merged.values()];});localStorage.setItem(catalogKey,JSON.stringify(parsed));setNotice('Loaded '+parsed.length+' optional catalog overrides in this browser.');}catch(e){setNotice('Catalog import failed: '+String(e));}};
- const [tab,setTab]=useState<string|null>('appearance');
- const refreshLibrary=async()=>{const response=await fetch('/api/devtools/npcs',{credentials:'include'});if(!response.ok)throw Error('Shared NPC library unavailable ('+response.status+')');const data=await response.json();setFolders(data.folders);setLibrary(data.npcs.map((entry:{definition:Npc;folderId:string|null;revision:number;createdBy:string;updatedBy:string;updatedAt:string})=>({...entry.definition,folderId:entry.folderId,revision:entry.revision,createdBy:entry.createdBy,updatedBy:entry.updatedBy,updatedAt:entry.updatedAt})));setLibraryReady(true);};
- useEffect(()=>{void Promise.resolve().then(refreshLibrary).catch(e=>setNotice(String(e)));},[]);
- const migrateLegacy=async()=>{if(!libraryReady||migrationBusy)return;setMigrationBusy(true);let count=0;try{for(const npc of legacyNpcs){if(library.some(existing=>existing.id===npc.id))continue;const error=validate(npc);if(error)throw Error(npc.id+': '+error);const response=await fetch('/api/devtools/npcs/'+encodeURIComponent(npc.id),{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:npc.id,name:npc.name,folderId:null,definition:{...npc,folderId:null}})});if(!response.ok)throw Error(npc.id+': '+await response.text());count++;}await refreshLibrary();setNotice('Imported '+count+' browser NPCs into the shared library. Your original browser copies are retained for safety.');}catch(e){setNotice('Migration stopped after '+count+' imports: '+String(e));}finally{setMigrationBusy(false);}};
- const deleteNpc=async()=>{if(!selected||!window.confirm('Permanently delete this shared NPC definition? This affects all admins.'))return;try{const response=await fetch('/api/devtools/npcs/'+encodeURIComponent(selected),{method:'DELETE',credentials:'include'});if(!response.ok)throw Error(await response.text());setSelected('');setDraft(starter());await refreshLibrary();setNotice('NPC deleted from shared library.');}catch(e){setNotice('Delete failed: '+String(e));}};
- const createFolder=async()=>{if(!newFolderName.trim())return;try{const response=await fetch('/api/devtools/npcs/folders',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newFolderName.trim(),parentId:activeFolder})});if(!response.ok)throw Error(await response.text());setNewFolderName('');await refreshLibrary();setNotice('Shared folder created.');}catch(e){setNotice(String(e));}};
- const removeFolder=async(folderId:string)=>{if(!window.confirm('Delete this folder? NPCs inside will move to Unfiled.'))return;try{const response=await fetch('/api/devtools/npcs/folders/'+encodeURIComponent(folderId),{method:'DELETE',credentials:'include'});if(!response.ok)throw Error(await response.text());setActiveFolder(null);await refreshLibrary();}catch(e){setNotice(String(e));}};
- const patch=(p:Partial<Npc>)=>{if(p.equipment)setAcknowledgeConflicts(false);setDraft(prev=>({...prev,...p}));};
- const save=async()=>{if(catalogIssues(draft.equipment).length&&!acknowledgeConflicts){setNotice('Review the equipment compatibility notices and choose Keep anyway to continue.');return;}const error=validate(draft);if(error){setNotice(error);return;}try{const response=await fetch('/api/devtools/npcs/'+encodeURIComponent(draft.id),{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:draft.id,name:draft.name,folderId:draft.folderId||null,expectedRevision:selected===draft.id?draft.revision:0,definition:draft})});if(response.status===409)throw Error('Another admin changed this NPC. Your unsaved edits are still here; review the latest library version before saving.');if(!response.ok)throw Error(await response.text());const result=await response.json();setSelected(draft.id);setDraft({...draft,revision:result.revision});await refreshLibrary();setNotice('NPC revision '+result.revision+' saved. Rust server owners must run /npcstudio sync, then /npcstudio apply to update already placed NPCs. No automatic live updates occur.');}catch(e){setNotice('Save failed: '+String(e));}};
- const uploadVoice=async(i:number,file:File|null)=>{if(!file)return;if(file.size>8*1024*1024){setNotice('Voice upload must be 8 MB or smaller.');return;}try{const base64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(Error('Unable to read audio'));reader.readAsDataURL(file);});const response=await fetch('/api/devtools/npcs/audio',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type||'audio/mpeg',data:base64})});if(!response.ok)throw Error(await response.text());const result=await response.json();updateNode(i,{audio:result.url});setNotice('Voice uploaded. Save the NPC to persist its dialogue assignment.');}catch(e){setNotice('Audio upload failed: '+String(e));}};
- const updateNode=(i:number,p:Partial<Node>)=>setDraft(prev=>({...prev,dialogue:prev.dialogue.map((n,j)=>i===j?{...n,...p}:n)}));
- const exportJson=()=>{const error=validate(draft)||catalogIssues(draft.equipment)[0];if(error){setNotice(error);return;}download(draft.id+'.json',JSON.stringify({...draft,version:1},null,2),'application/json');};
- const importJson=async(file:File|null)=>{if(!file)return;try{const data=JSON.parse(await file.text()) as Npc;if(!data||typeof data.id!=='string'||!Array.isArray(data.dialogue)||!Array.isArray(data.equipment))throw Error('Invalid NPC definition');const imported={...starter(),...data,equipment:slots.map(slot=>{const legacy=slot.endsWith(' L1')?baseArea(slot):null;const eq=data.equipment.find(x=>x?.slot===slot)||data.equipment.find(x=>x?.slot===legacy);return {slot,shortname:typeof eq?.shortname==='string'?eq.shortname:'',skinId:typeof eq?.skinId==='string'?eq.skinId:'0'};})};const error=validate(imported);if(error)throw Error(error);setDraft(imported);setSelected('');setNotice('Imported definition. Save to add it to your library.');}catch(e){setNotice(String(e));}};
- return <Stack p='lg' maw={1280} mx='auto'>
-  <Group justify='space-between'><div><Title order={2}>NPC Studio</Title><Text c='dimmed'>Rust Empires · NPC definition workshop</Text></div><Badge color='blue'>V1 workshop</Badge></Group>
-  <Card withBorder><Stack gap='sm'><Group justify='space-between'><Text fw={600}>Shared NPC Library</Text><Button size='xs' variant='light' onClick={()=>refreshLibrary().catch(e=>setNotice(String(e)))}>Refresh</Button></Group><Group><Select placeholder='All folders' clearable value={activeFolder} onChange={setActiveFolder} data={folders.map(f=>({value:f.id,label:f.name}))} /><TextInput placeholder='New folder name' value={newFolderName} onChange={e=>setNewFolderName(e.currentTarget.value)}/><Button onClick={createFolder}>Create folder</Button>{activeFolder&&<Button color='red' variant='subtle' onClick={()=>removeFolder(activeFolder)}>Delete folder</Button>}</Group>{legacyNpcs.length>0&&<Alert color='blue'><Group><Text size='sm'>Found {legacyNpcs.length} NPC definitions saved in this browser. Import them into the shared library; existing shared IDs are skipped and browser originals remain untouched.</Text><Button size='xs' loading={migrationBusy} disabled={!libraryReady} onClick={migrateLegacy}>Import browser NPCs</Button></Group></Alert>}<Text size='xs' c='dimmed'>All authorized admins see the same NPC definitions. Moving an NPC does not change its dialogue or appearance.</Text>{!libraryReady&&<Alert color='yellow'>Connecting to shared library. Save is unavailable until connected.</Alert>}</Stack></Card>
+  const [library, setLibrary] = useState<Npc[]>([]);
+  const [legacyNpcs] = useState<Npc[]>(readLegacyNpcs);
+  const [migrationBusy, setMigrationBusy] = useState(false);
+  const [folders, setFolders] = useState<{ id: string; name: string; parentId?: string | null }[]>([]);
+  const [libraryReady, setLibraryReady] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [selected, setSelected] = useState('');
+  const [draft, setDraft] = useState<Npc>(() => starter());
+  const [notice, setNotice] = useState('');
+  const [previewNode, setPreviewNode] = useState<string | null>(null);
+  const [acknowledgeConflicts, setAcknowledgeConflicts] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogItem[]>(() => {
+    const custom = readCatalog();
+    const byId = new Map<string, CatalogItem>();
+    for (const item of bundledWearables) byId.set(item.shortname, item);
+    for (const item of custom) byId.set(item.shortname, { ...byId.get(item.shortname), ...item });
+    return [...byId.values()];
+  });
+  const catalogItem = (shortname: string) => catalog.find((x) => x.shortname === shortname);
+  const catalogOptions = (slot: string) => {
+    const byId = new Map<string, { value: string; label: string }>();
+    for (const shortname of allowedItemsForSlot(slot))
+      byId.set(shortname, { value: shortname, label: itemLabel(shortname) });
+    for (const item of catalog.filter((x) => x.slots.includes(baseArea(slot))))
+      byId.set(item.shortname, {
+        value: item.shortname,
+        label: item.name + (item.special ? ' · Special' : ''),
+      });
+    return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label));
+  };
+  const catalogIssues = (equipment: Equipment[]) => {
+    const issues = equipmentConflicts(equipment);
+    if (!catalog.length) return issues;
+    const worn = equipment.filter((x) => x.shortname.trim());
+    if (worn.some((x) => fullBodyItems.has(x.shortname)) && worn.length > 1)
+      issues.push('Full-body suits cannot be combined with other wearable equipment.');
+    for (const eq of worn) {
+      const item = catalogItem(eq.shortname);
+      if (!item && !allowedItemsForSlot(eq.slot).includes(eq.shortname))
+        issues.push('Item is not in the catalog: ' + eq.shortname);
+      else if (item && !item.slots.includes(baseArea(eq.slot)))
+        issues.push(item.name + ' cannot be equipped in ' + slotLabel(eq.slot));
+      if (!/^(0|[1-9][0-9]*)$/.test(eq.skinId || '0'))
+        issues.push('Invalid skin ID in ' + slotLabel(eq.slot));
+    }
+    for (let i = 0; i < worn.length; i++)
+      for (let j = i + 1; j < worn.length; j++) {
+        const a = catalogItem(worn[i].shortname),
+          b = catalogItem(worn[j].shortname);
+        if (
+          worn[i].shortname === worn[j].shortname ||
+          a?.conflicts?.includes(worn[j].shortname) ||
+          b?.conflicts?.includes(worn[i].shortname)
+        )
+          issues.push('Incompatible items: ' + worn[i].shortname + ' and ' + worn[j].shortname);
+      }
+    return issues;
+  };
+  const importCatalog = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (
+        !Array.isArray(parsed) ||
+        !parsed.length ||
+        parsed.some(
+          (x) =>
+            !x ||
+            typeof x.shortname !== 'string' ||
+            typeof x.name !== 'string' ||
+            !Array.isArray(x.slots) ||
+            x.slots.some((slot: unknown) => !slots.includes(String(slot))) ||
+            (x.conflicts !== undefined &&
+              (!Array.isArray(x.conflicts) || x.conflicts.some((c: unknown) => typeof c !== 'string'))),
+        )
+      )
+        throw Error(
+          'Catalog must be a nonempty array of {shortname, name, slots, conflicts?, icon?, special?}.',
+        );
+      const ids = parsed.map((x) => x.shortname);
+      if (new Set(ids).size !== ids.length) throw Error('Catalog has duplicate item shortnames.');
+      setCatalog(() => {
+        const merged = new Map<string, CatalogItem>();
+        for (const base of bundledWearables) merged.set(base.shortname, base);
+        for (const override of parsed as CatalogItem[])
+          merged.set(override.shortname, { ...merged.get(override.shortname), ...override });
+        return [...merged.values()];
+      });
+      localStorage.setItem(catalogKey, JSON.stringify(parsed));
+      setNotice('Loaded ' + parsed.length + ' optional catalog overrides in this browser.');
+    } catch (e) {
+      setNotice('Catalog import failed: ' + String(e));
+    }
+  };
+  const [tab, setTab] = useState<string | null>('appearance');
+  const refreshLibrary = async () => {
+    const response = await fetch('/api/devtools/npcs', { credentials: 'include' });
+    if (!response.ok) throw Error('Shared NPC library unavailable (' + response.status + ')');
+    const data = await response.json();
+    setFolders(data.folders);
+    setLibrary(
+      data.npcs.map(
+        (entry: {
+          definition: Npc;
+          folderId: string | null;
+          revision: number;
+          createdBy: string;
+          updatedBy: string;
+          updatedAt: string;
+        }) => ({
+          ...entry.definition,
+          folderId: entry.folderId,
+          revision: entry.revision,
+          createdBy: entry.createdBy,
+          updatedBy: entry.updatedBy,
+          updatedAt: entry.updatedAt,
+        }),
+      ),
+    );
+    setLibraryReady(true);
+  };
+  useEffect(() => {
+    void Promise.resolve()
+      .then(refreshLibrary)
+      .catch((e) => setNotice(String(e)));
+  }, []);
+  const migrateLegacy = async () => {
+    if (!libraryReady || migrationBusy) return;
+    setMigrationBusy(true);
+    let count = 0;
+    try {
+      for (const npc of legacyNpcs) {
+        if (library.some((existing) => existing.id === npc.id)) continue;
+        const error = validate(npc);
+        if (error) throw Error(npc.id + ': ' + error);
+        const response = await fetch('/api/devtools/npcs/' + encodeURIComponent(npc.id), {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: npc.id,
+            name: npc.name,
+            folderId: null,
+            definition: { ...npc, folderId: null },
+          }),
+        });
+        if (!response.ok) throw Error(npc.id + ': ' + (await response.text()));
+        count++;
+      }
+      await refreshLibrary();
+      setNotice(
+        'Imported ' +
+          count +
+          ' browser NPCs into the shared library. Your original browser copies are retained for safety.',
+      );
+    } catch (e) {
+      setNotice('Migration stopped after ' + count + ' imports: ' + String(e));
+    } finally {
+      setMigrationBusy(false);
+    }
+  };
+  const deleteNpc = async () => {
+    if (
+      !selected ||
+      !window.confirm('Permanently delete this shared NPC definition? This affects all admins.')
+    )
+      return;
+    try {
+      const response = await fetch('/api/devtools/npcs/' + encodeURIComponent(selected), {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw Error(await response.text());
+      setSelected('');
+      setDraft(starter());
+      await refreshLibrary();
+      setNotice('NPC deleted from shared library.');
+    } catch (e) {
+      setNotice('Delete failed: ' + String(e));
+    }
+  };
+  const createFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const response = await fetch('/api/devtools/npcs/folders', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newFolderName.trim(), parentId: activeFolder }),
+      });
+      if (!response.ok) throw Error(await response.text());
+      setNewFolderName('');
+      await refreshLibrary();
+      setNotice('Shared folder created.');
+    } catch (e) {
+      setNotice(String(e));
+    }
+  };
+  const removeFolder = async (folderId: string) => {
+    if (!window.confirm('Delete this folder? NPCs inside will move to Unfiled.')) return;
+    try {
+      const response = await fetch('/api/devtools/npcs/folders/' + encodeURIComponent(folderId), {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw Error(await response.text());
+      setActiveFolder(null);
+      await refreshLibrary();
+    } catch (e) {
+      setNotice(String(e));
+    }
+  };
+  const patch = (p: Partial<Npc>) => {
+    if (p.equipment) setAcknowledgeConflicts(false);
+    setDraft((prev) => ({ ...prev, ...p }));
+  };
+  const save = async () => {
+    if (catalogIssues(draft.equipment).length && !acknowledgeConflicts) {
+      setNotice('Review the equipment compatibility notices and choose Keep anyway to continue.');
+      return;
+    }
+    const error = validate(draft);
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    try {
+      const response = await fetch('/api/devtools/npcs/' + encodeURIComponent(draft.id), {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: draft.id,
+          name: draft.name,
+          folderId: draft.folderId || null,
+          expectedRevision: selected === draft.id ? draft.revision : 0,
+          definition: draft,
+        }),
+      });
+      if (response.status === 409)
+        throw Error(
+          'Another admin changed this NPC. Your unsaved edits are still here; review the latest library version before saving.',
+        );
+      if (!response.ok) throw Error(await response.text());
+      const result = await response.json();
+      setSelected(draft.id);
+      setDraft({ ...draft, revision: result.revision });
+      await refreshLibrary();
+      setNotice(
+        'NPC revision ' +
+          result.revision +
+          ' saved. Rust server owners must run /npcstudio sync, then /npcstudio apply to update already placed NPCs. No automatic live updates occur.',
+      );
+    } catch (e) {
+      setNotice('Save failed: ' + String(e));
+    }
+  };
+  const uploadVoice = async (i: number, file: File | null) => {
+    if (!file) return;
+    const target = draft.dialogue[i];
+    const targetId = draft.id;
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const contentType = ({ mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg' } as Record<string, string>)[
+      extension || ''
+    ];
+    if (!contentType) {
+      setNotice('Choose an MP3, WAV, or OGG recording.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setNotice('Voice upload must be 8 MB or smaller.');
+      return;
+    }
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(Error('Unable to read audio'));
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch('/api/devtools/npcs/audio', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType, data: base64 }),
+      });
+      if (!response.ok) throw Error(await response.text());
+      const result = await response.json();
+      setDraft((prev) =>
+        prev.id === targetId && prev.dialogue.includes(target)
+          ? {
+              ...prev,
+              dialogue: prev.dialogue.map((node) =>
+                node === target ? { ...node, audio: result.url } : node,
+              ),
+            }
+          : prev,
+      );
+      setNotice('Voice uploaded. Check the node’s recording assignment, then save the NPC.');
+    } catch (e) {
+      setNotice('Audio upload failed: ' + String(e));
+    }
+  };
+  const updateNode = (i: number, p: Partial<Node>) =>
+    setDraft((prev) => ({ ...prev, dialogue: prev.dialogue.map((n, j) => (i === j ? { ...n, ...p } : n)) }));
+  const exportJson = () => {
+    const error = validate(draft) || catalogIssues(draft.equipment)[0];
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    download(draft.id + '.json', JSON.stringify({ ...draft, version: 1 }, null, 2), 'application/json');
+  };
+  const importJson = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text()) as Npc;
+      if (
+        !data ||
+        typeof data.id !== 'string' ||
+        !Array.isArray(data.dialogue) ||
+        !Array.isArray(data.equipment)
+      )
+        throw Error('Invalid NPC definition');
+      const imported = {
+        ...starter(),
+        ...data,
+        equipment: slots.map((slot) => {
+          const legacy = slot.endsWith(' L1') ? baseArea(slot) : null;
+          const eq =
+            data.equipment.find((x) => x?.slot === slot) || data.equipment.find((x) => x?.slot === legacy);
+          return {
+            slot,
+            shortname: typeof eq?.shortname === 'string' ? eq.shortname : '',
+            skinId: typeof eq?.skinId === 'string' ? eq.skinId : '0',
+          };
+        }),
+      };
+      const error = validate(imported);
+      if (error) throw Error(error);
+      setDraft(imported);
+      setSelected('');
+      setNotice('Imported definition. Save to add it to your library.');
+    } catch (e) {
+      setNotice(String(e));
+    }
+  };
+  return (
+    <Stack p='lg' maw={1280} mx='auto'>
+      <Group justify='space-between'>
+        <div>
+          <Title order={2}>NPC Studio</Title>
+          <Text c='dimmed'>Rust Empires · NPC definition workshop</Text>
+        </div>
+        <Badge color='blue'>V1 workshop</Badge>
+      </Group>
+      <Card withBorder>
+        <Stack gap='sm'>
+          <Group justify='space-between'>
+            <Text fw={600}>Shared NPC Library</Text>
+            <Button
+              size='xs'
+              variant='light'
+              onClick={() => refreshLibrary().catch((e) => setNotice(String(e)))}
+            >
+              Refresh
+            </Button>
+          </Group>
+          <Group>
+            <Select
+              placeholder='All folders'
+              clearable
+              value={activeFolder}
+              onChange={setActiveFolder}
+              data={folders.map((f) => ({ value: f.id, label: f.name }))}
+            />
+            <TextInput
+              placeholder='New folder name'
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.currentTarget.value)}
+            />
+            <Button onClick={createFolder}>Create folder</Button>
+            {activeFolder && (
+              <Button color='red' variant='subtle' onClick={() => removeFolder(activeFolder)}>
+                Delete folder
+              </Button>
+            )}
+          </Group>
+          {legacyNpcs.length > 0 && (
+            <Alert color='blue'>
+              <Group>
+                <Text size='sm'>
+                  Found {legacyNpcs.length} NPC definitions saved in this browser. Import them into the shared
+                  library; existing shared IDs are skipped and browser originals remain untouched.
+                </Text>
+                <Button size='xs' loading={migrationBusy} disabled={!libraryReady} onClick={migrateLegacy}>
+                  Import browser NPCs
+                </Button>
+              </Group>
+            </Alert>
+          )}
+          <Text size='xs' c='dimmed'>
+            All authorized admins see the same NPC definitions. Moving an NPC does not change its dialogue or
+            appearance.
+          </Text>
+          {!libraryReady && (
+            <Alert color='yellow'>Connecting to shared library. Save is unavailable until connected.</Alert>
+          )}
+        </Stack>
+      </Card>
 
-  <Group align='end'><Select label='NPC Library' placeholder='Select NPC' searchable data={library.filter(x=>!activeFolder||x.folderId===activeFolder).map(x=>({value:x.id,label:x.name+' · r'+x.revision}))} value={selected||null} onChange={id=>{const npc=library.find(x=>x.id===id);if(npc){setDraft(npc);setSelected(npc.id);}}} style={{flex:1}}/>
-   <Button variant='default' onClick={()=>{setDraft(starter());setSelected('');}}>New</Button>
-   <Button variant='default' onClick={()=>{patch({id:starter().id,name:draft.name+' (Copy)',revision:1});setSelected('');}}>Duplicate</Button>
-   <Button onClick={save} disabled={!libraryReady}>Save to shared library</Button><Button color='red' variant='subtle' disabled={!selected||!libraryReady} onClick={deleteNpc}>Delete NPC</Button>
-   <Button variant='light' leftSection={<IconDownload size={16}/>} onClick={exportJson}>Export</Button>
-   <FileInput placeholder='Import JSON' accept='.json,application/json' leftSection={<IconUpload size={16}/>} onChange={importJson} w={165}/>
-  </Group>
-  <Card withBorder><Stack gap='sm'><TextInput label='Display name' description='The name players will see when speaking to this NPC.' placeholder='e.g. Security Officer' value={draft.name} onChange={e=>patch({name:e.currentTarget.value})}/><Textarea label='Creator notes' description='Private notes to help you remember this NPC’s role, location, or intended use. Players will not see these.' placeholder='e.g. Receptionist in the recruitment office' value={draft.description} onChange={e=>patch({description:e.currentTarget.value})}/><Text size='xs' c='dimmed'>The internal definition identifier is generated automatically and included in exports.</Text></Stack></Card>
-  {selected&&draft.updatedBy&&<Text size='xs' c='dimmed'>Last edited by {draft.updatedBy}{draft.updatedAt?' · '+new Date(draft.updatedAt).toLocaleString():''} · Revision {draft.revision}</Text>}
-  <Tabs value={tab} onChange={setTab}>
-   <Tabs.List><Tabs.Tab value='appearance'>Appearance & Equipment</Tabs.Tab><Tabs.Tab value='dialogue'>Dialogue Graph</Tabs.Tab><Tabs.Tab value='audio'>Audio</Tabs.Tab><Tabs.Tab value='behavior'>Behavior</Tabs.Tab></Tabs.List>
-   <Group><Select label='Save in folder' placeholder='Unfiled' clearable value={draft.folderId||null} onChange={v=>patch({folderId:v})} data={folders.map(f=>({value:f.id,label:f.name}))}/></Group>
-  <Tabs.Panel value='appearance' pt='md'><Stack><Text fw={600}>Clothing & armor + backpack</Text>{catalogIssues(draft.equipment).map(issue=><Alert key={issue} color='yellow' title='Equipment compatibility notice'>{issue} You can change the equipment or choose to keep this combination.</Alert>)}{catalogIssues(draft.equipment).length>0&&<Group><Switch label='Keep selected equipment anyway (may not render correctly in Rust)' checked={acknowledgeConflicts} onChange={e=>setAcknowledgeConflicts(e.currentTarget.checked)}/><Button size='xs' variant='light' onClick={()=>{patch({equipment:emptyEquipment()});setAcknowledgeConflicts(false);}}>Clear equipment</Button></Group>}<Text size='sm' c='dimmed'>Choose equipment by name and see its inventory icon. Advanced item identifiers and skin IDs are optional.</Text><Group><FileInput placeholder='Optional: override catalog (JSON)' accept='.json,application/json' onChange={importCatalog} w={300}/><Badge color={catalog.length?'green':'yellow'}>{catalog.length?catalog.length+' catalog items loaded':'Provisional built-in list'}</Badge></Group><Text size='xs' c='dimmed'>Rust items load automatically. The catalog excludes non-wearable archive entries. An optional JSON override is for advanced testing only; compatibility and skin availability still require validation against the Rust server.</Text>
-    <SimpleGrid cols={{base:1,sm:2,lg:3}}>{slots.map((slot,i)=>{const eq=draft.equipment.find(x=>x.slot===slot)||{slot,shortname:'',skinId:'0'};const set=(p:Partial<Equipment>)=>patch({equipment:slots.map(s=>s===slot?{...eq,...p}:draft.equipment.find(x=>x.slot===s)||{slot:s,shortname:'',skinId:'0'})});return <Card withBorder key={slot}><Stack gap='xs'><Group justify='space-between'><Text fw={600}>{slotLabel(slot)}</Text><Badge variant='light'>{i+1}/{slots.length}</Badge></Group><Group align='center' gap='md'><div style={{width:76,height:76,display:'grid',placeItems:'center',background:'var(--mantine-color-dark-6)',borderRadius:8}}>{eq.shortname?<img src={catalogItem(eq.shortname)?.icon||itemIcon(eq.shortname)} alt={itemLabel(eq.shortname)+' inventory icon'} style={{width:70,height:70,objectFit:'contain'}} onError={e=>{e.currentTarget.style.display='none';}}/>:<Text size='xs' c='dimmed'>Empty</Text>}</div><Stack gap={2}><Text size='sm'>{eq.shortname?(catalogItem(eq.shortname)?.name||itemLabel(eq.shortname)):'No item selected'}</Text>{catalogItem(eq.shortname)?.itemId!==undefined&&<Text size='xs' c='dimmed'>Rust item ID: {catalogItem(eq.shortname)?.itemId}</Text>}{eq.shortname&&catalogItem(eq.shortname)?.hasSkins===true&&<Badge size='xs' variant='light'>Supports skins</Badge>}{eq.shortname&&catalogItem(eq.shortname)?.hasSkins===false&&<Badge size='xs' color='gray' variant='light'>No catalog skin support</Badge>}</Stack></Group><Select searchable clearable label='Equipment item' placeholder='Search Rust items' data={catalogOptions(slot)} value={catalogOptions(slot).some(x=>x.value===eq.shortname)?eq.shortname:null} onChange={v=>set({shortname:v||'',skinId:'0'})}/><details><summary style={{cursor:'pointer',fontSize:13}}>Advanced: use an unlisted item</summary><Text size='xs' c='dimmed'>Enter a Rust item shortname only if the item is missing from the list (including NPC-only items).</Text><TextInput label='Rust item shortname' value={eq.shortname} onChange={e=>set({shortname:e.currentTarget.value})}/></details><TextInput label='Skin ID (optional)' description={catalogItem(eq.shortname)?.hasSkins===false?'This item is not marked as skinnable in the bundled catalog. A skin ID can still be stored, but may not render in Rust.': 'Saved with the NPC for Rust. Inventory icons do not preview the skin or 3D model yet. Leave 0 for default.'} value={eq.skinId} onChange={e=>set({skinId:e.currentTarget.value})}/><Button component='a' href={'https://steamcommunity.com/workshop/browse/?appid=252490&searchtext='+encodeURIComponent(eq.shortname||'Rust clothing')} target='_blank' rel='noopener noreferrer' variant='subtle' size='xs'>Find skins on Steam Workshop ↗</Button></Stack></Card>})}</SimpleGrid>
-    <Card withBorder><Text fw={600}>Backpack slot</Text><Select mt='sm' searchable clearable data={backpackShortnames.map(x=>({value:x,label:itemLabel(x)}))} label='Backpack' value={draft.backpack||null} onChange={v=>patch({backpack:v||''})}/></Card>
-   </Stack></Tabs.Panel>
-   <Tabs.Panel value='dialogue' pt='md'><Stack><Group justify='space-between'><Text fw={600}>Branching conversation</Text><Button leftSection={<IconPlus size={14}/>} onClick={()=>patch({dialogue:[...draft.dialogue,blankNode('node-'+(draft.dialogue.length+1))]})}>Add node</Button></Group>
-    <Text size='sm' c='dimmed'>Start node is the entry point. Responses connect to other nodes; a blank destination ends the conversation. Conditions are reserved for future runtime evaluation.</Text>
-    <SimpleGrid cols={{base:1,md:2}}>{draft.dialogue.map((node,i)=><Card withBorder key={i}><Stack gap='xs'><Group justify='space-between'><Badge>{node.id==='start'?'Entry node':'Dialogue node'}</Badge><Button color='red' size='xs' variant='subtle' disabled={node.id==='start'} onClick={()=>patch({dialogue:draft.dialogue.filter((_,j)=>j!==i)})}><IconTrash size={15}/></Button></Group><TextInput label='Node ID' value={node.id} disabled={node.id==='start'} onChange={e=>updateNode(i,{id:e.currentTarget.value})}/><Textarea autosize minRows={2} label='NPC speech' value={node.text} onChange={e=>updateNode(i,{text:e.currentTarget.value})}/><TextInput label='Audio URL / asset reference' value={node.audio} onChange={e=>updateNode(i,{audio:e.currentTarget.value})}/>{node.audio&&(/^https?:\/\//i.test(node.audio)||node.audio.startsWith('/'))&&<audio controls preload='none' src={node.audio} style={{width:'100%'}}/>}<Text size='xs' c='dimmed'>Audio is tied to this dialogue node. Uploaded recordings are converted into Rust voice packets; final in-game compatibility is verified during release testing.</Text>{node.choices.map((choice,j)=><Card key={j} withBorder padding='xs'><Stack gap='xs'><TextInput label='Player response' value={choice.text} onChange={e=>updateNode(i,{choices:node.choices.map((c,k)=>k===j?{...c,text:e.currentTarget.value}:c)})}/><Group align='end'><Select label='Next node' clearable placeholder='End conversation' data={draft.dialogue.map(x=>x.id)} value={choice.next||null} onChange={v=>updateNode(i,{choices:node.choices.map((c,k)=>k===j?{...c,next:v||''}:c)})} style={{flex:1}}/><Button variant='subtle' color='red' onClick={()=>updateNode(i,{choices:node.choices.filter((_,k)=>k!==j)})}><IconTrash size={15}/></Button></Group><TextInput label='Condition (reserved)' value={choice.condition||''} onChange={e=>updateNode(i,{choices:node.choices.map((c,k)=>k===j?{...c,condition:e.currentTarget.value}:c)})}/></Stack></Card>)}<Button size='xs' variant='light' onClick={()=>updateNode(i,{choices:[...node.choices,{text:'',next:'',condition:''}]})}>Add player response</Button></Stack></Card>)}</SimpleGrid>
-   </Stack></Tabs.Panel>
-   <Tabs.Panel value='audio' pt='md'><Stack><Card withBorder><Stack gap='xs'><Group justify='space-between'><Text fw={600}>Conversation and voice test</Text><Button size='xs' variant='light' onClick={()=>setPreviewNode('start')}>Restart conversation</Button></Group><Text c='dimmed' size='xs'>Test dialogue branches and listen to assigned recordings in your browser. This does not simulate Rust spatial audio or in-game playback.</Text>{previewNode===null?<Button onClick={()=>setPreviewNode('start')}>Start test conversation</Button>:(()=>{const node=draft.dialogue.find(n=>n.id===previewNode);return node?<Stack gap='xs'><Badge>{node.id}</Badge><Text>{node.text}</Text>{node.audio.trim()&&(/^https?:\/\//i.test(node.audio)||node.audio.startsWith('/'))&&<audio key={node.id} controls preload='none' src={node.audio} style={{width:'100%'}}/>}{node.choices.length?node.choices.map((choice,i)=><Button key={i} variant='light' onClick={()=>setPreviewNode(choice.next||null)}>{choice.text||'Unnamed response'}</Button>):<Text size='sm' c='dimmed'>Conversation ends here.</Text>}<Button size='xs' variant='subtle' onClick={()=>setPreviewNode(null)}>End test</Button></Stack>:<Alert color='yellow'>The selected dialogue node no longer exists. Restart the test.</Alert>})()}</Stack></Card><Group justify='space-between'><Text fw={600}>Dialogue voice recordings</Text><Badge variant='light'>{draft.dialogue.filter(n=>Boolean(n.audio.trim())).length} of {draft.dialogue.length} nodes voiced</Badge></Group><Text c='dimmed' size='sm'>Assign a hosted MP3, WAV, or OGG URL to each dialogue node. Preview the recording before saving. Uploaded recordings are stored in NPC Studio and attached to dialogue nodes. Rust-side playback and transcoding are still in development.</Text>{draft.dialogue.map((n,i)=><Card withBorder key={i}><Stack gap='xs'><Group justify='space-between'><Text fw={600}>{n.id}</Text><Badge color={n.audio.trim()?'green':'gray'} variant='light'>{n.audio.trim()?'Voice assigned':'Unvoiced'}</Badge></Group><Text size='sm'>{n.text}</Text><FileInput label='Upload voice recording (MP3, WAV, OGG; max 8 MB)' placeholder='Choose audio file' accept='.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg' clearable onChange={file=>uploadVoice(i,file)}/><TextInput label='Audio URL or native clip reference' placeholder='/api/devtools/npcs/audio/voice-… or clip:witness_intro' value={n.audio} onChange={e=>updateNode(i,{audio:e.currentTarget.value})}/>{n.audio.trim()&&(/^https?:\/\//i.test(n.audio)||n.audio.startsWith('/'))&&<audio controls preload='none' src={n.audio} style={{width:'100%'}}/>}{n.audio.trim()&&<Button size='xs' color='gray' variant='light' onClick={()=>updateNode(i,{audio:''})}>Remove voice assignment</Button>}</Stack></Card>)}</Stack></Tabs.Panel>
-   <Tabs.Panel value='behavior' pt='md'><Card withBorder><Stack><Switch label='NPC can be killed' checked={draft.killable} onChange={e=>patch({killable:e.currentTarget.checked})}/><NumberInput label='Hit points' min={1} max={100000} disabled={!draft.killable} value={draft.hp} onChange={v=>patch({hp:Number(v)||100})}/><Switch label='Conversation can be repeated' checked={draft.repeatable} onChange={e=>patch({repeatable:e.currentTarget.checked})}/><Alert color='blue'>Stationary civilian · Press E to talk · No proximity-triggered dialogue · No combat or patrol AI. Placed instances must be updated explicitly.</Alert></Stack></Card></Tabs.Panel>
-  </Tabs>
-  {notice&&<Alert color={notice.startsWith('Saved')?'green':'blue'} withCloseButton onClose={()=>setNotice('')}>{notice}</Alert>}
- </Stack>;
+      <Group align='end'>
+        <Select
+          label='NPC Library'
+          placeholder='Select NPC'
+          searchable
+          data={library
+            .filter((x) => !activeFolder || x.folderId === activeFolder)
+            .map((x) => ({ value: x.id, label: x.name + ' · r' + x.revision }))}
+          value={selected || null}
+          onChange={(id) => {
+            const npc = library.find((x) => x.id === id);
+            if (npc) {
+              setDraft(npc);
+              setSelected(npc.id);
+            }
+          }}
+          style={{ flex: 1 }}
+        />
+        <Button
+          variant='default'
+          onClick={() => {
+            setDraft(starter());
+            setSelected('');
+          }}
+        >
+          New
+        </Button>
+        <Button
+          variant='default'
+          onClick={() => {
+            patch({ id: starter().id, name: draft.name + ' (Copy)', revision: 1 });
+            setSelected('');
+          }}
+        >
+          Duplicate
+        </Button>
+        <Button onClick={save} disabled={!libraryReady}>
+          Save to shared library
+        </Button>
+        <Button color='red' variant='subtle' disabled={!selected || !libraryReady} onClick={deleteNpc}>
+          Delete NPC
+        </Button>
+        <Button variant='light' leftSection={<IconDownload size={16} />} onClick={exportJson}>
+          Export
+        </Button>
+        <FileInput
+          placeholder='Import JSON'
+          accept='.json,application/json'
+          leftSection={<IconUpload size={16} />}
+          onChange={importJson}
+          w={165}
+        />
+      </Group>
+      <Card withBorder>
+        <Stack gap='sm'>
+          <TextInput
+            label='Display name'
+            description='The name players will see when speaking to this NPC.'
+            placeholder='e.g. Security Officer'
+            value={draft.name}
+            onChange={(e) => patch({ name: e.currentTarget.value })}
+          />
+          <Textarea
+            label='Creator notes'
+            description='Private notes to help you remember this NPC’s role, location, or intended use. Players will not see these.'
+            placeholder='e.g. Receptionist in the recruitment office'
+            value={draft.description}
+            onChange={(e) => patch({ description: e.currentTarget.value })}
+          />
+          <Text size='xs' c='dimmed'>
+            The internal definition identifier is generated automatically and included in exports.
+          </Text>
+        </Stack>
+      </Card>
+      {selected && draft.updatedBy && (
+        <Text size='xs' c='dimmed'>
+          Last edited by {draft.updatedBy}
+          {draft.updatedAt ? ' · ' + new Date(draft.updatedAt).toLocaleString() : ''} · Revision{' '}
+          {draft.revision}
+        </Text>
+      )}
+      <Tabs value={tab} onChange={setTab}>
+        <Tabs.List>
+          <Tabs.Tab value='appearance'>Appearance & Equipment</Tabs.Tab>
+          <Tabs.Tab value='dialogue'>Dialogue Graph</Tabs.Tab>
+          <Tabs.Tab value='audio'>Audio</Tabs.Tab>
+          <Tabs.Tab value='behavior'>Behavior</Tabs.Tab>
+        </Tabs.List>
+        <Group>
+          <Select
+            label='Save in folder'
+            placeholder='Unfiled'
+            clearable
+            value={draft.folderId || null}
+            onChange={(v) => patch({ folderId: v })}
+            data={folders.map((f) => ({ value: f.id, label: f.name }))}
+          />
+        </Group>
+        <Tabs.Panel value='appearance' pt='md'>
+          <Stack>
+            <Text fw={600}>Clothing & armor + backpack</Text>
+            {catalogIssues(draft.equipment).map((issue) => (
+              <Alert key={issue} color='yellow' title='Equipment compatibility notice'>
+                {issue} You can change the equipment or choose to keep this combination.
+              </Alert>
+            ))}
+            {catalogIssues(draft.equipment).length > 0 && (
+              <Group>
+                <Switch
+                  label='Keep selected equipment anyway (may not render correctly in Rust)'
+                  checked={acknowledgeConflicts}
+                  onChange={(e) => setAcknowledgeConflicts(e.currentTarget.checked)}
+                />
+                <Button
+                  size='xs'
+                  variant='light'
+                  onClick={() => {
+                    patch({ equipment: emptyEquipment() });
+                    setAcknowledgeConflicts(false);
+                  }}
+                >
+                  Clear equipment
+                </Button>
+              </Group>
+            )}
+            <Text size='sm' c='dimmed'>
+              Choose equipment by name and see its inventory icon. Advanced item identifiers and skin IDs are
+              optional.
+            </Text>
+            <Group>
+              <FileInput
+                placeholder='Optional: override catalog (JSON)'
+                accept='.json,application/json'
+                onChange={importCatalog}
+                w={300}
+              />
+              <Badge color={catalog.length ? 'green' : 'yellow'}>
+                {catalog.length ? catalog.length + ' catalog items loaded' : 'Provisional built-in list'}
+              </Badge>
+            </Group>
+            <Text size='xs' c='dimmed'>
+              Rust items load automatically. The catalog excludes non-wearable archive entries. An optional
+              JSON override is for advanced testing only; compatibility and skin availability still require
+              validation against the Rust server.
+            </Text>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+              {slots.map((slot, i) => {
+                const eq = draft.equipment.find((x) => x.slot === slot) || {
+                  slot,
+                  shortname: '',
+                  skinId: '0',
+                };
+                const set = (p: Partial<Equipment>) =>
+                  patch({
+                    equipment: slots.map((s) =>
+                      s === slot
+                        ? { ...eq, ...p }
+                        : draft.equipment.find((x) => x.slot === s) || {
+                            slot: s,
+                            shortname: '',
+                            skinId: '0',
+                          },
+                    ),
+                  });
+                return (
+                  <Card withBorder key={slot}>
+                    <Stack gap='xs'>
+                      <Group justify='space-between'>
+                        <Text fw={600}>{slotLabel(slot)}</Text>
+                        <Badge variant='light'>
+                          {i + 1}/{slots.length}
+                        </Badge>
+                      </Group>
+                      <Group align='center' gap='md'>
+                        <div
+                          style={{
+                            width: 76,
+                            height: 76,
+                            display: 'grid',
+                            placeItems: 'center',
+                            background: 'var(--mantine-color-dark-6)',
+                            borderRadius: 8,
+                          }}
+                        >
+                          {eq.shortname ? (
+                            <img
+                              src={catalogItem(eq.shortname)?.icon || itemIcon(eq.shortname)}
+                              alt={itemLabel(eq.shortname) + ' inventory icon'}
+                              style={{ width: 70, height: 70, objectFit: 'contain' }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Text size='xs' c='dimmed'>
+                              Empty
+                            </Text>
+                          )}
+                        </div>
+                        <Stack gap={2}>
+                          <Text size='sm'>
+                            {eq.shortname
+                              ? catalogItem(eq.shortname)?.name || itemLabel(eq.shortname)
+                              : 'No item selected'}
+                          </Text>
+                          {catalogItem(eq.shortname)?.itemId !== undefined && (
+                            <Text size='xs' c='dimmed'>
+                              Rust item ID: {catalogItem(eq.shortname)?.itemId}
+                            </Text>
+                          )}
+                          {eq.shortname && catalogItem(eq.shortname)?.hasSkins === true && (
+                            <Badge size='xs' variant='light'>
+                              Supports skins
+                            </Badge>
+                          )}
+                          {eq.shortname && catalogItem(eq.shortname)?.hasSkins === false && (
+                            <Badge size='xs' color='gray' variant='light'>
+                              No catalog skin support
+                            </Badge>
+                          )}
+                        </Stack>
+                      </Group>
+                      <Select
+                        searchable
+                        clearable
+                        label='Equipment item'
+                        placeholder='Search Rust items'
+                        data={catalogOptions(slot)}
+                        value={
+                          catalogOptions(slot).some((x) => x.value === eq.shortname) ? eq.shortname : null
+                        }
+                        onChange={(v) => set({ shortname: v || '', skinId: '0' })}
+                      />
+                      <details>
+                        <summary style={{ cursor: 'pointer', fontSize: 13 }}>
+                          Advanced: use an unlisted item
+                        </summary>
+                        <Text size='xs' c='dimmed'>
+                          Enter a Rust item shortname only if the item is missing from the list (including
+                          NPC-only items).
+                        </Text>
+                        <TextInput
+                          label='Rust item shortname'
+                          value={eq.shortname}
+                          onChange={(e) => set({ shortname: e.currentTarget.value })}
+                        />
+                      </details>
+                      <TextInput
+                        label='Skin ID (optional)'
+                        description={
+                          catalogItem(eq.shortname)?.hasSkins === false
+                            ? 'This item is not marked as skinnable in the bundled catalog. A skin ID can still be stored, but may not render in Rust.'
+                            : 'Saved with the NPC for Rust. Inventory icons do not preview the skin or 3D model yet. Leave 0 for default.'
+                        }
+                        value={eq.skinId}
+                        onChange={(e) => set({ skinId: e.currentTarget.value })}
+                      />
+                      <Button
+                        component='a'
+                        href={
+                          'https://steamcommunity.com/workshop/browse/?appid=252490&searchtext=' +
+                          encodeURIComponent(eq.shortname || 'Rust clothing')
+                        }
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        variant='subtle'
+                        size='xs'
+                      >
+                        Find skins on Steam Workshop ↗
+                      </Button>
+                    </Stack>
+                  </Card>
+                );
+              })}
+            </SimpleGrid>
+            <Card withBorder>
+              <Text fw={600}>Backpack slot</Text>
+              <Select
+                mt='sm'
+                searchable
+                clearable
+                data={backpackShortnames.map((x) => ({ value: x, label: itemLabel(x) }))}
+                label='Backpack'
+                value={draft.backpack || null}
+                onChange={(v) => patch({ backpack: v || '' })}
+              />
+            </Card>
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value='dialogue' pt='md'>
+          <Stack>
+            <Group justify='space-between'>
+              <Text fw={600}>Branching conversation</Text>
+              <Button
+                leftSection={<IconPlus size={14} />}
+                onClick={() =>
+                  patch({ dialogue: [...draft.dialogue, blankNode('node-' + crypto.randomUUID())] })
+                }
+              >
+                Add node
+              </Button>
+            </Group>
+            <Text size='sm' c='dimmed'>
+              Start node is the entry point. Responses connect to other nodes; a blank destination ends the
+              conversation. Conditions are reserved for future runtime evaluation.
+            </Text>
+            <SimpleGrid cols={{ base: 1, md: 2 }}>
+              {draft.dialogue.map((node, i) => (
+                <Card withBorder key={i}>
+                  <Stack gap='xs'>
+                    <Group justify='space-between'>
+                      <Badge>{node.id === 'start' ? 'Entry node' : 'Dialogue node'}</Badge>
+                      <Button
+                        color='red'
+                        size='xs'
+                        variant='subtle'
+                        disabled={node.id === 'start'}
+                        onClick={() => patch({ dialogue: draft.dialogue.filter((_, j) => j !== i) })}
+                      >
+                        <IconTrash size={15} />
+                      </Button>
+                    </Group>
+                    <TextInput
+                      label='Node ID'
+                      value={node.id}
+                      disabled={node.id === 'start'}
+                      onChange={(e) => updateNode(i, { id: e.currentTarget.value })}
+                    />
+                    <Textarea
+                      autosize
+                      minRows={2}
+                      label='NPC speech'
+                      value={node.text}
+                      onChange={(e) => updateNode(i, { text: e.currentTarget.value })}
+                    />
+                    <TextInput
+                      label='Audio URL / asset reference'
+                      value={node.audio}
+                      onChange={(e) => updateNode(i, { audio: e.currentTarget.value })}
+                    />
+                    {node.audio && (/^https?:\/\//i.test(node.audio) || node.audio.startsWith('/')) && (
+                      <audio controls preload='none' src={node.audio} style={{ width: '100%' }} />
+                    )}
+                    <Text size='xs' c='dimmed'>
+                      Audio is tied to this dialogue node. Uploaded recordings are converted into Rust voice
+                      packets; final in-game compatibility is verified during release testing.
+                    </Text>
+                    {node.choices.map((choice, j) => (
+                      <Card key={j} withBorder padding='xs'>
+                        <Stack gap='xs'>
+                          <TextInput
+                            label='Player response'
+                            value={choice.text}
+                            onChange={(e) =>
+                              updateNode(i, {
+                                choices: node.choices.map((c, k) =>
+                                  k === j ? { ...c, text: e.currentTarget.value } : c,
+                                ),
+                              })
+                            }
+                          />
+                          <Group align='end'>
+                            <Select
+                              label='Next node'
+                              clearable
+                              placeholder='End conversation'
+                              data={draft.dialogue.map((x) => x.id)}
+                              value={choice.next || null}
+                              onChange={(v) =>
+                                updateNode(i, {
+                                  choices: node.choices.map((c, k) =>
+                                    k === j ? { ...c, next: v || '' } : c,
+                                  ),
+                                })
+                              }
+                              style={{ flex: 1 }}
+                            />
+                            <Button
+                              variant='subtle'
+                              color='red'
+                              onClick={() =>
+                                updateNode(i, { choices: node.choices.filter((_, k) => k !== j) })
+                              }
+                            >
+                              <IconTrash size={15} />
+                            </Button>
+                          </Group>
+                          <TextInput
+                            label='Condition (reserved)'
+                            value={choice.condition || ''}
+                            onChange={(e) =>
+                              updateNode(i, {
+                                choices: node.choices.map((c, k) =>
+                                  k === j ? { ...c, condition: e.currentTarget.value } : c,
+                                ),
+                              })
+                            }
+                          />
+                        </Stack>
+                      </Card>
+                    ))}
+                    <Button
+                      size='xs'
+                      variant='light'
+                      onClick={() =>
+                        updateNode(i, { choices: [...node.choices, { text: '', next: '', condition: '' }] })
+                      }
+                    >
+                      Add player response
+                    </Button>
+                  </Stack>
+                </Card>
+              ))}
+            </SimpleGrid>
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value='audio' pt='md'>
+          <Stack>
+            <Card withBorder>
+              <Stack gap='xs'>
+                <Group justify='space-between'>
+                  <Text fw={600}>Conversation and voice test</Text>
+                  <Button size='xs' variant='light' onClick={() => setPreviewNode('start')}>
+                    Restart conversation
+                  </Button>
+                </Group>
+                <Text c='dimmed' size='xs'>
+                  Test dialogue branches and listen to assigned recordings in your browser. This does not
+                  simulate Rust spatial audio or in-game playback.
+                </Text>
+                {previewNode === null ? (
+                  <Button onClick={() => setPreviewNode('start')}>Start test conversation</Button>
+                ) : (
+                  (() => {
+                    const node = draft.dialogue.find((n) => n.id === previewNode);
+                    return node ? (
+                      <Stack gap='xs'>
+                        <Badge>{node.id}</Badge>
+                        <Text>{node.text}</Text>
+                        {node.audio.trim() &&
+                          (/^https?:\/\//i.test(node.audio) || node.audio.startsWith('/')) && (
+                            <audio
+                              key={node.id}
+                              controls
+                              preload='none'
+                              src={node.audio}
+                              style={{ width: '100%' }}
+                            />
+                          )}
+                        {node.choices.length ? (
+                          node.choices.map((choice, i) => (
+                            <Button
+                              key={i}
+                              variant='light'
+                              onClick={() => setPreviewNode(choice.next || null)}
+                            >
+                              {choice.text || 'Unnamed response'}
+                            </Button>
+                          ))
+                        ) : (
+                          <Text size='sm' c='dimmed'>
+                            Conversation ends here.
+                          </Text>
+                        )}
+                        <Button size='xs' variant='subtle' onClick={() => setPreviewNode(null)}>
+                          End test
+                        </Button>
+                      </Stack>
+                    ) : (
+                      <Alert color='yellow'>
+                        The selected dialogue node no longer exists. Restart the test.
+                      </Alert>
+                    );
+                  })()
+                )}
+              </Stack>
+            </Card>
+            <Group justify='space-between'>
+              <Text fw={600}>Dialogue voice recordings</Text>
+              <Badge variant='light'>
+                {draft.dialogue.filter((n) => Boolean(n.audio.trim())).length} of {draft.dialogue.length}{' '}
+                nodes voiced
+              </Badge>
+            </Group>
+            <Text c='dimmed' size='sm'>
+              Upload an MP3, WAV, or OGG recording for each voiced node. Preview the recording here and save
+              the NPC to make it available to the Rust server.
+            </Text>
+            {draft.dialogue.map((n, i) => (
+              <Card withBorder key={i}>
+                <Stack gap='xs'>
+                  <Group justify='space-between'>
+                    <Text fw={600}>{n.id}</Text>
+                    <Badge color={n.audio.trim() ? 'green' : 'gray'} variant='light'>
+                      {n.audio.trim() ? 'Voice assigned' : 'Unvoiced'}
+                    </Badge>
+                  </Group>
+                  <Text size='sm'>{n.text}</Text>
+                  <FileInput
+                    label='Upload voice recording (MP3, WAV, OGG; max 8 MB)'
+                    placeholder='Choose audio file'
+                    accept='.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg'
+                    clearable
+                    onChange={(file) => uploadVoice(i, file)}
+                  />
+                  <TextInput
+                    label='Audio URL or native clip reference'
+                    placeholder='/api/devtools/npcs/audio/voice-… or clip:witness_intro'
+                    value={n.audio}
+                    onChange={(e) => updateNode(i, { audio: e.currentTarget.value })}
+                  />
+                  {n.audio.trim() && (/^https?:\/\//i.test(n.audio) || n.audio.startsWith('/')) && (
+                    <audio controls preload='none' src={n.audio} style={{ width: '100%' }} />
+                  )}
+                  {n.audio.trim() && (
+                    <Button
+                      size='xs'
+                      color='gray'
+                      variant='light'
+                      onClick={() => updateNode(i, { audio: '' })}
+                    >
+                      Remove voice assignment
+                    </Button>
+                  )}
+                </Stack>
+              </Card>
+            ))}
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value='behavior' pt='md'>
+          <Card withBorder>
+            <Stack>
+              <Switch
+                label='NPC can be killed'
+                checked={draft.killable}
+                onChange={(e) => patch({ killable: e.currentTarget.checked })}
+              />
+              <NumberInput
+                label='Hit points'
+                min={1}
+                max={100000}
+                disabled={!draft.killable}
+                value={draft.hp}
+                onChange={(v) => patch({ hp: Number(v) || 100 })}
+              />
+              <Switch
+                label='Conversation can be repeated'
+                checked={draft.repeatable}
+                onChange={(e) => patch({ repeatable: e.currentTarget.checked })}
+              />
+              <Alert color='blue'>
+                Stationary civilian · Press E to talk · No proximity-triggered dialogue · No combat or patrol
+                AI. Placed instances must be updated explicitly.
+              </Alert>
+            </Stack>
+          </Card>
+        </Tabs.Panel>
+      </Tabs>
+      {notice && (
+        <Alert
+          color={notice.startsWith('Saved') ? 'green' : 'blue'}
+          withCloseButton
+          onClose={() => setNotice('')}
+        >
+          {notice}
+        </Alert>
+      )}
+    </Stack>
+  );
 }

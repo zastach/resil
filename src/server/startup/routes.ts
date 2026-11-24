@@ -54,6 +54,8 @@ export async function registerRoutes(server: FastifyInstance, mode: string) {
     server.serveIndex('/dashboard*');
     server.serveIndex('/auth*');
     server.serveIndex('/folder*');
+    server.serveIndex('/devtools');
+    server.serveIndex('/devtools/*');
   }
 
   server.get('/', (_, res) => res.redirect('/dashboard', 301));
