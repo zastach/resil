@@ -454,6 +454,7 @@ export function Component() {
   const [newFolderName, setNewFolderName] = useState('');
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [selected, setSelected] = useState('');
+  const [librarySelection, setLibrarySelection] = useState<string | null>(null);
   const [draft, setDraft] = useState<Npc>(starter);
   const [baseline, setBaseline] = useState(draft);
   const [saving, setSaving] = useState(false);
@@ -636,6 +637,7 @@ export function Component() {
       });
       if (!response.ok) throw Error(await response.text());
       setSelected('');
+      setLibrarySelection(null);
       openDraft(starter());
       await refreshLibrary();
       setNotice('NPC deleted from shared library.');
@@ -710,6 +712,7 @@ export function Component() {
       if (!response.ok) throw Error(await response.text());
       const result = await response.json();
       setSelected(draft.id);
+      if (!activeFolder || activeFolder === draft.folderId) setLibrarySelection(draft.id);
       const saved = { ...draft, revision: result.revision };
       setBaseline(saved);
       setDraft((current) => (current === draft ? saved : { ...current, revision: result.revision }));
@@ -836,12 +839,40 @@ export function Component() {
               Refresh
             </Button>
           </Group>
+          <Group align='end'>
+            <Select
+              label='Saved NPCs'
+              placeholder={library.length ? 'Search by name or ID' : 'No saved NPCs yet'}
+              searchable
+              clearable
+              disabled={!libraryReady || saving}
+              nothingFoundMessage='No matching saved NPCs'
+              data={library
+                .filter((npc) => !activeFolder || npc.folderId === activeFolder)
+                .map((npc) => ({ value: npc.id, label: npc.name + ' · r' + npc.revision + ' · ' + npc.id }))}
+              value={librarySelection}
+              onChange={setLibrarySelection}
+              style={{ flex: 1, minWidth: 220 }}
+            />
+            <Button
+              disabled={!librarySelection || saving}
+              onClick={() => {
+                const npc = library.find((entry) => entry.id === librarySelection);
+                if (npc && canReplaceDraft()) openDraft(npc, npc.id);
+              }}
+            >
+              Edit Selected NPC
+            </Button>
+          </Group>
           <Group>
             <Select
               placeholder='All folders'
               clearable
               value={activeFolder}
-              onChange={setActiveFolder}
+              onChange={(folderId) => {
+                setActiveFolder(folderId);
+                setLibrarySelection(null);
+              }}
               data={folders.map((f) => ({ value: f.id, label: f.name }))}
             />
             <TextInput
@@ -869,23 +900,6 @@ export function Component() {
               </Group>
             </Alert>
           )}
-          <Text size='sm' c='dimmed'>
-            Open a definition saved on resil.me and shared with site admins.
-          </Text>
-          <Select
-            label='Open a saved NPC'
-            placeholder={library.length ? 'Choose a saved NPC' : 'No saved NPCs yet'}
-            searchable
-            data={library
-              .filter((x) => !activeFolder || x.folderId === activeFolder)
-              .map((x) => ({ value: x.id, label: x.name + ' · r' + x.revision }))}
-            value={selected || null}
-            onChange={(id) => {
-              const npc = library.find((x) => x.id === id);
-              if (npc && npc.id !== selected && canReplaceDraft()) openDraft(npc, npc.id);
-            }}
-            style={{ flex: 1 }}
-          />
           {!libraryReady && (
             <Alert color='yellow'>Connecting to shared library. Save is unavailable until connected.</Alert>
           )}
