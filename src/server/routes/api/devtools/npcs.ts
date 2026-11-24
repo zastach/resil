@@ -35,7 +35,7 @@ export default typedPlugin(async server=>{
   const audioId=id.parse((req.params as {id:string}).id);await setup();
   const result=await db.execute(sql`SELECT frames FROM resil_npc_voice_frames WHERE audio_id=${audioId}`);
   if(!result.rows.length)return res.code(404).send({error:'Voice packets unavailable'});
-  return res.header('Cache-Control','no-store').send({version:1,codec:'steam-opus',sampleRate:24000,frameDurationMs:20,frames:result.rows[0].frames});
+  return res.header('Cache-Control','no-store').send({version:1,codec:'steam-opus',sampleRate:24000,frameDurationMs:100,frames:result.rows[0].frames});
  });
  server.post(PATH+'/audio',{preHandler:[guard],bodyLimit:12000000},async(req,res)=>{
   const body=audioBody.parse(req.body);
