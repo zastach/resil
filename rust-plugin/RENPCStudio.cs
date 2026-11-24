@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.10")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.11")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -926,7 +926,13 @@ namespace Oxide.Plugins
                     break;
                 }
                 case "list":
-                    player.ChatMessage(data.Placements.Count == 0 ? "No placed NPCs." : string.Join(" | ", data.Placements.ConvertAll(p => "#" + p.ShortId).ToArray()));
+                    player.ChatMessage(data.Placements.Count == 0 ? "No placed NPCs." : string.Join(" | ", data.Placements.ConvertAll(p =>
+                    {
+                        var definition = GetPlacementDefinition(p);
+                        var name = definition != null && !string.IsNullOrWhiteSpace(definition.Name)
+                            ? definition.Name : config.DisplayName;
+                        return name + " (#" + p.ShortId + ")";
+                    }).ToArray()));
                     break;
                 case "kill":
                 case "remove":
