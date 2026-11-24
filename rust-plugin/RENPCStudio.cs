@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.1")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.2")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -171,7 +171,7 @@ namespace Oxide.Plugins
                 return;
             }
             int index = 0;
-            Oxide.Core.Libraries.Timer.TimerInstance playbackTimer = null;
+            Oxide.Plugins.Timer playbackTimer = null;
             playbackTimer = timer.Repeat(0.02f, packets.Count, () =>
             {
                 int current;
