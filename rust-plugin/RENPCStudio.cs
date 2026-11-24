@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.3")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.4")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -117,7 +117,7 @@ namespace Oxide.Plugins
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || (!diagnostic && !conversations.Contains(listener.userID)) || source.IsDestroyed ||
+                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed ||
                     source.net == null) return;
                 if (code != 200 || string.IsNullOrWhiteSpace(response) || response.Length > 3000000)
                 {
