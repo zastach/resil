@@ -17,7 +17,7 @@ function wav(seconds: number): Buffer {
 
 test('NPC voice conversion emits bounded, CRC-validated Steam voice packets', { skip: !ffmpegAvailable }, async () => {
   const frames = await encodeVoicePackets(wav(0.5));
-  assert.ok(frames.length >= 20 && frames.length <= 30, 'Expected roughly 50 frames per second');
+  assert.ok(frames.length >= 5 && frames.length <= 6, 'Expected roughly 10 packets per second');
   for (const encoded of frames) {
     const bytes = Buffer.from(encoded, 'base64');
     assert.ok(bytes.length > 0 && bytes.length <= 4096);
@@ -26,8 +26,14 @@ test('NPC voice conversion emits bounded, CRC-validated Steam voice packets', { 
     assert.equal(bytes.readUInt16LE(9), 24000);
     assert.equal(bytes[11], 6);
     assert.equal(bytes.readUInt16LE(12), bytes.length - 18);
-    assert.equal(bytes.readUInt16LE(14), bytes.length - 22);
-    assert.equal(bytes.readUInt16LE(16), frames.indexOf(encoded));
+    let pos=14, count=0;
+    while(pos<bytes.length-4){
+      const size=bytes.readUInt16LE(pos);
+      assert.equal(bytes.readUInt16LE(pos+2),frames.indexOf(encoded)*5+count);
+      pos+=4+size;count++;
+    }
+    assert.equal(pos,bytes.length-4);
+    assert.ok(count>=1&&count<=5);
     let crc = 0xffffffff;
     for (const byte of bytes.subarray(0,-4)) {
       crc ^= byte;
