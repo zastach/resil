@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 
-/** Convert an uploaded recording to bounded, 20-ms mono Opus packets.
+/** Convert an uploaded recording to bounded Steam packets containing up to five 20-ms mono Opus frames.
  * Ogg container parsing is deliberately first-party; ffmpeg supplies only the codec.
  * Steam voice framing follows the native packet format verified in Rust; web integration remains a release gate.
  */
@@ -49,22 +49,24 @@ export async function encodeVoicePackets(input: Buffer): Promise<string[]> {
  if(packets.length<3||packets[0].toString('ascii',0,8)!=='OpusHead'||packets[1].toString('ascii',0,8)!=='OpusTags')throw Error('Missing Opus headers');
  const frames=packets.slice(2);
  if(frames.length===0||frames.length>1500||frames.some(p=>p.length===0||p.length>4096))throw Error('Voice must be 30 seconds or shorter');
- return frames.map((p, sequence) => {
-  const packet = Buffer.alloc(18);
-  // Steam public individual account header; no recording user's identity.
-  packet.writeBigUInt64LE(0x0110000100000001n, 0);
-  packet[8] = 11; packet.writeUInt16LE(24000, 9);
-  packet[11] = 6; packet.writeUInt16LE(p.length + 4, 12);
-  packet.writeUInt16LE(p.length, 14);
-  packet.writeUInt16LE(sequence, 16);
-  // Header (18 bytes), payload, then CRC (4 bytes).
-  const framed = Buffer.concat([packet.subarray(0,18), p, Buffer.alloc(4)]);
-  let crc = 0xffffffff;
-  for (const byte of framed.subarray(0,-4)) {
-   crc ^= byte;
-   for (let bit=0;bit<8;bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+ const result:string[]=[];
+ for(let offset=0;offset<frames.length;offset+=5){
+  const group=frames.slice(offset,offset+5);
+  const header=Buffer.alloc(14);
+  header.writeBigUInt64LE(0x0110000100000001n,0);
+  header[8]=11;header.writeUInt16LE(24000,9);header[11]=6;
+  const blocks=group.map((p,i)=>{
+   const h=Buffer.alloc(4);h.writeUInt16LE(p.length,0);h.writeUInt16LE(offset+i,2);
+   return Buffer.concat([h,p]);
+  });
+  header.writeUInt16LE(blocks.reduce((n,b)=>n+b.length,0),12);
+  const framed=Buffer.concat([header,...blocks,Buffer.alloc(4)]);
+  let crc=0xffffffff;
+  for(const byte of framed.subarray(0,-4)){
+   crc^=byte;for(let bit=0;bit<8;bit++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
   }
-  framed.writeUInt32LE((crc ^ 0xffffffff) >>> 0, framed.length-4);
-  return framed.toString('base64');
- });
+  framed.writeUInt32LE((crc^0xffffffff)>>>0,framed.length-4);
+  result.push(framed.toString('base64'));
+ }
+ return result;
 }
