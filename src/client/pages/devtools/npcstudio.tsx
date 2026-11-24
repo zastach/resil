@@ -6,6 +6,9 @@ import {
   Card,
   FileInput,
   Group,
+  Menu,
+  Popover,
+  ActionIcon,
   NumberInput,
   Select,
   SimpleGrid,
@@ -17,7 +20,7 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
-import { IconDownload, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react';
+import { IconDownload, IconInfoCircle, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react';
 import bundledWearables from './rust-wearables.json';
 
 type Equipment = { slot: string; shortname: string; skinId: string };
@@ -72,7 +75,6 @@ const slotLabel = (slot: string) =>
       'Legs L2': 'Leg Armor',
     } as Record<string, string>
   )[slot] || slot;
-const describeSlot = (slot: string) => slotLabel(slot);
 const fullBodyShortnames = [
   'hazmatsuit.diver',
   'alien.costume',
@@ -310,41 +312,13 @@ function occupiedSlots(eq: Equipment): string[] {
   if (dualLayers[eq.shortname]) return dualLayers[eq.shortname];
   if (eq.slot === 'Accessory' && eq.shortname === 'diving.mask') return ['Head L1'];
   if (eq.slot === 'Accessory' && eq.shortname === 'minigunammopack') return ['Back'];
-  if (eq.slot === 'Head L1' && headArmor.has(eq.shortname)) return ['Head L2'];
-  if (eq.slot === 'Chest L1' && chestArmor.has(eq.shortname)) return ['Chest L2'];
-  if (eq.slot === 'Legs L1' && legArmor.has(eq.shortname)) return ['Legs L2'];
-  return [eq.slot];
-}
-function equipmentConflicts(equipment: Equipment[]): string[] {
-  const equipped = equipment.filter((x) => x.shortname.trim());
-  const issues: string[] = [];
-  for (const eq of equipped) {
-    const valid = itemSlots[eq.shortname];
-    if (!valid) issues.push('Unverified Rust item: ' + eq.shortname);
-    else if (!valid.includes(baseArea(eq.slot)))
-      issues.push(
-        itemLabel(eq.shortname) + ' is not assigned to its expected body area (' + slotLabel(eq.slot) + ').',
-      );
-    if (!/^(0|[1-9][0-9]*)$/.test(eq.skinId || '0'))
-      issues.push('Invalid skin ID for ' + itemLabel(eq.shortname));
-  }
-  for (let i = 0; i < equipped.length; i++)
-    for (let j = i + 1; j < equipped.length; j++) {
-      const a = equipped[i],
-        b = equipped[j];
-      const overlap = occupiedSlots(a).filter((x) => occupiedSlots(b).includes(x));
-      if (overlap.length)
-        issues.push(
-          itemLabel(a.shortname) +
-            ' conflicts with ' +
-            itemLabel(b.shortname) +
-            ' in ' +
-            overlap.map(describeSlot).join(', ') +
-            '.',
-        );
-      if (a.shortname === b.shortname) issues.push('Duplicate wearable: ' + itemLabel(a.shortname));
-    }
-  return [...new Set(issues)];
+  if (headArmor.has(eq.shortname)) return ['Head L2'];
+  if (chestArmor.has(eq.shortname)) return ['Chest L2'];
+  if (legArmor.has(eq.shortname)) return ['Legs L2'];
+  const area = baseArea(eq.slot);
+  return itemSlots[eq.shortname]?.includes(area) && ['Head', 'Chest', 'Legs'].includes(area)
+    ? [area + ' L1']
+    : [eq.slot];
 }
 
 const catalogKey = 'resil-npcstudio-wearable-catalog-v1';
@@ -480,7 +454,19 @@ export function Component() {
   const [newFolderName, setNewFolderName] = useState('');
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [selected, setSelected] = useState('');
-  const [draft, setDraft] = useState<Npc>(() => starter());
+  const [draft, setDraft] = useState<Npc>(starter);
+  const [baseline, setBaseline] = useState(draft);
+  const [saving, setSaving] = useState(false);
+  const dirty = draft !== baseline;
+  const canReplaceDraft = () => !saving && (!dirty || window.confirm('Discard unsaved changes to this NPC?'));
+  const openDraft = (npc: Npc, savedId = '', unsaved = false) => {
+    setDraft(npc);
+    if (!unsaved) setBaseline(npc);
+    setSelected(savedId);
+    setAcknowledgeConflicts(false);
+    setPreviewNode(null);
+    setNotice('');
+  };
   const [notice, setNotice] = useState('');
   const [previewNode, setPreviewNode] = useState<string | null>(null);
   const [acknowledgeConflicts, setAcknowledgeConflicts] = useState(false);
@@ -496,41 +482,41 @@ export function Component() {
     const byId = new Map<string, { value: string; label: string }>();
     for (const shortname of allowedItemsForSlot(slot))
       byId.set(shortname, { value: shortname, label: itemLabel(shortname) });
-    for (const item of catalog.filter((x) => x.slots.includes(baseArea(slot))))
+    for (const item of catalog.filter((x) => x.slots.includes(baseArea(slot)) || x.slots.includes(slot)))
       byId.set(item.shortname, {
         value: item.shortname,
         label: item.name + (item.special ? ' · Special' : ''),
       });
     return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label));
   };
-  const catalogIssues = (equipment: Equipment[]) => {
-    const issues = equipmentConflicts(equipment);
-    if (!catalog.length) return issues;
-    const worn = equipment.filter((x) => x.shortname.trim());
-    if (worn.some((x) => fullBodyItems.has(x.shortname)) && worn.length > 1)
-      issues.push('Full-body suits cannot be combined with other wearable equipment.');
-    for (const eq of worn) {
-      const item = catalogItem(eq.shortname);
-      if (!item && !allowedItemsForSlot(eq.slot).includes(eq.shortname))
-        issues.push('Item is not in the catalog: ' + eq.shortname);
-      else if (item && !item.slots.includes(baseArea(eq.slot)))
-        issues.push(item.name + ' cannot be equipped in ' + slotLabel(eq.slot));
-      if (!/^(0|[1-9][0-9]*)$/.test(eq.skinId || '0'))
-        issues.push('Invalid skin ID in ' + slotLabel(eq.slot));
-    }
-    for (let i = 0; i < worn.length; i++)
-      for (let j = i + 1; j < worn.length; j++) {
-        const a = catalogItem(worn[i].shortname),
-          b = catalogItem(worn[j].shortname);
-        if (
-          worn[i].shortname === worn[j].shortname ||
-          a?.conflicts?.includes(worn[j].shortname) ||
-          b?.conflicts?.includes(worn[i].shortname)
-        )
-          issues.push('Incompatible items: ' + worn[i].shortname + ' and ' + worn[j].shortname);
-      }
-    return issues;
+  const equipment = draft.equipment.filter((item) => item.shortname.trim());
+  const equipmentWarnings = new Map<string, string[]>();
+  const warn = (slot: string, message: string) => {
+    const messages = equipmentWarnings.get(slot) ?? [];
+    messages.push(message);
+    equipmentWarnings.set(slot, messages);
   };
+  for (const [index, item] of equipment.entries()) {
+    const entry = catalogItem(item.shortname);
+    const areas = entry?.slots ?? itemSlots[item.shortname];
+    if (!areas) warn(item.slot, 'Unverified Rust item: ' + item.shortname);
+    else if (!areas.includes(baseArea(item.slot)) && !areas.includes(item.slot))
+      warn(item.slot, 'This item belongs in a different equipment slot.');
+    for (const other of equipment.slice(index + 1)) {
+      if (
+        item.shortname === other.shortname ||
+        occupiedSlots(item).some((layer) => occupiedSlots(other).includes(layer)) ||
+        entry?.conflicts?.includes(other.shortname) ||
+        catalogItem(other.shortname)?.conflicts?.includes(item.shortname)
+      ) {
+        warn(
+          item.slot,
+          'Conflicts with ' + (catalogItem(other.shortname)?.name ?? itemLabel(other.shortname)) + '.',
+        );
+        warn(other.slot, 'Conflicts with ' + (entry?.name ?? itemLabel(item.shortname)) + '.');
+      }
+    }
+  }
   const importCatalog = async (file: File | null) => {
     if (!file) return;
     try {
@@ -544,7 +530,10 @@ export function Component() {
             typeof x.shortname !== 'string' ||
             typeof x.name !== 'string' ||
             !Array.isArray(x.slots) ||
-            x.slots.some((slot: unknown) => !slots.includes(String(slot))) ||
+            x.slots.some(
+              (slot: unknown) =>
+                !slots.includes(String(slot)) && !slots.some((option) => baseArea(option) === slot),
+            ) ||
             (x.conflicts !== undefined &&
               (!Array.isArray(x.conflicts) || x.conflicts.some((c: unknown) => typeof c !== 'string'))),
         )
@@ -647,7 +636,7 @@ export function Component() {
       });
       if (!response.ok) throw Error(await response.text());
       setSelected('');
-      setDraft(starter());
+      openDraft(starter());
       await refreshLibrary();
       setNotice('NPC deleted from shared library.');
     } catch (e) {
@@ -690,7 +679,8 @@ export function Component() {
     setDraft((prev) => ({ ...prev, ...p }));
   };
   const save = async () => {
-    if (catalogIssues(draft.equipment).length && !acknowledgeConflicts) {
+    if (equipmentWarnings.size && !acknowledgeConflicts) {
+      setTab('appearance');
       setNotice('Review the equipment compatibility notices and choose Keep anyway to continue.');
       return;
     }
@@ -699,6 +689,7 @@ export function Component() {
       setNotice(error);
       return;
     }
+    setSaving(true);
     try {
       const response = await fetch('/api/devtools/npcs/' + encodeURIComponent(draft.id), {
         method: 'PUT',
@@ -719,7 +710,9 @@ export function Component() {
       if (!response.ok) throw Error(await response.text());
       const result = await response.json();
       setSelected(draft.id);
-      setDraft({ ...draft, revision: result.revision });
+      const saved = { ...draft, revision: result.revision };
+      setBaseline(saved);
+      setDraft((current) => (current === draft ? saved : { ...current, revision: result.revision }));
       await refreshLibrary();
       setNotice(
         'NPC revision ' +
@@ -728,6 +721,8 @@ export function Component() {
       );
     } catch (e) {
       setNotice('Save failed: ' + String(e));
+    } finally {
+      setSaving(false);
     }
   };
   const uploadVoice = async (i: number, file: File | null) => {
@@ -779,7 +774,7 @@ export function Component() {
   const updateNode = (i: number, p: Partial<Node>) =>
     setDraft((prev) => ({ ...prev, dialogue: prev.dialogue.map((n, j) => (i === j ? { ...n, ...p } : n)) }));
   const exportJson = () => {
-    const error = validate(draft) || catalogIssues(draft.equipment)[0];
+    const error = validate(draft);
     if (error) {
       setNotice(error);
       return;
@@ -813,8 +808,8 @@ export function Component() {
       };
       const error = validate(imported);
       if (error) throw Error(error);
-      setDraft(imported);
-      setSelected('');
+      if (!canReplaceDraft()) return;
+      openDraft(imported, '', true);
       setNotice('Imported definition. Save to add it to your library.');
     } catch (e) {
       setNotice(String(e));
@@ -874,61 +869,88 @@ export function Component() {
               </Group>
             </Alert>
           )}
-          <Text size='xs' c='dimmed'>
-            All authorized admins see the same NPC definitions. Moving an NPC does not change its dialogue or
-            appearance.
+          <Text size='sm' c='dimmed'>
+            Open a definition saved on resil.me and shared with site admins.
           </Text>
+          <Select
+            label='Open a saved NPC'
+            placeholder={library.length ? 'Choose a saved NPC' : 'No saved NPCs yet'}
+            searchable
+            data={library
+              .filter((x) => !activeFolder || x.folderId === activeFolder)
+              .map((x) => ({ value: x.id, label: x.name + ' · r' + x.revision }))}
+            value={selected || null}
+            onChange={(id) => {
+              const npc = library.find((x) => x.id === id);
+              if (npc && npc.id !== selected && canReplaceDraft()) openDraft(npc, npc.id);
+            }}
+            style={{ flex: 1 }}
+          />
           {!libraryReady && (
             <Alert color='yellow'>Connecting to shared library. Save is unavailable until connected.</Alert>
           )}
         </Stack>
       </Card>
 
+      <Group justify='space-between'>
+        <Title order={3}>{selected ? 'Edit NPC' : 'New NPC draft'}</Title>
+        {dirty && (
+          <Text size='sm' c='yellow'>
+            Unsaved changes
+          </Text>
+        )}
+      </Group>
       <Group align='end'>
-        <Select
-          label='NPC Library'
-          placeholder='Select NPC'
-          searchable
-          data={library
-            .filter((x) => !activeFolder || x.folderId === activeFolder)
-            .map((x) => ({ value: x.id, label: x.name + ' · r' + x.revision }))}
-          value={selected || null}
-          onChange={(id) => {
-            const npc = library.find((x) => x.id === id);
-            if (npc) {
-              setDraft(npc);
-              setSelected(npc.id);
-            }
-          }}
-          style={{ flex: 1 }}
-        />
-        <Button
-          variant='default'
-          onClick={() => {
-            setDraft(starter());
-            setSelected('');
-          }}
-        >
-          New
-        </Button>
-        <Button
-          variant='default'
-          onClick={() => {
-            patch({ id: starter().id, name: draft.name + ' (Copy)', revision: 1 });
-            setSelected('');
-          }}
-        >
-          Duplicate
-        </Button>
-        <Button onClick={save} disabled={!libraryReady}>
-          Save to shared library
-        </Button>
-        <Button color='red' variant='subtle' disabled={!selected || !libraryReady} onClick={deleteNpc}>
-          Delete NPC
-        </Button>
-        <Button variant='light' leftSection={<IconDownload size={16} />} onClick={exportJson}>
-          Export
-        </Button>
+        <Menu position='bottom-start'>
+          <Menu.Target>
+            <Button variant='default' disabled={saving}>
+              NPC actions
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              onClick={() => {
+                if (canReplaceDraft()) openDraft({ ...starter(), folderId: activeFolder });
+              }}
+            >
+              New NPC
+            </Menu.Item>
+            <Menu.Item
+              disabled={!draft.name.trim()}
+              onClick={() => {
+                if (canReplaceDraft())
+                  openDraft(
+                    { ...draft, id: starter().id, name: draft.name + ' (Copy)', revision: 1 },
+                    '',
+                    true,
+                  );
+              }}
+            >
+              Duplicate NPC
+            </Menu.Item>
+            <Menu.Item color='red' disabled={!selected || !libraryReady || saving} onClick={deleteNpc}>
+              Delete saved NPC
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+        <Group gap='xs'>
+          <Button variant='light' leftSection={<IconDownload size={16} />} onClick={exportJson}>
+            Export JSON
+          </Button>
+          <Popover width={300} position='bottom' withArrow>
+            <Popover.Target>
+              <ActionIcon variant='subtle' aria-label='When to export an NPC'>
+                <IconInfoCircle size={20} />
+              </ActionIcon>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <Text size='sm'>
+                Export a JSON copy for backup, sharing, or reimporting a definition later. Uploaded audio
+                stays on resil.me. To put an NPC in Rust, save it here and run /npcstudio sync.
+              </Text>
+            </Popover.Dropdown>
+          </Popover>
+        </Group>
         <FileInput
           placeholder='Import JSON'
           accept='.json,application/json'
@@ -985,30 +1007,6 @@ export function Component() {
         <Tabs.Panel value='appearance' pt='md'>
           <Stack>
             <Text fw={600}>Clothing & armor + backpack</Text>
-            {catalogIssues(draft.equipment).map((issue) => (
-              <Alert key={issue} color='yellow' title='Equipment compatibility notice'>
-                {issue} You can change the equipment or choose to keep this combination.
-              </Alert>
-            ))}
-            {catalogIssues(draft.equipment).length > 0 && (
-              <Group>
-                <Switch
-                  label='Keep selected equipment anyway (may not render correctly in Rust)'
-                  checked={acknowledgeConflicts}
-                  onChange={(e) => setAcknowledgeConflicts(e.currentTarget.checked)}
-                />
-                <Button
-                  size='xs'
-                  variant='light'
-                  onClick={() => {
-                    patch({ equipment: emptyEquipment() });
-                    setAcknowledgeConflicts(false);
-                  }}
-                >
-                  Clear equipment
-                </Button>
-              </Group>
-            )}
             <Text size='sm' c='dimmed'>
               Choose equipment by name and see its inventory icon. Advanced item identifiers and skin IDs are
               optional.
@@ -1030,7 +1028,7 @@ export function Component() {
               validation against the Rust server.
             </Text>
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
-              {slots.map((slot, i) => {
+              {slots.map((slot) => {
                 const eq = draft.equipment.find((x) => x.slot === slot) || {
                   slot,
                   shortname: '',
@@ -1053,10 +1051,12 @@ export function Component() {
                     <Stack gap='xs'>
                       <Group justify='space-between'>
                         <Text fw={600}>{slotLabel(slot)}</Text>
-                        <Badge variant='light'>
-                          {i + 1}/{slots.length}
-                        </Badge>
                       </Group>
+                      {equipmentWarnings.get(slot)?.map((message) => (
+                        <Alert key={message} color='yellow' p='xs'>
+                          {message}
+                        </Alert>
+                      ))}
                       <Group align='center' gap='md'>
                         <div
                           style={{
@@ -1070,6 +1070,7 @@ export function Component() {
                         >
                           {eq.shortname ? (
                             <img
+                              key={eq.shortname}
                               src={catalogItem(eq.shortname)?.icon || itemIcon(eq.shortname)}
                               alt={itemLabel(eq.shortname) + ' inventory icon'}
                               style={{ width: 70, height: 70, objectFit: 'contain' }}
@@ -1159,6 +1160,14 @@ export function Component() {
                 );
               })}
             </SimpleGrid>
+            {equipmentWarnings.size > 0 && (
+              <Switch
+                label='Save with these equipment warnings'
+                checked={acknowledgeConflicts}
+                onChange={(event) => setAcknowledgeConflicts(event.currentTarget.checked)}
+              />
+            )}
+
             <Card withBorder>
               <Text fw={600}>Backpack slot</Text>
               <Select
@@ -1442,6 +1451,11 @@ export function Component() {
           </Card>
         </Tabs.Panel>
       </Tabs>
+      <Group justify='flex-end' pt='md'>
+        <Button onClick={save} loading={saving} disabled={!libraryReady}>
+          {selected ? 'Save NPC Changes' : 'Create and Save NPC'}
+        </Button>
+      </Group>
       {notice && (
         <Alert
           color={notice.startsWith('Saved') ? 'green' : 'blue'}

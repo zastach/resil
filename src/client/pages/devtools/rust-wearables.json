@@ -78,21 +78,24 @@
   },
   {
     "shortname": "ballistic.helmet",
-    "name": "Ballistic Helmet",
+    "icon": "https://cdn.rusthelp.com/images/public/ballistic.helmet.png",
+    "name": "Kevlar Helmet (Ballistic Helmet)",
     "itemId": 1127732084,
     "hasSkins": false,
     "slots": ["Head"]
   },
   {
     "shortname": "ballistic.legarmor",
-    "name": "Ballistic Leg Armor",
+    "icon": "https://cdn.rusthelp.com/images/public/ballistic.legarmor.png",
+    "name": "Kevlar Leg Armor (Ballistic Leg Armor)",
     "itemId": 1983541158,
     "hasSkins": false,
     "slots": ["Legs"]
   },
   {
     "shortname": "ballistic.vest",
-    "name": "Ballistic Vest",
+    "icon": "https://cdn.rusthelp.com/images/public/ballistic.vest.png",
+    "name": "Kevlar Vest (Ballistic Vest)",
     "itemId": -1780402255,
     "hasSkins": false,
     "slots": ["Chest"]
@@ -696,6 +699,8 @@
   {
     "shortname": "riot.helmet",
     "name": "Riot Helmet",
+    "icon": "https://files.facepunch.com/rust/item/riot.helmet_512.png",
+    "itemId": 671063303,
     "slots": ["Head"]
   },
   {
