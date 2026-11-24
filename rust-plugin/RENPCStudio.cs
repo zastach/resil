@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.11")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.12")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -25,6 +25,7 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, string> conversationNode = new Dictionary<ulong, string>();
         private readonly Dictionary<ulong, ulong> conversationPlacement = new Dictionary<ulong, ulong>();
         private const string DefinitionFileName = "RENPCStudio_Definitions";
+        private readonly Dictionary<ulong, Placement> confirmedPlacements = new Dictionary<ulong, Placement>();
         private readonly Dictionary<ulong, BaseEntity> spawned = new Dictionary<ulong, BaseEntity>();
         private readonly HashSet<ulong> conversations = new HashSet<ulong>();
         private readonly Dictionary<ulong, Placement> pendingPlacements = new Dictionary<ulong, Placement>();
@@ -664,6 +665,7 @@ namespace Oxide.Plugins
             int restored = 0, failed = 0;
             foreach (var placement in data.Placements)
             {
+                confirmedPlacements[placement.Id] = placement;
                 if (Spawn(placement)) restored++; else failed++;
             }
             Puts("NPC Studio startup: restored " + restored + ", failed " + failed + ".");
@@ -680,6 +682,7 @@ namespace Oxide.Plugins
             // Unload despawns runtime entities, but must retain saved placements.
             var runtimeEntities = new List<BaseEntity>(spawned.Values);
             spawned.Clear();
+            confirmedPlacements.Clear();
             foreach (var entity in runtimeEntities)
                 if (entity != null && !entity.IsDestroyed) entity.Kill();
             conversations.Clear();
@@ -708,7 +711,7 @@ namespace Oxide.Plugins
             }
             if (args == null || args.Length == 0)
             {
-                player.ChatMessage("/npcstudio status | /npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list");
+                player.ChatMessage("/npcstudio status | /npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list [page] | /npcstudio inspect [#]");
                 return;
             }
             switch (args[0].ToLowerInvariant())
@@ -898,6 +901,7 @@ namespace Oxide.Plugins
                     }
                     data.NextShortId++;
                     data.Placements.Add(preview);
+                    confirmedPlacements[preview.Id] = preview;
                     pendingPlacements.Remove(player.userID);
                     Save();
                     player.ChatMessage("Placed NPC #" + preview.ShortId + " with pinned revision " + preview.Revision + ".");
@@ -925,15 +929,53 @@ namespace Oxide.Plugins
                     player.ChatMessage("NPC rotation set to " + placement.Yaw.ToString("F1") + " degrees.");
                     break;
                 }
-                case "list":
-                    player.ChatMessage(data.Placements.Count == 0 ? "No placed NPCs." : string.Join(" | ", data.Placements.ConvertAll(p =>
+                case "inspect":
+                {
+                    var placement = args.Length > 1 ? FindPlacement(args[1]) : FindLookedAtPlacement(player);
+                    if (placement == null)
                     {
-                        var definition = GetPlacementDefinition(p);
-                        var name = definition != null && !string.IsNullOrWhiteSpace(definition.Name)
-                            ? definition.Name : config.DisplayName;
-                        return name + " (#" + p.ShortId + ")";
-                    }).ToArray()));
+                        player.ChatMessage("Aim at a placed Studio NPC within interaction range, or use /npcstudio inspect <#>.");
+                        break;
+                    }
+                    var definition = GetPlacementDefinition(placement);
+                    var npcName = definition != null ? definition.Name : config.DisplayName;
+                    var nodes = definition != null ? definition.Dialogue : null;
+                    int voiced = nodes == null ? 0 : nodes.FindAll(node => node != null && !string.IsNullOrWhiteSpace(node.Audio)).Count;
+                    BaseEntity entity;
+                    bool active = spawned.TryGetValue(placement.Id, out entity) && entity != null && !entity.IsDestroyed;
+                    var position = placement.Position;
+                    player.ChatMessage(npcName + " (#" + placement.ShortId + ") | " + (active ? "Spawned" : "Not spawned") +
+                        "\nDefinition: " + (placement.DefinitionId ?? "(default)") + " | Placed revision: " + placement.Revision +
+                        "\nPosition: " + position.ToString("F1") + " | Facing: " + placement.Yaw.ToString("F1") + "°" +
+                        "\n" + ((definition != null ? definition.Invulnerable : config.Invulnerable) ? "Invulnerable" : "Killable") +
+                        " | " + (definition == null ? config.Health : definition.Health).ToString("0.#") + " configured HP" +
+                        " | Dialogue: " + (nodes == null ? 0 : nodes.Count) + " nodes, " + voiced + " voiced" +
+                        (definition != null && !definition.Repeatable ? " | Once per player" : ""));
                     break;
+                }
+                case "list":
+                {
+                    const int pageSize = 10;
+                    int page = 1;
+                    if (data.Placements.Count == 0) { player.ChatMessage("No placed NPCs."); break; }
+                    int pages = (data.Placements.Count - 1) / pageSize + 1;
+                    if ((args.Length > 1 && !int.TryParse(args[1], out page)) || page < 1 || page > pages)
+                    {
+                        player.ChatMessage("Usage: /npcstudio list <page 1–" + pages + ">.");
+                        break;
+                    }
+                    int start = (page - 1) * pageSize;
+                    var entries = data.Placements.GetRange(start, Math.Min(pageSize, data.Placements.Count - start));
+                    player.ChatMessage("Placed NPCs (" + data.Placements.Count + ") | Page " + page + "/" + pages + "\n" +
+                        string.Join("\n", entries.ConvertAll(placement =>
+                        {
+                            var definition = GetPlacementDefinition(placement);
+                            var name = definition != null && !string.IsNullOrWhiteSpace(definition.Name)
+                                ? definition.Name : config.DisplayName;
+                            return name + " (#" + placement.ShortId + ")";
+                        }).ToArray()));
+                    break;
+                }
                 case "kill":
                 case "remove":
                 {
@@ -998,6 +1040,7 @@ namespace Oxide.Plugins
             spawned.Remove(placement.Id);
             ClearPlacementState(placement.Id);
             data.Placements.RemoveAll(p => p.Id == placement.Id);
+            confirmedPlacements.Remove(placement.Id);
             Save();
             if (entity != null && !entity.IsDestroyed) entity.Kill();
         }
@@ -1027,6 +1070,7 @@ namespace Oxide.Plugins
             foreach (var owner in abandonedOwners) pendingPlacements.Remove(owner);
             if (data.Placements.RemoveAll(p => p.Id == placementId) > 0)
             {
+                confirmedPlacements.Remove(placementId);
                 ClearPlacementState(placementId);
                 Save();
                 Puts("Removed saved placement for destroyed NPC " + placementId + ".");
@@ -1063,15 +1107,14 @@ namespace Oxide.Plugins
         {
             RaycastHit hit;
             if (player == null || !player.IsConnected || config.InteractionDistance <= 0f || !Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return null;
-            var target = hit.GetEntity();
-            if (target == null || target.net == null) return null;
-            foreach (var placement in data.Placements)
-            {
-                BaseEntity entity;
-                if (spawned.TryGetValue(placement.Id, out entity) && entity != null && !entity.IsDestroyed && entity.net != null && entity.net.ID == target.net.ID)
-                    return placement;
-            }
-            return null;
+            var target = hit.GetEntity() as BasePlayer;
+            if (target == null || target.IsDestroyed || target.net == null) return null;
+            var marker = target.GetComponent<StudioNpcMarker>();
+            if (marker == null) return null;
+            Placement placement;
+            BaseEntity current;
+            return confirmedPlacements.TryGetValue(marker.PlacementId, out placement) &&
+                spawned.TryGetValue(marker.PlacementId, out current) && current == target ? placement : null;
         }
 
         // Isolated test: no saved placement, clothing, dialogue, or NPC component.
@@ -1209,20 +1252,8 @@ namespace Oxide.Plugins
         private bool IsLookingAtStudioNpc(BasePlayer player)
         {
             if (player == null || !player.IsConnected || player.IsDead() || player.IsSleeping() || conversations.Contains(player.userID) || config.InteractionDistance <= 0f) return false;
-            RaycastHit hit;
-            if (!Physics.Raycast(player.eyes.HeadRay(), out hit, config.InteractionDistance)) return false;
-            var entity = hit.GetEntity();
-            if (entity == null || entity.net == null) return false;
-            // Temporary placement previews are not live NPCs: do not offer dialogue
-            // until their owner explicitly confirms the placement.
-            foreach (var placement in data.Placements)
-            {
-                BaseEntity npc;
-                if (spawned.TryGetValue(placement.Id, out npc) &&
-                    npc != null && !npc.IsDestroyed && npc.net != null &&
-                    npc.net.ID == entity.net.ID && GetPlacementDefinition(placement) != null) return true;
-            }
-            return false;
+            var placement = FindLookedAtPlacement(player);
+            return placement != null && GetPlacementDefinition(placement) != null;
         }
 
         private void UpdateTalkPrompts()
