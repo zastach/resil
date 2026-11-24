@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.0")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.1")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -185,16 +185,11 @@ namespace Oxide.Plugins
                 try
                 {
                     var packet = packets[index++];
-                    if (Network.Net.sv.write.Start())
-                    {
-                        Network.Net.sv.write.PacketID(Network.Message.Type.VoiceData);
-                        // Rust now exposes a NetworkableId struct; the legacy VoiceData
-                        // writer expects a 32-bit source ID. Verify the exact
-                        // wire format against the target Rust build before release.
-                        Network.Net.sv.write.UInt32(unchecked((uint)source.net.ID.Value));
-                        Network.Net.sv.write.BytesWithSize(packet);
-                        Network.Net.sv.write.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
-                    }
+                    var writer = Network.Net.sv.StartWrite();
+                    writer.PacketID(Network.Message.Type.VoiceData);
+                    writer.EntityID(source.net.ID);
+                    writer.BytesWithSize(packet);
+                    writer.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
                 }
                 catch (Exception ex)
                 {
