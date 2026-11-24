@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.2")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.3")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -117,7 +117,7 @@ namespace Oxide.Plugins
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed ||
+                    !listener.IsConnected || (!diagnostic && !conversations.Contains(listener.userID)) || source.IsDestroyed ||
                     source.net == null) return;
                 if (code != 200 || string.IsNullOrWhiteSpace(response) || response.Length > 3000000)
                 {
@@ -149,7 +149,7 @@ namespace Oxide.Plugins
             }, this, RequestMethod.GET, headers);
         }
 
-        private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation)
+        private void StartVoicePackets(BasePlayer listener, BaseEntity source, List<string> frames, int generation, bool diagnostic = false)
         {
             if (listener == null || source == null || frames == null || frames.Count == 0 || frames.Count > MaxVoiceFrames) return;
             // Decode and validate before scheduling. A corrupt clip must not leave
@@ -190,6 +190,7 @@ namespace Oxide.Plugins
                     writer.EntityID(source.net.ID);
                     writer.BytesWithSize(packet);
                     writer.Send(new Network.SendInfo(listener.Connection) { priority = Network.Priority.Immediate });
+                    if (diagnostic && index == packets.Count) listener.ChatMessage("Voice diagnostic: sent " + index + " packets. Confirm whether you heard audio.");
                 }
                 catch (Exception ex)
                 {
@@ -720,6 +721,26 @@ namespace Oxide.Plugins
                     voiceClips[name] = frames;
                     SaveVoiceClips();
                     player.ChatMessage("Saved " + frames.Count + " voice packets as clip:" + name + ". Assign this reference to a dialogue node's audio field.");
+                    break;
+                }
+                case "play":
+                {
+                    List<string> frames;
+                    if (args.Length < 2 || !voiceClips.TryGetValue(args[1], out frames) || frames == null || frames.Count == 0)
+                    {
+                        player.ChatMessage("Usage: /npcstudio play <clip-id> while looking at a placed NPC. Use /npcstudio clips to list recordings.");
+                        return;
+                    }
+                    var placement = FindLookedAtPlacement(player);
+                    BaseEntity source;
+                    if (placement == null || !spawned.TryGetValue(placement.Id, out source) || source == null || source.IsDestroyed || source.net == null)
+                    {
+                        player.ChatMessage("Look directly at a confirmed NPC within interaction range, then run the command again.");
+                        return;
+                    }
+                    CloseDialogue(player);
+                    player.ChatMessage("Voice diagnostic: sending " + frames.Count + " native packets from NPC #" + placement.ShortId + ".");
+                    StartVoicePackets(player, source, frames, playbackGeneration[player.userID], true);
                     break;
                 }
                 case "clips":
