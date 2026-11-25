@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.15")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.16")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -272,6 +272,7 @@ namespace Oxide.Plugins
             public string NpcName;
             public float NpcHealth;
             public bool Invulnerable;
+            public bool NameSnapshotLogged;
             private void Awake() { Player = GetComponent<BasePlayer>(); }
 
             public void Initialize(ulong placementId, string definitionId, string npcName, float health, bool invulnerable)
@@ -1048,6 +1049,27 @@ namespace Oxide.Plugins
         // If a managed NPC dies by any other means, its persistent placement
         // must also be removed. Unload and definition refresh clear the runtime
         // mapping before killing, so neither operation deletes saved NPCs.
+        private void OnEntitySaved(BaseNetworkable entity, BaseNetworkable.SaveInfo saveInfo)
+        {
+            var npc = entity as BasePlayer;
+            if (npc == null || saveInfo.forDisk || saveInfo.forConnection == null) return;
+            var marker = npc.GetComponent<StudioNpcMarker>();
+            if (marker == null || saveInfo.msg?.basePlayer == null) return;
+
+            var snapshot = saveInfo.msg.basePlayer;
+            var expectedName = BasePlayer.SanitizePlayerNameString(marker.NpcName, npc.userID);
+            if (!string.Equals(snapshot.name, expectedName, StringComparison.Ordinal))
+            {
+                if (!marker.NameSnapshotLogged)
+                    Puts("NPC name snapshot: #" + marker.PlacementId + " sent name corrected from '" +
+                        snapshot.name + "' to '" + expectedName + "'.");
+                snapshot.name = expectedName;
+            }
+            else if (!marker.NameSnapshotLogged)
+                Puts("NPC name snapshot: player ID " + npc.userID + " sent name '" + expectedName + "'.");
+            marker.NameSnapshotLogged = true;
+        }
+
         private void OnEntityKill(BaseNetworkable networkable)
         {
             var entity = networkable as BaseEntity;
