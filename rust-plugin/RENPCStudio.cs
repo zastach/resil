@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.14")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.15")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -1180,7 +1180,8 @@ namespace Oxide.Plugins
                     return false;
                 }
                 var definition = GetPlacementDefinition(placement);
-                npc.displayName = definition != null ? definition.Name : config.DisplayName;
+                var displayName = definition != null ? definition.Name : config.DisplayName;
+                npc.displayName = displayName;
                 npc.syncPosition = true;
                 stage = "network-spawn";
                 Puts("CIVILIAN: #" + placement.ShortId + " stage=" + stage +
@@ -1196,7 +1197,7 @@ namespace Oxide.Plugins
                 entity.enableSaving = false;
                 stage = "marker";
                 var marker = entity.gameObject.AddComponent<StudioNpcMarker>();
-                marker.Initialize(placement.Id, placement.DefinitionId, npc.displayName,
+                marker.Initialize(placement.Id, placement.DefinitionId, displayName,
                     definition != null ? Mathf.Max(1f, definition.Health) : config.Health,
                     definition != null ? definition.Invulnerable : config.Invulnerable);
                 stage = "health";
@@ -1212,7 +1213,9 @@ namespace Oxide.Plugins
                 spawned[placement.Id] = entity;
                 timer.Once(0.25f, () =>
                 {
-                    if (entity != null && !entity.IsDestroyed) ApplyFacing(entity, placement.Yaw);
+                    if (npc == null || npc.IsDestroyed) return;
+                    npc.displayName = displayName;
+                    ApplyFacing(npc, placement.Yaw);
                 });
                 Puts("CIVILIAN: #" + placement.ShortId + " stage=ready name=" + npc.displayName +
                     " playerId=" + npc.userID + " netId=" + (entity.net != null ? entity.net.ID.ToString() : "none") +
