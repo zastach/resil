@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.13")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.14")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -1186,6 +1186,10 @@ namespace Oxide.Plugins
                 Puts("CIVILIAN: #" + placement.ShortId + " stage=" + stage +
                     " prefab=" + DefaultPrefab + " identityUnmodified=true playerId=" + npc.userID);
                 entity.Spawn();
+                // The Rust client offers invites to player entities with no team.
+                // Use a reserved value on this civilian only, without registering
+                // a team or putting NPCs in the relationship manager's roster.
+                npc.currentTeam = ulong.MaxValue;
                 // At this point Rust has successfully registered the unmodified
                 // player prefab. All NPCStudio-specific setup happens afterward.
                 stage = "disable-saving";
