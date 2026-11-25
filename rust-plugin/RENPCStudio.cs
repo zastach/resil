@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.17")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.18")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -1310,13 +1310,13 @@ namespace Oxide.Plugins
                     ui.Add(new CuiPanel
                     {
                         Image = { Color = "0.10 0.12 0.12 0.84" },
-                        RectTransform = { AnchorMin = "0.555 0.545", AnchorMax = "0.735 0.578" },
+                        RectTransform = { AnchorMin = "0.555 0.545", AnchorMax = "0.635 0.578" },
                         CursorEnabled = false
                     }, "Overlay", PromptUiName);
                     ui.Add(new CuiPanel
                     {
                         Image = { Color = "0.30 0.34 0.33 0.95" },
-                        RectTransform = { AnchorMin = "0.025 0.15", AnchorMax = "0.13 0.85" }
+                        RectTransform = { AnchorMin = "0.05 0.15", AnchorMax = "0.30 0.85" }
                     }, PromptUiName, PromptUiName + ".Key");
                     ui.Add(new CuiLabel
                     {
@@ -1325,8 +1325,8 @@ namespace Oxide.Plugins
                     }, PromptUiName + ".Key");
                     ui.Add(new CuiLabel
                     {
-                        Text = { Text = "Talk to " + name, FontSize = 11, Align = TextAnchor.MiddleLeft, Color = "0.92 0.93 0.89 1" },
-                        RectTransform = { AnchorMin = "0.16 0", AnchorMax = "0.98 1" }
+                        Text = { Text = "Talk", FontSize = 11, Align = TextAnchor.MiddleLeft, Color = "0.92 0.93 0.89 1" },
+                        RectTransform = { AnchorMin = "0.36 0", AnchorMax = "0.98 1" }
                     }, PromptUiName);
                     CuiHelper.AddUi(player, ui);
                 }
