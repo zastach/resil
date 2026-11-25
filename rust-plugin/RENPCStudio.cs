@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.16")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.17")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -273,17 +273,16 @@ namespace Oxide.Plugins
             public float NpcHealth;
             public bool Invulnerable;
             public bool NameSnapshotLogged;
-            private void Awake() { Player = GetComponent<BasePlayer>(); }
 
             public void Initialize(ulong placementId, string definitionId, string npcName, float health, bool invulnerable)
             {
+                Player = GetComponent<BasePlayer>();
                 if (Player == null) throw new InvalidOperationException("StudioNpcMarker requires BasePlayer");
                 PlacementId = placementId;
                 DefinitionId = definitionId;
                 NpcName = npcName;
                 NpcHealth = health;
                 Invulnerable = invulnerable;
-                Player.displayName = npcName;
             }
         }
 
@@ -1046,9 +1045,16 @@ namespace Oxide.Plugins
             if (entity != null && !entity.IsDestroyed) entity.Kill();
         }
 
-        // If a managed NPC dies by any other means, its persistent placement
-        // must also be removed. Unload and definition refresh clear the runtime
-        // mapping before killing, so neither operation deletes saved NPCs.
+        // Rust assigns a temporary numeric bot name during ServerInit.
+        // Restore the authored name before Spawn sends its initial network update.
+        private void OnEntitySpawned(BasePlayer npc)
+        {
+            var marker = npc.GetComponent<StudioNpcMarker>();
+            if (marker == null) return;
+            npc.displayName = marker.NpcName;
+            Puts("NPC initial name: player ID " + npc.userID + " named '" + npc.displayName + "'.");
+        }
+
         private void OnEntitySaved(BaseNetworkable entity, BaseNetworkable.SaveInfo saveInfo)
         {
             var npc = entity as BasePlayer;
@@ -1070,6 +1076,9 @@ namespace Oxide.Plugins
             marker.NameSnapshotLogged = true;
         }
 
+        // If a managed NPC dies by any other means, its persistent placement
+        // must also be removed. Unload and definition refresh clear the runtime
+        // mapping before killing, so neither operation deletes saved NPCs.
         private void OnEntityKill(BaseNetworkable networkable)
         {
             var entity = networkable as BaseEntity;
@@ -1203,7 +1212,11 @@ namespace Oxide.Plugins
                 }
                 var definition = GetPlacementDefinition(placement);
                 var displayName = definition != null ? definition.Name : config.DisplayName;
-                npc.displayName = displayName;
+                stage = "marker";
+                var marker = entity.gameObject.AddComponent<StudioNpcMarker>();
+                marker.Initialize(placement.Id, placement.DefinitionId, displayName,
+                    definition != null ? Mathf.Max(1f, definition.Health) : config.Health,
+                    definition != null ? definition.Invulnerable : config.Invulnerable);
                 npc.syncPosition = true;
                 stage = "network-spawn";
                 Puts("CIVILIAN: #" + placement.ShortId + " stage=" + stage +
@@ -1213,15 +1226,8 @@ namespace Oxide.Plugins
                 // Use a reserved value on this civilian only, without registering
                 // a team or putting NPCs in the relationship manager's roster.
                 npc.currentTeam = ulong.MaxValue;
-                // At this point Rust has successfully registered the unmodified
-                // player prefab. All NPCStudio-specific setup happens afterward.
                 stage = "disable-saving";
                 entity.enableSaving = false;
-                stage = "marker";
-                var marker = entity.gameObject.AddComponent<StudioNpcMarker>();
-                marker.Initialize(placement.Id, placement.DefinitionId, displayName,
-                    definition != null ? Mathf.Max(1f, definition.Health) : config.Health,
-                    definition != null ? definition.Invulnerable : config.Invulnerable);
                 stage = "health";
                 float health = definition != null ? Mathf.Max(1f, definition.Health) : config.Health;
                 npc.InitializeHealth(health, health);
