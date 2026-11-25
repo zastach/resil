@@ -1,4 +1,26 @@
-MIT License
+========================================================================
+PART 1: LICENSE FOR MODIFICATIONS & ADDITIONS (RUST EMPIRES)
+========================================================================
+
+Copyright (c) 2026 zastach
+
+1. Grant of License: Subject to the terms of this document, the Copyright Holder hereby grants to the owners, administrators, and operators of Rust Empires (collectively, "the Licensee") a perpetual, worldwide, non-exclusive, royalty-free, fully paid-up, and irrevocable license to use, copy, modify, merge, publish, distribute, host, and execute the modifications, additions, and original code created by the Copyright Holder ("the Modifications").
+
+2. Authorized Platforms: This license permits the Licensee to use and deploy the Modifications across any and all platforms, services, and properties owned or operated by Rust Empires, including without limitation:
+   a) The website located at rustempires.com and its subdomains;
+   b) The domain resil.me and any services hosted thereon;
+   c) Official Rust Empires game servers (including RE1, RE2, Creative, and any future servers); and
+   d) Official Rust Empires Discord servers, bots, and community integrations.
+
+3. Irrevocability & Consideration: This license is granted as a permanent gift for zero monetary consideration. The Copyright Holder explicitly and permanently waives any right to revoke, rescind, or terminate this license, and agrees never to seek royalties, licensing fees, or financial compensation for the Licensee's use of the Modifications within the Authorized Platforms.
+
+4. Transferability: If ownership or administration of Rust Empires is transferred to a successor team or entity, this license automatically transfers with it so the community may continue operating uninterrupted.
+
+5. No Warranty: THE MODIFICATIONS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MODIFICATIONS OR THE USE OR OTHER DEALINGS IN THE MODIFICATIONS.
+
+========================================================================
+PART 2: ORIGINAL BASE SOFTWARE LICENSE (MIT)
+========================================================================
 
 Copyright (c) 2023 dicedtomato
 
