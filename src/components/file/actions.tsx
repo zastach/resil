@@ -21,6 +21,21 @@ import {
 } from '@tabler/icons-react';
 import { mutate } from 'swr';
 
+export function editSignLink(file: Pick<File, 'id' | 'name' | 'originalName' | 'folderId' | 'organization'>) {
+  return {
+    to: '/dashboard/upload/file?purpose=sign',
+    state: {
+      signSource: {
+        id: file.id,
+        name: file.name,
+        originalName: file.originalName,
+        folderId: file.folderId,
+        organization: file.organization,
+      },
+    },
+  };
+}
+
 export function viewFile(file: File) {
   window.open(formatRootUrl('/view', file.name), '_blank');
 }
@@ -229,5 +244,6 @@ export async function addMultipleToFolder(files: File[], folderId: string | null
 
 export function mutateFiles() {
   mutate('/api/user/recent');
+  mutate((key) => typeof key === 'string' && /^\/api\/user\/folders\/[^/]+\/images$/.test(key));
   mutate((key) => (key as Record<any, any>)?.key === '/api/user/files'); // paged files
 }

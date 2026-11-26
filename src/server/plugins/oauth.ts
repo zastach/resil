@@ -1,3 +1,4 @@
+import { discordRolePolicy } from '@/lib/oauth/discord-roles';
 import { ApiError } from '@/lib/api/errors';
 import { config } from '@/lib/config';
 import { createToken } from '@/lib/crypto';
@@ -57,6 +58,7 @@ async function oauthPlugin(fastify: FastifyInstance) {
     provider: OAuthProviderType,
     handler: (query: OAuthQuery, logger: Logger) => Promise<OAuthResponse>,
   ) {
+    if (discordRolePolicy() && provider !== 'DISCORD') throw new ApiError(3017);
     const logger = log('api').c('auth').c('oauth').c(provider.toLowerCase());
     const session = await getSession(this, reply);
 

@@ -3,12 +3,10 @@ import { useUserStore } from '@/lib/client/store/user';
 import { showNotification } from '@mantine/notifications';
 import { IconLogout } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { mutate } from 'swr';
 
 export function useLogout() {
   const setUser = useUserStore((state) => state.setUser);
-  const navigate = useNavigate();
   const { t } = useTranslation('layout');
 
   const logout = async () => {
@@ -18,13 +16,19 @@ export function useLogout() {
       autoClose: 700,
     });
 
-    const res = await fetch('/api/auth/logout');
-    if (res.ok) {
-      const data: Response['/api/auth/logout'] = await res.json();
-      setUser(null);
-      await mutate('/api/user', null, false);
-      if (data.redirectUrl) window.location.href = data.redirectUrl;
-      else navigate('/auth/login');
+    try {
+      const res = await fetch('/api/auth/logout', { cache: 'no-store' });
+      if (res.ok) {
+        const data: Response['/api/auth/logout'] = await res.json();
+        setUser(null);
+        await mutate('/api/user', null, false);
+        if (data.redirectUrl) window.location.href = data.redirectUrl;
+        else window.location.replace('/auth/login?logged_out=true');
+      } else {
+        throw new Error(`Logout failed (HTTP ${res.status})`);
+      }
+    } catch (error) {
+      showNotification({ color: 'red', message: error instanceof Error ? error.message : 'Logout failed' });
     }
   };
 

@@ -1,3 +1,5 @@
+import { readUploadOrganization } from '@/lib/api/image-organization';
+import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import { ApiError } from '@/lib/api/errors';
 import {
   checkQuota,
@@ -36,8 +38,10 @@ export type ApiUploadResponse = {
   files: {
     id: string;
     name: string;
+    originalName?: string;
     type: string;
     url: string;
+    size?: number;
     pending?: boolean;
     removedGps?: boolean;
     compressed?: Omit<CompressResult, 'buffer'>;
@@ -75,8 +79,10 @@ export default typedPlugin(
                   z.object({
                     id: z.string(),
                     name: z.string(),
+                    originalName: z.string().optional(),
                     type: z.string(),
                     url: z.string(),
+                    size: z.number().optional(),
                     pending: z.boolean().optional(),
                     removedGps: z.boolean().optional(),
                     compressed: z
@@ -97,6 +103,8 @@ export default typedPlugin(
         },
       },
       async (req, res) => {
+        if (req.headers['x-zipline-filename'] !== undefined || req.headers['x-zipline-domain'] !== undefined)
+          throw new ApiError(1001, 'Upload filename and domain overrides are disabled.');
         const options = parseHeaders(req.headers, config.files);
 
         if (options.partial) throw new ApiError(1001, 'bad options, receieved: partial upload');
@@ -125,6 +133,7 @@ export default typedPlugin(
 
         if (!multipartFiles.length) throw new ApiError(1062);
 
+        const organization = readUploadOrganization(multipartFiles[0].fields, multipartFiles.length);
         const totalFileSize = multipartFiles.reduce((acc, x) => acc + x.file.bytesRead, 0);
 
         // use quota of user if anonymous
@@ -169,7 +178,7 @@ export default typedPlugin(
           if (file.file.bytesRead > bytes(config.files.maxFileSize))
             throw new ApiError(
               5001,
-              `file[${i}]: File size is too large. Maximum file size is ${bytes(config.files.maxFileSize)} bytes`,
+              `file[${i}]: File size is too large. Maximum file size is ${formatResilFileLimit(bytes(config.files.maxFileSize), config.files.maxFileSize)}`,
             );
 
           // determine mimetype
@@ -244,8 +253,11 @@ export default typedPlugin(
 
         let password: string | undefined;
         if (options.password) password = await hashPassword(options.password);
-        const uploads = prepared.map((item) => {
+        const uploads = prepared.map((item, index) => {
           const { file, extension, mimetype, size, compressed, removedGps, originalName } = item;
+
+          if (size > bytes(config.files.maxFileSize))
+            throw new ApiError(5001, 'The processed file exceeds the maximum upload size');
 
           const data: Omit<FileInsert, 'name'> = {
             size,
@@ -258,9 +270,12 @@ export default typedPlugin(
           if (options.maxViews) data.maxViews = options.maxViews;
           if (options.discordPreviewMode) data.discordPreviewMode = options.discordPreviewMode;
           if (options.discordComponentEmbed) data.discordComponentEmbed = options.discordComponentEmbed;
+          if (password && mimetype.startsWith('image/'))
+            throw new ApiError(1001, 'Image uploads cannot be password-protected.');
           if (password) data.password = password;
           if (folder) data.folderId = folder.id;
           if (originalName) data.originalName = originalName;
+          if (folder && mimetype.startsWith('image/')) data.organization = organization?.[index];
 
           data.deletesAt = options.deletesAt && options.deletesAt !== 'never' ? options.deletesAt : null;
 
@@ -270,7 +285,7 @@ export default typedPlugin(
         const fileUploads = await db.transaction(async (tx) => {
           await lockFiles(tx);
 
-          if (quotaUser?.quota) {
+          if (quotaUser) {
             await tx.select({ id: users.id }).from(users).where(eq(users.id, quotaUser.id)).for('update');
 
             const quotaCheck = await checkQuota(
@@ -338,8 +353,10 @@ export default typedPlugin(
           const responseFile = {
             id: fileUpload.id,
             name: fileUpload.name,
+            originalName: fileUpload.originalName ?? undefined,
             type: fileUpload.type,
             url: responseUrl,
+            size: fileUpload.size,
             removedGps: removedGps || undefined,
             compressed: compressedResponse,
           };

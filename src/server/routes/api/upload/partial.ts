@@ -1,3 +1,4 @@
+import { readUploadOrganization } from '@/lib/api/image-organization';
 import { ApiError } from '@/lib/api/errors';
 import {
   claimPartial,
@@ -90,6 +91,8 @@ export default typedPlugin(
         onResponse: cleanupClaimedPartial,
       },
       async (req, res) => {
+        if (req.headers['x-zipline-filename'] !== undefined || req.headers['x-zipline-domain'] !== undefined)
+          throw new ApiError(1001, 'Upload filename and domain overrides are disabled.');
         const options = parseHeaders(req.headers, config.files);
 
         if (!options.partial) throw new ApiError(1004);
@@ -187,6 +190,8 @@ export default typedPlugin(
             userId: req.user ? req.user.id : options.folder ? folder?.userId : undefined,
           };
 
+          if (options.password && mimetype.startsWith('image/'))
+            throw new ApiError(1001, 'Image uploads cannot be password-protected.');
           if (options.password) {
             const password = await hashPassword(options.password);
             data.password = password;
@@ -194,7 +199,11 @@ export default typedPlugin(
           if (options.maxViews) data.maxViews = options.maxViews;
           if (options.discordPreviewMode) data.discordPreviewMode = options.discordPreviewMode;
           if (options.discordComponentEmbed) data.discordComponentEmbed = options.discordComponentEmbed;
-          if (folder) data.folderId = folder.id;
+          if (folder) {
+            data.folderId = folder.id;
+            if (mimetype.startsWith('image/'))
+              data.organization = readUploadOrganization(file.fields, 1)?.[0];
+          }
           if (options.addOriginalName) {
             const sanitizedOG = sanitizeFilename(options.partial.filename);
             if (!sanitizedOG) throw new ApiError(1008);
@@ -206,7 +215,7 @@ export default typedPlugin(
           const fileUpload = await db.transaction(async (tx) => {
             await lockFiles(tx);
 
-            if (quotaUser?.quota) {
+            if (quotaUser) {
               await tx.select({ id: users.id }).from(users).where(eq(users.id, quotaUser.id)).for('update');
 
               const quotaCheck = await checkQuota(quotaUser, total, 1, tx);
@@ -359,6 +368,7 @@ export default typedPlugin(
           response.files.push({
             id: fileUpload.id,
             name: fileUpload.name,
+            originalName: fileUpload.originalName ?? undefined,
             type: fileUpload.type,
             url: responseUrl,
             pending: true,

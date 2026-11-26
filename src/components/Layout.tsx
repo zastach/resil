@@ -1,10 +1,10 @@
+import { hasAcceptedResilPolicy } from '@/lib/resil-policy';
+import ResilBrand from './ResilBrand';
 import type { Response } from '@/lib/api/response';
 import useAvatar from '@/lib/client/hooks/useAvatar';
 import useLogin from '@/lib/client/hooks/useLogin';
 import { useLogout } from '@/lib/client/hooks/useLogout';
-import { useUserStore } from '@/lib/client/store/user';
 import type { SafeConfig } from '@/lib/config/safe';
-import { fetchApi } from '@/lib/fetchApi';
 import { isAdministrator } from '@/lib/role';
 import {
   AppShell,
@@ -13,33 +13,29 @@ import {
   Burger,
   Button,
   Divider,
+  Container,
+  Loader,
+  Center,
   Group,
   Menu,
   NavLink,
   Paper,
   ScrollArea,
-  Title,
   useMantineColorScheme,
   useMantineTheme,
 } from '@mantine/core';
-import { useClipboard } from '@mantine/hooks';
-import { useModals } from '@mantine/modals';
-import { showNotification } from '@mantine/notifications';
 import {
   IconAdjustments,
   IconChevronDown,
   IconChevronRight,
-  IconClipboardCopy,
   IconExternalLink,
   IconFileText,
-  IconFileUpload,
   IconFiles,
   IconFolder,
   IconGraph,
   IconHome,
   IconLink,
   IconLogout,
-  IconRefreshDot,
   IconSettingsFilled,
   IconShieldLockFilled,
   IconStopwatch,
@@ -54,6 +50,7 @@ import { Link, NavigateFunction, Outlet, useLoaderData, useLocation, useNavigate
 import type { dashboardLoader } from '../client/routes';
 import ConfigProvider from './ConfigProvider';
 import LanguageSelect from './LanguageSelect';
+import ResilPolicyNotice from './ResilPolicyNotice';
 import VersionBadge from './VersionBadge';
 import DashboardUpload from './upload/DashboardUpload';
 import { SETTINGS_EXTERNAL_LINKS } from './pages/serverSettings';
@@ -70,13 +67,19 @@ type NavLinks = {
 // built at render time so labels follow the active language
 const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): NavLinks[] => [
   {
-    label: t('nav.home'),
+    label: 'Upload Images',
+    icon: <IconUpload size='1rem' />,
+    active: (path) => path === '/dashboard/upload/file',
+    href: '/dashboard/upload/file',
+  },
+  {
+    label: 'Dashboard',
     icon: <IconHome size='1rem' />,
     active: (path: string) => path === '/dashboard',
     href: '/dashboard',
   },
   {
-    label: t('nav.metrics'),
+    label: 'Statistics',
     icon: <IconGraph size='1rem' />,
     active: (path: string) => path === '/dashboard/metrics',
     href: '/dashboard/metrics',
@@ -85,41 +88,41 @@ const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): Na
       (config.features.metrics.adminOnly ? isAdministrator(user?.role) : true),
   },
   {
-    label: t('nav.files'),
+    label: 'My Images',
     icon: <IconFiles size='1rem' />,
     active: (path: string) => path === '/dashboard/files',
     href: '/dashboard/files',
   },
   {
-    label: t('nav.folders'),
+    label: 'My Folders',
     icon: <IconFolder size='1rem' />,
     active: (path: string) => path === '/dashboard/folders',
     href: '/dashboard/folders',
   },
   {
-    label: t('nav.upload'),
-    icon: <IconUpload size='1rem' />,
-    active: (path: string) => path.startsWith('/dashboard/upload'),
+    label: 'Account Settings',
+    icon: <IconSettingsFilled size='1rem' />,
+    active: (path) => path === '/dashboard/settings',
+    href: '/dashboard/settings',
+  },
+  {
+    label: 'Advanced',
+    icon: <IconAdjustments size='1rem' />,
+    active: (path) => path === '/dashboard/upload/text' || path.startsWith('/dashboard/urls'),
     links: [
-      {
-        label: t('nav.uploadFile'),
-        icon: <IconFileUpload size='1rem' />,
-        active: (path: string) => path === '/dashboard/upload/file',
-        href: '/dashboard/upload/file',
-      },
       {
         label: t('nav.uploadText'),
         icon: <IconFileText size='1rem' />,
-        active: (path: string) => path === '/dashboard/upload/text',
+        active: (path) => path === '/dashboard/upload/text',
         href: '/dashboard/upload/text',
       },
+      {
+        label: t('nav.urls'),
+        icon: <IconLink size='1rem' />,
+        active: (path) => path === '/dashboard/urls',
+        href: '/dashboard/urls',
+      },
     ],
-  },
-  {
-    label: t('nav.urls'),
-    icon: <IconLink size='1rem' />,
-    active: (path: string) => path === '/dashboard/urls',
-    href: '/dashboard/urls',
   },
   {
     label: t('nav.administrator'),
@@ -234,9 +237,6 @@ export default function Layout() {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const [opened, setOpened] = useState(false);
-  const modals = useModals();
-  const clipboard = useClipboard();
-  const setUser = useUserStore((s) => s.setUser);
   const location = useLocation();
   const navigate = useNavigate();
   const logout = useLogout();
@@ -253,62 +253,21 @@ export default function Layout() {
     setOpened(false);
   }
 
-  const copyToken = () => {
-    modals.openConfirmModal({
-      title: t('token.copy.title'),
-      children: t('token.copy.message'),
-      labels: { confirm: t('common:actions.copy'), cancel: t('token.cancel') },
-      onConfirm: async () => {
-        const { data, error } = await fetchApi<Response['/api/user/token']>('/api/user/token');
-        if (error) {
-          showNotification({
-            title: t('common:status.error'),
-            message: error.error,
-            color: 'red',
-            icon: <IconClipboardCopy size='1rem' />,
-          });
-        } else {
-          clipboard.copy(data?.token ?? '');
-          showNotification({
-            title: t('token.copied.title'),
-            message: t('token.copied.message'),
-            color: 'green',
-            icon: <IconClipboardCopy size='1rem' />,
-          });
-        }
-      },
-    });
-  };
+  if (!user)
+    return (
+      <Center mih='100dvh'>
+        <Loader aria-label='Loading account' />
+      </Center>
+    );
 
-  const refreshToken = () => {
-    modals.openConfirmModal({
-      title: t('token.refresh.title'),
-
-      children: t('token.refresh.message'),
-      labels: { confirm: t('common:actions.refresh'), cancel: t('token.cancel') },
-      onConfirm: async () => {
-        const { data, error } = await fetchApi<Response['/api/user/token']>('/api/user/token', 'PATCH');
-        if (error) {
-          showNotification({
-            title: t('common:status.error'),
-            message: error.error,
-            color: 'red',
-            icon: <IconRefreshDot size='1rem' />,
-          });
-        } else {
-          setUser(data?.user);
-          mutate(data as Response['/api/user']);
-
-          showNotification({
-            title: t('token.refreshed.title'),
-            message: t('token.refreshed.message'),
-            color: 'green',
-            icon: <IconRefreshDot size='1rem' />,
-          });
-        }
-      },
-    });
-  };
+  if (!hasAcceptedResilPolicy(user)) {
+    return (
+      <Container component='main' size='sm' py='xl'>
+        <ResilBrand large />
+        <ResilPolicyNotice key={user.id} refreshUser={mutate} logout={logout} />
+      </Container>
+    );
+  }
 
   return (
     <ConfigProvider data={loaderData}>
@@ -330,19 +289,7 @@ export default function Layout() {
                 bdrs='md'
               />
 
-              {config.website.titleLogo && (
-                <Avatar
-                  src={config.website.titleLogo}
-                  alt={t('header.logoAlt')}
-                  radius='sm'
-                  size='md'
-                  mr='md'
-                />
-              )}
-
-              <Title visibleFrom='sm' lineClamp={1} size={32}>
-                {config.website.title.trim()}
-              </Title>
+              <ResilBrand />
 
               <Group gap='xs' wrap='nowrap' style={{ marginLeft: 'auto' }}>
                 <LanguageSelect />
@@ -378,18 +325,6 @@ export default function Layout() {
                         : user?.username}
                     </Menu.Label>
 
-                    <Menu.Item leftSection={<IconClipboardCopy size='1rem' />} onClick={copyToken}>
-                      {t('userMenu.copyToken')}
-                    </Menu.Item>
-                    <Menu.Item
-                      color='red'
-                      leftSection={<IconRefreshDot size='1rem' />}
-                      onClick={refreshToken}
-                    >
-                      {t('userMenu.refreshToken')}
-                    </Menu.Item>
-                    <Menu.Divider />
-
                     <Menu.Item
                       leftSection={<IconSettingsFilled size='1rem' />}
                       component={Link}
@@ -421,11 +356,6 @@ export default function Layout() {
           </AppShell.Header>
 
           <AppShell.Navbar hidden={!opened} zIndex={90}>
-            <Title hiddenFrom='sm' size={24} m='sm' style={{ marginBottom: 20 }}>
-              {config.website.title.trim()}
-            </Title>
-            <Divider hiddenFrom='sm' />
-
             <ScrollArea mah='calc(100vh - 200px)'>
               {renderLinks(
                 buildNavLinks(t),
@@ -443,6 +373,45 @@ export default function Layout() {
 
               <ScrollArea mah='auto'>
                 <Box>
+                  <NavLink
+                    label='Upload for a Rust Sign'
+                    component={Link}
+                    to='/dashboard/image-optimizer'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Rust Image Guide'
+                    component={Link}
+                    to='/auth/image-guide'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Terms of Service'
+                    component={Link}
+                    to='/auth/terms'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Privacy Policy'
+                    component={Link}
+                    to='/auth/privacy'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Contact Us'
+                    component={Link}
+                    to='/auth/contact'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink
+                    label='Rust Empires'
+                    component='a'
+                    href='https://rustempires.com/'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    leftSection={<IconExternalLink size='1rem' />}
+                  />
+                  <NavLink label='Sign Out' onClick={logout} leftSection={<IconLogout size='1rem' />} />
                   {config.website.externalLinks.map(({ name, url }, i) => (
                     <NavLink
                       key={i}

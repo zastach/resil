@@ -178,7 +178,7 @@ export default function EditFileDetailsModal({
           >
             {t('edit.removePassword')}
           </Button>
-        ) : (
+        ) : file.type.startsWith('image/') ? null : (
           <PasswordInput
             label={t('edit.password.label')}
             description={t('edit.password.description')}

@@ -3,6 +3,7 @@ import { fetchToDataURL } from '@/lib/base64';
 import { config } from '@/lib/config';
 import Logger from '@/lib/logger';
 import enabled from '@/lib/oauth/enabled';
+import { discordMembership, discordRolePolicy } from '@/lib/oauth/discord-roles';
 import { generateOAuthState } from '@/lib/oauth/state';
 import { discordAuthorizeURL, discordUser } from '@/lib/oauth/providers';
 import { OAuthQuery, OAuthResponse } from '@/server/plugins/oauth';
@@ -37,7 +38,7 @@ async function discordOauth(
     redirect_uri:
       config.oauth.discord.redirectUri ??
       `${config.core.returnHttpsUrls ? 'https' : 'http'}://${host}/api/auth/oauth/discord`,
-    scope: 'identify',
+    scope: discordRolePolicy() ? 'identify guilds.members.read' : 'identify',
   });
 
   const res = await fetch('https://discord.com/api/oauth2/token', {
@@ -59,6 +60,12 @@ async function discordOauth(
   const json = await res.json().catch(() => null);
   if (!json || typeof json !== 'object' || json.error) throw new ApiError(6008);
   if (typeof json.access_token !== 'string' || !json.access_token) throw new ApiError(6005);
+
+  if ((await discordMembership(json.access_token)) !== 'allowed')
+    throw new ApiError(
+      3017,
+      'Discord sign-in is available to Verified Members of the Rust Empires Discord server.',
+    );
 
   const userJson = await discordUser({
     accessToken: json.access_token,

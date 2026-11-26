@@ -1,5 +1,7 @@
 import { resolve } from 'path';
 import { z } from 'zod';
+import { bytes } from '../bytes';
+import { RESIL_MAX_FILE_BYTES } from '../resil-upload-limits';
 import { log } from '../logger';
 import { ParsedConfig } from './read';
 import { PROP_TO_ENV } from './read/env';
@@ -182,7 +184,10 @@ const configSchema = z.object({
     disabledTypes: z.array(z.string().regex(MIME_REGEX, 'Invalid MIME type format')).default([]),
     disabledTypesDefault: z.string().nullable().default(null),
     disabledExtensions: z.array(z.string()).default([]),
-    maxFileSize: z.string().default('100mb'),
+    maxFileSize: z
+      .string()
+      .default(`${RESIL_MAX_FILE_BYTES}b`)
+      .transform((limit) => (bytes(limit) > RESIL_MAX_FILE_BYTES ? `${RESIL_MAX_FILE_BYTES}b` : limit)),
     defaultExpiration: expirationSchema,
     maxExpiration: expirationSchema,
     assumeMimetypes: z.boolean().default(false),

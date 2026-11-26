@@ -1,3 +1,4 @@
+import { formatResilFileLimit } from '@/lib/resil-upload-limits';
 import SafeTrans from '@/components/SafeTrans';
 import { Response } from '@/lib/api/response';
 import { bytes } from '@/lib/bytes';
@@ -21,7 +22,12 @@ const FILES_PER_REQUEST = 500;
 
 export async function uploadFileBatch(
   files: File[],
-  { config, ...context }: UploadContextHandlers & UploadHeadersOptions & { config: SafeConfig },
+  {
+    config,
+    labels,
+    ...context
+  }: UploadContextHandlers &
+    UploadHeadersOptions & { config: SafeConfig; labels?: ReadonlyMap<File, string> },
 ) {
   const maxBytes = config.chunks.enabled && bytes(config.chunks.max);
   const partialUploads = maxBytes ? files.filter((file) => file.size >= maxBytes) : [];
@@ -31,7 +37,7 @@ export async function uploadFileBatch(
   let uploadedPartial: Awaited<ReturnType<typeof uploadPartialFiles>> = null;
 
   if (normalUploads.length > 0) {
-    const size = normalUploads.reduce((acc, file) => acc + file.size, 0);
+    const size = normalUploads.reduce((largest, file) => Math.max(largest, file.size), 0);
     if (size > bytes(config.files.maxFileSize)) {
       notifications.show({
         title: i18n.t('upload:file.notifications.mayFail.title'),
@@ -41,7 +47,13 @@ export async function uploadFileBatch(
           <SafeTrans
             ns='upload'
             i18nKey='file.notifications.mayFail.message'
-            values={{ size: bytes(size), limit: bytes(bytes(config.files.maxFileSize)) }}
+            values={{
+              size: bytes(size),
+              limit: formatResilFileLimit(
+                bytes(config.files.maxFileSize),
+                bytes(bytes(config.files.maxFileSize)),
+              ),
+            }}
             components={{ b: <b /> }}
           />
         ),
@@ -64,7 +76,12 @@ export async function uploadFileBatch(
 
   const allFiles = [...(uploadedNormal?.files ?? []), ...(uploadedPartial?.files ?? [])];
   if (allFiles.length > 0) {
+    const resultLabels = labels && [
+      ...(uploadedNormal?.files.map((_, i) => labels.get(normalUploads[i])) ?? []),
+      ...(uploadedPartial?.files.map((_, i) => labels.get(partialUploads[i])) ?? []),
+    ];
     showUploadModal(allFiles, {
+      labels: resultLabels,
       clipboard: context.clipboard,
       clearEphemeral: () => {
         if (allFiles.length === files.length) context.clearEphemeral();
@@ -120,6 +137,7 @@ export async function uploadFiles(
     ephemeral,
     folder,
     partials,
+    organization,
     showResult = true,
   }: UploadContextHandlers & UploadHeadersOptions & { showResult?: boolean },
 ): Promise<{ files: Response['/api/upload']['files'] } | null> {
@@ -148,6 +166,11 @@ export async function uploadFiles(
   const uploadBatch = async (batchFiles: File[], completedBytes: number) =>
     new Promise<Response['/api/upload']>((resolve, reject) => {
       const body = new FormData();
+      if (organization)
+        body.append(
+          'resil-organization',
+          JSON.stringify(batchFiles.map((file) => organization.get(file) ?? null)),
+        );
       const batchBytes = batchFiles.reduce((acc, file) => acc + file.size, 0);
 
       for (let i = 0; i !== batchFiles.length; ++i) body.append('file', batchFiles[i]);

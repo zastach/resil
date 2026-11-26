@@ -3,7 +3,6 @@ import { db } from '@/lib/db';
 import { userSessions } from '@/lib/db/schema';
 import { log } from '@/lib/logger';
 import { oidcLogoutURL } from '@/lib/oauth/providers';
-import { userMiddleware } from '@/server/middleware/user';
 import { getSession } from '@/server/session';
 import typedPlugin from '@/server/typedPlugin';
 import { and, eq } from 'drizzle-orm';
@@ -33,23 +32,24 @@ export default typedPlugin(
           },
           tags: ['auth'],
         },
-        preHandler: [userMiddleware],
       },
       async (req, res) => {
         const current = await getSession(req, res);
 
-        const [deletedSession] = await db
-          .delete(userSessions)
-          .where(and(eq(userSessions.userId, req.user.id), eq(userSessions.id, current.sessionId!)))
-          .returning({
-            oauthProvider: userSessions.oauthProvider,
-            oidcIdToken: userSessions.oidcIdToken,
-          });
+        const [deletedSession] =
+          current.id && current.sessionId
+            ? await db
+                .delete(userSessions)
+                .where(and(eq(userSessions.userId, current.id), eq(userSessions.id, current.sessionId)))
+                .returning({
+                  oauthProvider: userSessions.oauthProvider,
+                  oidcIdToken: userSessions.oidcIdToken,
+                })
+            : [];
 
         current.destroy();
 
         logger.info('user logged out', {
-          user: req.user.username,
           ip: req.ip ?? 'unknown',
           ua: req.headers['user-agent'],
         });

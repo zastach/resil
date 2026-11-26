@@ -1,14 +1,9 @@
-import { config } from '@/lib/config';
 import typedPlugin from '../typedPlugin';
 
 export const PATH = '/robots.txt';
 export default typedPlugin(
   async (server) => {
-    server.get(PATH, async (_, res) => {
-      if (!config.features.robotsTxt) return res.callNotFound();
-
-      return 'User-Agent: *\nDisallow: /';
-    });
+    server.get(PATH, (_, res) => res.type('text/plain').send('User-agent: *\nDisallow: /\n'));
   },
   { name: PATH },
 );

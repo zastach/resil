@@ -1,3 +1,4 @@
+import { requireDiscordRole } from '@/server/middleware/discord-roles';
 import { ApiError } from '@/lib/api/errors';
 import { ziplineClientParseSchema } from '@/lib/api/detect';
 import { verifyPassword } from '@/lib/crypto';
@@ -84,6 +85,7 @@ export default typedPlugin(
             totp: true,
           });
 
+        await requireDiscordRole(user);
         await saveSession(session, user, false);
 
         logger.info('user logged in successfully', {
