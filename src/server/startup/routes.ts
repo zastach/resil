@@ -55,6 +55,7 @@ export async function registerRoutes(server: FastifyInstance, mode: string) {
     server.serveIndex('/auth*');
     server.serveIndex('/folder*');
     server.serveIndex('/devtools');
+    server.serveIndex('/roadmap');
     server.serveIndex('/devtools/*');
   }
 

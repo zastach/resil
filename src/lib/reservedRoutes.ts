@@ -1,5 +1,6 @@
 export const RESERVED_ROUTES = [
   '/dashboard',
+  '/roadmap',
   '/auth',
   '/api',
   '/raw',

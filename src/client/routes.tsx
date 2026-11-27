@@ -40,6 +40,7 @@ export const router = createBrowserRouter([
           {
             children: [
               { path: 'auth/login', Component: Login },
+              { path: 'roadmap', lazy: () => import('./pages/roadmap') },
               { path: 'auth/register', lazy: () => import('./pages/auth/register') },
               {
                 path: 'auth/setup',
