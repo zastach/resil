@@ -46,7 +46,7 @@ const stages = [
         icon: IconFlag,
         summary: 'Sign up with your clan to raid a giant base together.',
         detail:
-          'Multiple clans sign up for one massive raid in a large PvP zone. Work together to crack the base, and watch out for grubs looking to steal the loot.',
+          'Multiple clans sign up for one massive raid in a large PvP zone. Clans work together to crack the base. Solo players can sign up as grubs and try to steal the loot.',
       },
     ],
   },
