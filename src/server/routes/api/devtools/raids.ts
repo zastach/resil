@@ -96,16 +96,21 @@ export default typedPlugin(async (server) => {
     { preHandler: machine('PUBLISH'), bodyLimit: 16 * 1024 * 1024 },
     async (req) => {
       const { name, tier, data } = draft.pick({ name: true, tier: true, data: true }).parse(req.body);
-      const code = randomUUID().replaceAll('-', '');
+
       await db.execute(sql`DELETE FROM resil_raid_imports WHERE expires<=now()`);
-      await db.execute(
-        sql`INSERT INTO resil_raid_imports(code,name,tier,data) VALUES (${code},${name},${tier},${JSON.stringify(data)}::jsonb)`,
-      );
-      return { code };
+      const alphabet = '0123456789abcdefghjkmnpqrstvwxyz';
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = Array.from(randomBytes(10), (byte) => alphabet[byte & 31]).join('');
+        const inserted = await db.execute(
+          sql`INSERT INTO resil_raid_imports(code,name,tier,data) VALUES (${code},${name},${tier},${JSON.stringify(data)}::jsonb) ON CONFLICT DO NOTHING RETURNING code`,
+        );
+        if (inserted.rows.length) return { code };
+      }
+      throw new Error('Could not allocate a raid import code');
     },
   );
   server.post(PATH + '/import', { preHandler: authenticateUser }, async (req, res) => {
-    const { code } = z.object({ code: key }).parse(req.body);
+    const { code } = z.object({ code: z.string().trim().toLowerCase().regex(/^(?:[0-9a-hjkmnp-tv-z]{10}|[a-f0-9]{32})$/) }).parse(req.body);
     const result = await db.execute(sql`UPDATE resil_raid_imports SET claimant=${req.user.id}
       WHERE code=${code} AND expires>now() AND (claimant IS NULL OR claimant=${req.user.id})
       RETURNING name,tier,data`);
