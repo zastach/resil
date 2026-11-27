@@ -7,6 +7,7 @@ import { useLogout } from '@/lib/client/hooks/useLogout';
 import type { SafeConfig } from '@/lib/config/safe';
 import { isAdministrator } from '@/lib/role';
 import {
+  Anchor,
   AppShell,
   Avatar,
   Box,
@@ -400,44 +401,28 @@ export default function Layout() {
                     to='/auth/image-guide'
                     leftSection={<IconExternalLink size='1rem' />}
                   />
-                  <NavLink
-                    label='Terms of Service'
-                    component={Link}
-                    to='/auth/terms'
-                    leftSection={<IconExternalLink size='1rem' />}
-                  />
-                  <NavLink
-                    label='Privacy Policy'
-                    component={Link}
-                    to='/auth/privacy'
-                    leftSection={<IconExternalLink size='1rem' />}
-                  />
-                  <NavLink
-                    label='Contact Us'
-                    component={Link}
-                    to='/auth/contact'
-                    leftSection={<IconExternalLink size='1rem' />}
-                  />
-                  <NavLink
-                    label='Rust Empires'
-                    component='a'
-                    href='https://rustempires.com/'
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    leftSection={<IconExternalLink size='1rem' />}
-                  />
                   <NavLink label='Sign Out' onClick={logout} leftSection={<IconLogout size='1rem' />} />
-                  {config.website.externalLinks.map(({ name, url }, i) => (
-                    <NavLink
-                      key={i}
-                      label={name}
-                      leftSection={<IconExternalLink size='1rem' />}
-                      variant='light'
-                      component={Link}
-                      to={url}
-                      target='_blank'
-                    />
-                  ))}
+                  {config.website.externalLinks
+                    .filter(
+                      ({ url }) =>
+                        ![
+                          'https://rustempires.com',
+                          '/auth/terms',
+                          '/auth/privacy',
+                          '/auth/contact',
+                        ].includes(url.replace(/\/$/, '')),
+                    )
+                    .map(({ name, url }, i) => (
+                      <NavLink
+                        key={i}
+                        label={name}
+                        leftSection={<IconExternalLink size='1rem' />}
+                        variant='light'
+                        component={Link}
+                        to={url}
+                        target='_blank'
+                      />
+                    ))}
                 </Box>
               </ScrollArea>
             </div>
@@ -447,9 +432,30 @@ export default function Layout() {
             <Paper withBorder m='md' p='xs' radius='md'>
               <Outlet />
             </Paper>
+            <Group component='footer' gap='sm' px='md' py='xs' justify='center'>
+              <Anchor component={Link} size='xs' c='dimmed' to='/roadmap'>
+                Roadmap
+              </Anchor>
+              <Anchor component={Link} size='xs' c='dimmed' to='/auth/terms'>
+                Terms of Service
+              </Anchor>
+              <Anchor component={Link} size='xs' c='dimmed' to='/auth/privacy'>
+                Privacy Policy
+              </Anchor>
+              <Anchor component={Link} size='xs' c='dimmed' to='/auth/contact'>
+                Contact Us
+              </Anchor>
+              <Anchor
+                size='xs'
+                c='dimmed'
+                href='https://rustempires.com/'
+                target='_blank'
+                rel='noopener noreferrer'
+              >
+                Rust Empires
+              </Anchor>
+            </Group>
           </AppShell.Main>
-
-          <AppShell.Footer display='none' />
         </AppShell>
       </DashboardUpload>
     </ConfigProvider>
