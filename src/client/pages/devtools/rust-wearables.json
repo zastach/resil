@@ -9,72 +9,242 @@
     "name": "Arctic Suit",
     "itemId": -470439097,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "attire.banditguard",
-    "name": "Attire Banditguard",
-    "slots": ["Chest"]
+    "name": "Bandit Guard Gear",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand"
+    ]
   },
   {
     "shortname": "attire.bunnyears",
-    "name": "Attire Bunnyears",
-    "slots": ["Head"]
+    "name": "Bunny Ears",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "under:HeadTop", "under:HeadBack"]
   },
   {
     "shortname": "attire.egg.suit",
-    "name": "Attire Egg Suit",
-    "slots": ["Chest"]
+    "name": "Egg Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "attire.hide.boots",
-    "name": "Attire Hide Boots",
-    "slots": ["Feet"]
+    "name": "Hide Boots",
+    "slots": ["Feet"],
+    "coverage": ["over:LeftFoot", "over:RightFoot", "under:LeftFoot", "under:RightFoot"]
   },
   {
     "shortname": "attire.hide.helterneck",
-    "name": "Attire Hide Helterneck",
-    "slots": ["Chest"]
+    "name": "Hide Halterneck",
+    "slots": ["Chest"],
+    "coverage": ["under:TorsoFront", "under:TorsoBack", "under:LeftShoulder", "under:RightShoulder"]
   },
   {
     "shortname": "attire.hide.pants",
-    "name": "Attire Hide Pants",
-    "slots": ["Legs"]
+    "name": "Hide Pants",
+    "slots": ["Legs"],
+    "coverage": [
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "attire.hide.poncho",
-    "name": "Attire Hide Poncho",
-    "slots": ["Chest"]
+    "name": "Hide Poncho",
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "attire.hide.skirt",
-    "name": "Attire Hide Skirt",
-    "slots": ["Legs"]
+    "name": "Hide Skirt",
+    "slots": ["Legs"],
+    "coverage": ["under:Groin", "under:Bum", "under:LeftKnee", "under:RightKnee"]
   },
   {
     "shortname": "attire.hide.vest",
-    "name": "Attire Hide Vest",
-    "slots": ["Chest"]
+    "name": "Hide Vest",
+    "slots": ["Chest"],
+    "coverage": ["under:TorsoFront", "under:TorsoBack", "under:LeftShoulder", "under:RightShoulder"]
   },
   {
     "shortname": "attire.nesthat",
-    "name": "Attire Nesthat",
-    "slots": ["Head"]
+    "name": "Nest Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "attire.ninja.suit",
-    "name": "Attire Ninja Suit",
-    "slots": ["Chest"]
+    "name": "Ninja Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "attire.reindeer.headband",
-    "name": "Attire Reindeer Headband",
-    "slots": ["Head"]
+    "name": "Reindeer Antlers",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "attire.snowman.helmet",
-    "name": "Attire Snowman Helmet",
-    "slots": ["Head"]
+    "name": "Snowman Helmet",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "ballistic.helmet",
@@ -82,7 +252,8 @@
     "name": "Kevlar Helmet (Ballistic Helmet)",
     "itemId": 1127732084,
     "hasSkins": false,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "ballistic.legarmor",
@@ -90,7 +261,8 @@
     "name": "Kevlar Leg Armor (Ballistic Leg Armor)",
     "itemId": 1983541158,
     "hasSkins": false,
-    "slots": ["Legs"]
+    "slots": ["Legs"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "ballistic.vest",
@@ -98,788 +270,2225 @@
     "name": "Kevlar Vest (Ballistic Vest)",
     "itemId": -1780402255,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "barrelcostume",
-    "name": "Barrel Costume",
+    "name": "A Barrel Costume",
     "itemId": -1215166612,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand"
+    ]
   },
   {
     "shortname": "hat.cap",
     "name": "Baseball Cap",
     "itemId": -1022661119,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "under:HeadTop", "under:HeadBack"]
   },
   {
     "shortname": "bdu.pants",
-    "name": "Bdu Pants",
-    "slots": ["Legs"]
+    "name": "BDU Pants",
+    "slots": ["Legs"],
+    "coverage": [
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "bdu.shirt",
-    "name": "Bdu Shirt",
-    "slots": ["Chest"]
+    "name": "BDU Shirt",
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "hat.beenie",
-    "name": "Beenie Hat",
+    "name": "Beanie Hat",
     "itemId": 1675639563,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "bone.armor.suit",
-    "name": "Bone Armor Suit",
-    "slots": ["Chest"]
+    "name": "Bone Armor",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot"
+    ]
   },
   {
     "shortname": "hat.boonie",
     "name": "Boonie Hat",
     "itemId": -23994173,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "under:HeadTop"]
   },
   {
     "shortname": "shoes.boots",
     "name": "Boots",
     "itemId": -1549739227,
     "hasSkins": true,
-    "slots": ["Feet"]
+    "slots": ["Feet"],
+    "coverage": ["over:LeftFoot", "over:RightFoot", "under:LeftFoot", "under:RightFoot"]
   },
   {
     "shortname": "bucket.helmet",
     "name": "Bucket Helmet",
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "attire.bunny.onesie",
     "name": "Bunny Onesie",
     "itemId": -1266045928,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "bunny.suit",
-    "name": "Bunny Suit",
-    "slots": ["Chest"]
+    "name": "Bunny Costume",
+    "slots": ["Chest"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "burlap.gloves.new",
     "name": "Burlap Gloves",
     "itemId": 21402876,
     "hasSkins": false,
-    "slots": ["Hands"]
+    "slots": ["Hands"],
+    "coverage": ["under:LeftHand", "under:RightHand"]
   },
   {
     "shortname": "burlap.headwrap",
     "name": "Burlap Headwrap",
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "burlap.shirt",
     "name": "Burlap Shirt",
     "itemId": 602741290,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "burlap.shoes",
     "name": "Burlap Shoes",
-    "slots": ["Feet"]
+    "slots": ["Feet"],
+    "coverage": ["over:LeftFoot", "over:RightFoot", "under:LeftFoot", "under:RightFoot"]
   },
   {
     "shortname": "burlap.trousers",
     "name": "Burlap Trousers",
     "itemId": 1992974553,
     "hasSkins": false,
-    "slots": ["Legs"]
+    "slots": ["Legs"],
+    "coverage": [
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "chicken.costume",
     "name": "Chicken Costume",
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "clatter.helmet",
     "name": "Clatter Helmet",
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes", "under:HeadTop", "under:HeadBack"]
   },
   {
     "shortname": "cocoknight.armor.gloves",
-    "name": "Cocoknight Armor Gloves",
-    "slots": ["Hands"]
+    "name": "Coconut Armor Gloves",
+    "slots": ["Hands"],
+    "coverage": ["under:LeftHand", "under:RightHand"]
   },
   {
     "shortname": "cocoknight.armor.helmet",
-    "name": "Cocoknight Armor Helmet",
-    "slots": ["Head"]
+    "name": "Coconut Armor Helmet",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "under:HeadTop"]
   },
   {
     "shortname": "cocoknight.armor.pants",
-    "name": "Cocoknight Armor Pants",
-    "slots": ["Legs"]
+    "name": "Coconut Armor Pants",
+    "slots": ["Legs"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "cocoknight.armor.torso",
-    "name": "Cocoknight Armor Torso",
-    "slots": ["Chest"]
+    "name": "Coconut Armor Chestplate",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm"
+    ]
   },
   {
     "shortname": "coffeecan.helmet",
     "name": "Coffee Can Helmet",
     "itemId": -803263829,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "cratecostume",
     "name": "Crate Costume",
     "itemId": 1189981699,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand"
+    ]
   },
   {
     "shortname": "deer.skull.mask",
-    "name": "Deer Skull Mask",
-    "slots": ["Head"]
+    "name": "Bone Helmet",
+    "slots": ["Head"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack"
+    ]
   },
   {
     "shortname": "diving.fins",
     "name": "Diving Fins",
-    "slots": ["Feet"]
+    "slots": ["Feet"],
+    "coverage": ["over:LeftFoot", "over:RightFoot", "under:LeftFoot", "under:RightFoot"]
   },
   {
     "shortname": "diving.mask",
     "name": "Diving Mask",
     "itemId": -113413047,
     "hasSkins": false,
-    "slots": ["Head"]
+    "slots": ["Head", "Accessory"],
+    "coverage": ["over:Face", "over:Eyes"]
   },
   {
     "shortname": "diving.tank",
     "name": "Diving Tank",
     "itemId": -2022172587,
     "hasSkins": false,
-    "slots": ["Accessory"]
+    "slots": ["Accessory"],
+    "coverage": ["over:TorsoBack", "over:Back"]
   },
   {
     "shortname": "diving.tank.double",
     "name": "Double Diving Tank",
     "itemId": -1559420426,
     "hasSkins": false,
-    "slots": ["Accessory"]
+    "slots": ["Accessory"],
+    "coverage": ["over:TorsoBack", "over:Back"]
   },
   {
     "shortname": "draculacape",
-    "name": "Draculacape",
-    "slots": ["Chest"]
+    "name": "Dracula Cape",
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "draculamask",
-    "name": "Draculamask",
-    "slots": ["Head"]
+    "name": "Dracula Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "frankensteinmask",
-    "name": "Frankensteinmask",
-    "slots": ["Head"]
+    "name": "Frankenstein Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "frankensteins.monster.01.head",
-    "name": "Frankensteins Monster 01 Head",
-    "slots": ["Head"]
+    "name": "Light Frankenstein Head",
+    "slots": ["Head"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.01.legs",
-    "name": "Frankensteins Monster 01 Legs",
-    "slots": ["Legs"]
+    "name": "Light Frankenstein Legs",
+    "slots": ["Legs"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.01.torso",
-    "name": "Frankensteins Monster 01 Torso",
-    "slots": ["Chest"]
+    "name": "Light Frankenstein Torso",
+    "slots": ["Chest"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.02.head",
-    "name": "Frankensteins Monster 02 Head",
-    "slots": ["Head"]
+    "name": "Medium Frankenstein Head",
+    "slots": ["Head"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.02.legs",
-    "name": "Frankensteins Monster 02 Legs",
-    "slots": ["Legs"]
+    "name": "Medium Frankenstein Legs",
+    "slots": ["Legs"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.02.torso",
-    "name": "Frankensteins Monster 02 Torso",
-    "slots": ["Chest"]
+    "name": "Medium Frankenstein Torso",
+    "slots": ["Chest"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.03.head",
-    "name": "Frankensteins Monster 03 Head",
-    "slots": ["Head"]
+    "name": "Heavy Frankenstein Head",
+    "slots": ["Head"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.03.legs",
-    "name": "Frankensteins Monster 03 Legs",
-    "slots": ["Legs"]
+    "name": "Heavy Frankenstein Legs",
+    "slots": ["Legs"],
+    "coverage": []
   },
   {
     "shortname": "frankensteins.monster.03.torso",
-    "name": "Frankensteins Monster 03 Torso",
-    "slots": ["Chest"]
+    "name": "Heavy Frankenstein Torso",
+    "slots": ["Chest"],
+    "coverage": []
   },
   {
     "shortname": "boots.frog",
     "name": "Frog Boots",
     "itemId": -1000573653,
     "hasSkins": false,
-    "slots": ["Feet"]
+    "slots": ["Feet"],
+    "coverage": ["over:LeftFoot", "over:RightFoot", "under:LeftFoot", "under:RightFoot"]
   },
   {
     "shortname": "ghostsheet",
-    "name": "Ghostsheet",
-    "slots": ["Chest"]
+    "name": "Ghost Costume",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:Groin",
+      "over:Bum",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "gingerbreadsuit",
-    "name": "Gingerbreadsuit",
-    "slots": ["Chest"]
+    "name": "Gingerbread Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "gloweyes",
-    "name": "Gloweyes",
-    "slots": ["Head"]
+    "name": "Glowing Eyes",
+    "slots": ["Head", "Accessory"],
+    "coverage": []
   },
   {
     "shortname": "halloween.mummysuit",
-    "name": "Halloween Mummysuit",
-    "slots": ["Chest"]
+    "name": "Mummy Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "halloween.surgeonsuit",
-    "name": "Halloween Surgeonsuit",
-    "slots": ["Chest"]
+    "name": "Surgeon Scrubs",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hat.bunnyhat",
-    "name": "Hat Bunnyhat",
-    "slots": ["Head"]
+    "name": "Bunny Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.candle",
-    "name": "Hat Candle",
-    "slots": ["Head"]
+    "name": "Candle Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.candle.birthday",
-    "name": "Hat Candle Birthday",
-    "slots": ["Head"]
+    "name": "Birthday Candle Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.dragonmask",
-    "name": "Hat Dragonmask",
-    "slots": ["Head"]
+    "name": "Dragon Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "hat.gas.mask",
-    "name": "Hat Gas Mask",
-    "slots": ["Head"]
+    "name": "Gas Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.horsemask",
-    "name": "Hat Horsemask",
-    "slots": ["Head"]
+    "name": "Horse Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "hat.miner",
-    "name": "Hat Miner",
-    "slots": ["Head"]
+    "name": "Miners Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.oxmask",
-    "name": "Hat Oxmask",
-    "slots": ["Head"]
+    "name": "Ox Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.rabbitmask",
-    "name": "Hat Rabbitmask",
-    "slots": ["Head"]
+    "name": "Rabbit Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "hat.ratmask",
-    "name": "Hat Ratmask",
-    "slots": ["Head"]
+    "name": "Rat Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "hat.snakemask",
-    "name": "Hat Snakemask",
-    "slots": ["Head"]
+    "name": "Snake mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "hat.tigermask",
-    "name": "Hat Tigermask",
-    "slots": ["Head"]
+    "name": "Tiger Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hat.wellipets",
-    "name": "Hat Wellipets",
-    "slots": ["Head"]
+    "name": "Wellipets Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "hazmat.krieg",
-    "name": "Hazmat Krieg",
-    "slots": ["Chest"]
+    "name": "Krieg Hazmat",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmat.plague",
-    "name": "Hazmat Plague",
-    "slots": ["Chest"]
+    "name": "Plague Doctor Hazmat Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit",
     "name": "Hazmat Suit",
     "itemId": 1266491000,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.diver",
-    "name": "Hazmatsuit Diver",
-    "slots": ["Chest"]
+    "name": "Abyss Hazmat",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.frontier",
-    "name": "Hazmatsuit Frontier",
-    "slots": ["Chest"]
+    "name": "Frontier Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.kick",
-    "name": "Hazmatsuit Kick",
-    "slots": ["Chest"]
+    "name": "KICK Hazmat",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.lumberjack",
-    "name": "Hazmatsuit Lumberjack",
-    "slots": ["Chest"]
+    "name": "Lumberjack Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.nomadsuit",
-    "name": "Hazmatsuit Nomadsuit",
-    "slots": ["Chest"]
+    "name": "Nomad Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.pilot",
-    "name": "Hazmatsuit Pilot",
-    "slots": ["Chest"]
+    "name": "Pilot Hazmat",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit.spacesuit",
-    "name": "Hazmatsuit Spacesuit",
-    "slots": ["Chest"]
+    "name": "Space Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit_scientist",
-    "name": "Hazmatsuit_scientist",
-    "slots": ["Chest"]
+    "name": "Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit_scientist_arctic",
-    "name": "Hazmatsuit_scientist_arctic",
-    "slots": ["Chest"]
+    "name": "Arctic Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit_scientist_naval",
-    "name": "Hazmatsuit_scientist_naval",
-    "slots": ["Chest"]
+    "name": "Naval Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit_scientist_nvgm",
-    "name": "Hazmatsuit_scientist_nvgm",
-    "slots": ["Chest"]
+    "name": "NVGM Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuit_scientist_peacekeeper",
-    "name": "Hazmatsuit_scientist_peacekeeper",
-    "slots": ["Chest"]
+    "name": "Peacekeeper Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hazmatsuittwitch",
-    "name": "Hazmatsuittwitch",
-    "slots": ["Chest"]
+    "name": "Twitch Rivals Hazmat Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "heavy.plate.helmet",
     "name": "Heavy Plate Helmet",
     "itemId": 1181207482,
     "hasSkins": false,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "heavy.plate.jacket",
     "name": "Heavy Plate Jacket",
     "itemId": -1102429027,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand"
+    ]
   },
   {
     "shortname": "heavy.plate.pants",
     "name": "Heavy Plate Pants",
     "itemId": -1778159885,
     "hasSkins": false,
-    "slots": ["Legs"]
+    "slots": ["Legs"],
+    "coverage": [
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "hoodie",
     "name": "Hoodie",
     "itemId": 1751045826,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "horse.costume",
     "name": "Horse Costume",
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "jacket",
     "name": "Jacket",
     "itemId": -1163532624,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "jumpsuit.suit",
-    "name": "Jumpsuit Suit",
-    "slots": ["Chest"]
+    "name": "Jumpsuit",
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "jumpsuit.suit.blue",
-    "name": "Jumpsuit Suit Blue",
-    "slots": ["Chest"]
+    "name": "Blue Jumpsuit",
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "jumpsuit.waterwellnpc",
-    "name": "Jumpsuit Waterwellnpc",
-    "slots": ["Chest"]
+    "name": "Waterwell NPC Jumpsuit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:Face",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "knightsarmour.helmet",
-    "name": "Knightsarmour Helmet",
-    "slots": ["Head"]
+    "name": "Knights armour helmet",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "knightsarmour.skirt",
-    "name": "Knightsarmour Skirt",
-    "slots": ["Legs"]
+    "name": "Knights armour skirt plates",
+    "slots": ["Legs"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "knighttorso.armour",
-    "name": "Knighttorso Armour",
-    "slots": ["Chest"]
+    "name": "Knights armour cuirass",
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "kriegbackpack",
     "name": "Krieg Large Backpack",
     "itemId": -874650016,
     "hasSkins": false,
-    "slots": ["Accessory"]
+    "slots": ["Backpack"],
+    "coverage": ["over:Back"]
   },
   {
     "shortname": "largebackpack",
     "name": "Large Backpack",
     "itemId": -907422733,
     "hasSkins": true,
-    "slots": ["Accessory"]
+    "slots": ["Backpack"],
+    "coverage": ["over:Back"]
   },
   {
     "shortname": "burlap.gloves",
     "name": "Leather Gloves",
     "itemId": 1366282552,
     "hasSkins": true,
-    "slots": ["Hands"]
+    "slots": ["Hands"],
+    "coverage": ["under:LeftHand", "under:RightHand"]
   },
   {
     "shortname": "tshirt.long",
     "name": "Longsleeve T-Shirt",
     "itemId": 935692442,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "mask.balaclava",
-    "name": "Mask Balaclava",
-    "slots": ["Head"]
+    "name": "Improvised Balaclava",
+    "slots": ["Head"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack"
+    ]
   },
   {
     "shortname": "mask.bandana",
-    "name": "Mask Bandana",
-    "slots": ["Head"]
+    "name": "Bandana",
+    "slots": ["Head"],
+    "coverage": ["over:Face", "under:Face"]
   },
   {
     "shortname": "metal.plate.torso",
     "name": "Metal Chest Plate",
     "itemId": 1110385766,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "metal.facemask",
     "name": "Metal Facemask",
     "itemId": -194953424,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "metal.facemask.hockey",
-    "name": "Metal Facemask Hockey",
-    "slots": ["Head"]
+    "name": "Hockey Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "metal.facemask.icemask",
-    "name": "Metal Facemask Icemask",
-    "slots": ["Head"]
+    "name": "Ice Metal Facemask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "metal.plate.torso.icevest",
-    "name": "Metal Plate Torso Icevest",
-    "slots": ["Chest"]
+    "name": "Ice Metal Chest Plate",
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "movembermoustache",
-    "name": "Movembermoustache",
-    "slots": ["Head"]
+    "name": "Movember Moustache",
+    "slots": ["Head"],
+    "coverage": ["over:Face", "over:Mouth"]
   },
   {
     "shortname": "mummymask",
-    "name": "Mummymask",
-    "slots": ["Head"]
+    "name": "Mummy Mask",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "nightvisiongoggles",
-    "name": "Nightvisiongoggles",
-    "slots": ["Head"]
+    "name": "Night Vision Goggles",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "oubreak_scientist",
-    "name": "Oubreak_scientist",
-    "slots": ["Chest"]
+    "name": "Outbreak Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "over:Back",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "paintballoveralls.suit",
-    "name": "Paintballoveralls Suit",
-    "slots": ["Chest"]
+    "name": "Paintball Overalls",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "pants",
     "name": "Pants",
     "itemId": 237239288,
     "hasSkins": true,
-    "slots": ["Legs"]
+    "slots": ["Legs"],
+    "coverage": [
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg"
+    ]
   },
   {
     "shortname": "pants.shorts",
-    "name": "Pants Shorts",
-    "slots": ["Legs"]
+    "name": "Shorts",
+    "slots": ["Legs"],
+    "coverage": ["under:Groin"]
   },
   {
     "shortname": "partyhat",
-    "name": "Partyhat",
-    "slots": ["Head"]
+    "name": "Party Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "prisonerhood",
-    "name": "Prisonerhood",
-    "slots": ["Head"]
+    "name": "Prisoner Hood",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "riot.helmet",
     "name": "Riot Helmet",
     "icon": "https://files.facepunch.com/rust/item/riot.helmet_512.png",
     "itemId": 671063303,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "over:Eyes"]
   },
   {
     "shortname": "roadsign.jacket",
     "name": "Road Sign Jacket",
     "itemId": -2002277461,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
   },
   {
     "shortname": "roadsign.kilt",
     "name": "Road Sign Kilt",
     "itemId": 1850456855,
     "hasSkins": true,
-    "slots": ["Legs"]
+    "slots": ["Legs"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "roadsign.gloves",
-    "name": "Roadsign Gloves",
-    "slots": ["Hands"]
+    "name": "Road Sign Gloves",
+    "slots": ["Hands"],
+    "coverage": ["under:LeftHand", "under:RightHand"]
   },
   {
     "shortname": "santabeard",
-    "name": "Santabeard",
-    "slots": ["Head"]
+    "name": "Santa Beard",
+    "slots": ["Head"],
+    "coverage": ["over:Face", "over:Mouth"]
   },
   {
     "shortname": "santahat",
-    "name": "Santahat",
-    "slots": ["Head"]
+    "name": "Santa Hat",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack", "under:HeadTop", "under:HeadBack"]
   },
   {
     "shortname": "scarecrow.suit",
     "name": "Scarecrow Suit",
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "scarecrowhead",
-    "name": "Scarecrowhead",
-    "slots": ["Head"]
+    "name": "Scarecrow Wrap",
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:Face", "over:HeadBack"]
   },
   {
     "shortname": "scientistsuit_heavy",
-    "name": "Scientistsuit_heavy",
-    "slots": ["Chest"]
+    "name": "Heavy Scientist Suit",
+    "slots": ["Chest"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "over:LeftHand",
+      "over:RightHand",
+      "over:Groin",
+      "over:Bum",
+      "over:LeftKnee",
+      "over:RightKnee",
+      "over:LeftLeg",
+      "over:RightLeg",
+      "over:LeftFoot",
+      "over:RightFoot",
+      "over:Mouth",
+      "over:Eyes",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:LeftHand",
+      "under:RightHand",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:LeftFoot",
+      "under:RightFoot",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "shirt.collared",
-    "name": "Shirt Collared",
-    "slots": ["Chest"]
+    "name": "Shirt",
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "shirt.tanktop",
-    "name": "Shirt Tanktop",
-    "slots": ["Chest"]
+    "name": "Tank Top",
+    "slots": ["Chest"],
+    "coverage": ["under:TorsoFront", "under:TorsoBack"]
   },
   {
     "shortname": "silly.horse.mask",
     "name": "Silly Horse Mask",
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack"
+    ]
   },
   {
     "shortname": "smallbackpack",
     "name": "Small Backpack",
     "itemId": 2068884361,
     "hasSkins": false,
-    "slots": ["Accessory"]
+    "slots": ["Backpack"],
+    "coverage": ["over:Back"]
   },
   {
     "shortname": "jacket.snow",
     "name": "Snow Jacket",
     "itemId": -48090175,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "over:TorsoFront",
+      "over:TorsoBack",
+      "over:LeftShoulder",
+      "over:RightShoulder",
+      "over:LeftArm",
+      "over:RightArm",
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "sunglasses",
     "name": "Sunglasses",
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "sunglasses02black",
-    "name": "Sunglasses02black",
-    "slots": ["Head"]
+    "name": "Sunglasses (Black, Style 2)",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "sunglasses02camo",
-    "name": "Sunglasses02camo",
-    "slots": ["Head"]
+    "name": "Sunglasses (Camo, Style 2)",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "sunglasses02red",
-    "name": "Sunglasses02red",
-    "slots": ["Head"]
+    "name": "Sunglasses (Red, Style 2)",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "sunglasses03black",
-    "name": "Sunglasses03black",
-    "slots": ["Head"]
+    "name": "Sunglasses (Black, Style 3)",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "sunglasses03chrome",
-    "name": "Sunglasses03chrome",
-    "slots": ["Head"]
+    "name": "Sunglasses (Chrome, Style 3)",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "sunglasses03gold",
-    "name": "Sunglasses03gold",
-    "slots": ["Head"]
+    "name": "Sunglasses (Gold, Style 3)",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "tshirt",
     "name": "T-Shirt",
     "itemId": 223891266,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm"
+    ]
   },
   {
     "shortname": "tactical.gloves",
     "name": "Tactical Gloves",
     "itemId": -1108136649,
     "hasSkins": false,
-    "slots": ["Hands"]
+    "slots": ["Hands"],
+    "coverage": ["under:LeftHand", "under:RightHand"]
   },
   {
     "shortname": "twitch.headset",
-    "name": "Twitch Headset",
-    "slots": ["Head"]
+    "name": "Headset",
+    "slots": ["Head"],
+    "coverage": [
+      "over:HeadTop",
+      "over:Face",
+      "over:HeadBack",
+      "under:HeadTop",
+      "under:Face",
+      "under:HeadBack"
+    ]
   },
   {
     "shortname": "twitchrivalsflag",
-    "name": "Twitchrivalsflag",
-    "slots": ["Accessory"]
+    "name": "Twitch Rivals Flag",
+    "slots": ["Accessory"],
+    "coverage": ["over:Back"]
   },
   {
     "shortname": "twitchsunglasses",
-    "name": "Twitchsunglasses",
-    "slots": ["Head"]
+    "name": "Purple Sunglasses",
+    "slots": ["Head"],
+    "coverage": ["over:Eyes"]
   },
   {
     "shortname": "diving.wetsuit",
     "name": "Wetsuit",
     "itemId": -1101924344,
     "hasSkins": false,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": [
+      "under:TorsoFront",
+      "under:TorsoBack",
+      "under:LeftShoulder",
+      "under:RightShoulder",
+      "under:LeftArm",
+      "under:RightArm",
+      "under:Groin",
+      "under:Bum",
+      "under:LeftKnee",
+      "under:RightKnee",
+      "under:LeftLeg",
+      "under:RightLeg",
+      "under:Mouth",
+      "under:Eyes",
+      "under:Back"
+    ]
   },
   {
     "shortname": "hat.wolf",
     "name": "Wolf Headdress",
     "itemId": -1478212975,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "woodarmor.gloves",
     "name": "Wood Armor Gloves",
     "itemId": -459159118,
     "hasSkins": true,
-    "slots": ["Hands"]
+    "slots": ["Hands"],
+    "coverage": ["under:LeftHand", "under:RightHand"]
   },
   {
     "shortname": "wood.armor.helmet",
     "name": "Wood Armor Helmet",
     "itemId": -2094954543,
     "hasSkins": true,
-    "slots": ["Head"]
+    "slots": ["Head"],
+    "coverage": ["over:HeadTop", "over:HeadBack"]
   },
   {
     "shortname": "wood.armor.pants",
     "name": "Wood Armor Pants",
     "itemId": 832133926,
     "hasSkins": true,
-    "slots": ["Legs"]
+    "slots": ["Legs"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "wood.armor.jacket",
     "name": "Wood Chestplate",
     "itemId": 418081930,
     "hasSkins": true,
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:TorsoFront", "over:TorsoBack", "over:LeftShoulder", "over:RightShoulder"]
+  },
+  {
+    "shortname": "minigunammopack",
+    "name": "Minigun Ammo Pack",
+    "slots": ["Accessory"],
+    "coverage": ["over:Back"]
   }
 ]
