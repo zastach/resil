@@ -236,10 +236,12 @@ export default typedPlugin(async (server) => {
     },
   );
   server.post(PATH + '/import', { preHandler: authenticateUser }, async (req, res) => {
-    const { code } = z.object({ code: importCode }).parse(req.body);
+    const { code, metadataOnly } = z
+      .object({ code: importCode, metadataOnly: z.boolean().optional() })
+      .parse(req.body);
     const result = await db.execute(sql`UPDATE resil_raid_imports SET claimant=${req.user.id}
       WHERE code=${code} AND expires>now() AND (claimant IS NULL OR claimant=${req.user.id})
-      RETURNING name,tier,(photo IS NOT NULL) AS "hasPhoto"`);
+      RETURNING name,tier,(photo IS NOT NULL) AS "hasPhoto"${metadataOnly ? sql`` : sql`,data`}`);
     return result.rows[0] ?? res.code(404).send({ error: 'Import code expired or unavailable' });
   });
   server.post(PATH + '/key', { preHandler: adminOnly }, async (req, res) => {
@@ -377,12 +379,20 @@ export default typedPlugin(async (server) => {
   });
   server.post(PATH, { preHandler: authenticateUser, bodyLimit: 16 * 1024 * 1024 }, async (req, res) => {
     const value = draft.parse(req.body);
-    const imported = value.importCode
-      ? (
-          await db.execute(sql`SELECT data,photo FROM resil_raid_imports
-      WHERE code=${value.importCode} AND claimant=${req.user.id} AND expires>now()`)
-        ).rows[0]
-      : undefined;
+    let imported: Record<string, unknown> | undefined;
+    if (value.importCode) {
+      imported = (
+        await db.execute(sql`SELECT data,photo FROM resil_raid_imports
+        WHERE code=${value.importCode} AND claimant=${req.user.id} AND expires>now()`)
+      ).rows[0];
+    } else if (value.data) {
+      // Older open clients send the imported snapshot instead of its code.
+      imported = (
+        await db.execute(sql`SELECT data,photo FROM resil_raid_imports
+        WHERE claimant=${req.user.id} AND expires>now() AND data=${JSON.stringify(value.data)}::jsonb
+        ORDER BY expires DESC LIMIT 1`)
+      ).rows[0];
+    }
     if (value.importCode && !imported)
       return res.code(404).send({ error: 'Import the base again with a current code' });
     const data = imported ? imported.data : value.data;

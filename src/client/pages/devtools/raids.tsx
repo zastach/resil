@@ -592,7 +592,7 @@ export function Component() {
               disabled={busy || !importCode}
               onClick={() =>
                 run(async () => {
-                  const imported = await request('/import', { code: importCode });
+                  const imported = await request('/import', { code: importCode, metadataOnly: true });
                   upload(null);
                   setSelectedImport({ code: importCode, hasPhoto: imported.hasPhoto });
                   setName(imported.name);
@@ -643,11 +643,21 @@ export function Component() {
               onClick={() =>
                 run(async () => {
                   if (file && file.size > 15 * 1024 * 1024) throw Error('Snapshot must be under 15 MiB');
+                  let data: unknown;
+                  if (file) {
+                    try {
+                      data = JSON.parse(await file.text());
+                    } catch {
+                      throw Error(
+                        'This file is not valid CopyPaste JSON. Upload the original file or import your Rust code again.',
+                      );
+                    }
+                  }
                   const saved = await request('', {
                     name,
                     tier,
                     parent: parent || undefined,
-                    data: file ? JSON.parse(await file.text()) : undefined,
+                    data,
                     importCode: selectedImport?.code,
                     loot: state?.tables.find((t) => t.data.Name === lootName)?.data ?? null,
                   });
