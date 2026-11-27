@@ -37,9 +37,9 @@ const stages = [
       {
         title: 'Wagered Raids',
         icon: IconSwords,
-        summary: 'Challenge another team with resources on the line.',
+        summary: 'Raid or defend without putting your own base at risk.',
         detail:
-          'Agree on a base, sides, stakes, and a time limit in RESil. Staff collect the stakes and start the event. After both sides get prep time, raiders win by destroying the TC before time runs out. Defenders win by keeping it intact.',
+          'Pick an event base and agree on sides, resource stakes, and a time limit in RESil. Staff collect the stakes and start the event. After both sides get prep time, raiders win by destroying the TC before time runs out. Defenders win by keeping it intact.',
       },
       {
         title: '/siege',
