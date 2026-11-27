@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RERaid", "zastach", "0.4.8")]
+    [Info("RERaid", "zastach", "0.4.9")]
     [Description("Rust Empires raid encounters, sieges, events and builder review.")]
     public class RERaid : RustPlugin
     {
@@ -1349,8 +1349,8 @@ namespace Oxide.Plugins
                 codeLock.hasGuestCode = false;
                 codeLock.whitelistPlayers.Clear();
                 codeLock.guestPlayers.Clear();
-                codeLock.SetFlag(BaseEntity.Flags.Locked, true);
-                codeLock.SendNetworkUpdate();
+                using (var flags = codeLock.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdate))
+                    flags.Set(BaseEntity.Flags.Locked, true);
             }
         }
 
