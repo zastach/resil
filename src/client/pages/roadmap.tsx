@@ -91,7 +91,6 @@ export function Component() {
         <div className={styles.hero}>
           <p>Rust Empires</p>
           <h1>Community Roadmap</h1>
-          <div>Our mission is to be the most RP-friendly server in Rust.</div>
         </div>
         <p className={styles.intro}>
           See what you can use today and what we’re building next. Open a card for details.
