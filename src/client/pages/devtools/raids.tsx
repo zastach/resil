@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
+  ActionIcon,
   Alert,
   Badge,
   Button,
@@ -8,7 +9,9 @@ import {
   Code,
   FileInput,
   Group,
+  Modal,
   NumberInput,
+  Popover,
   Progress,
   SimpleGrid,
   Image,
@@ -17,8 +20,10 @@ import {
   Tabs,
   Text,
   TextInput,
+  Textarea,
   Title,
 } from '@mantine/core';
+import { IconInfoCircle } from '@tabler/icons-react';
 import { starter, simulate, lootSchema, tiers, type Loot } from '@/lib/raids/loot';
 import { requiredVotes, type PanelRule } from '@/lib/raids/panel';
 const api = '/api/devtools/raids';
@@ -74,6 +79,10 @@ export function Component() {
   const activeTab = params.has('inbox') ? 'inbox' : tab;
   const select = (revision: string) => setParams(revision ? { revision } : {});
   const [note, comment] = useState('');
+  const [revisionRequest, setRevisionRequest] = useState<{ id: string; name: string } | null>(null);
+  const [revisionNote, setRevisionNote] = useState('');
+  const [revisionError, setRevisionError] = useState('');
+
   const [reviewDetails, setReviewDetails] = useState<{
     id: string;
     counts: Record<string, number>;
@@ -153,6 +162,63 @@ export function Component() {
   }
   return (
     <Stack p='lg' maw={1080} mx='auto'>
+      <Modal
+        opened={revisionRequest !== null}
+        onClose={() => {
+          if (!busy) setRevisionRequest(null);
+        }}
+        title='Request revision'
+        closeOnClickOutside={!busy}
+        closeOnEscape={!busy}
+      >
+        {revisionRequest && (
+          <Stack>
+            <Text size='sm'>
+              Explain what the builder should change in {revisionRequest.name}. Your note will appear in their
+              review.
+            </Text>
+            <Textarea
+              autoFocus
+              required
+              label='Changes requested'
+              placeholder='Describe what to change and why'
+              minRows={4}
+              autosize
+              maxLength={2000}
+              disabled={busy}
+              value={revisionNote}
+              onChange={(event) => setRevisionNote(event.currentTarget.value)}
+              error={revisionError || undefined}
+            />
+            <Group justify='flex-end'>
+              <Button variant='default' disabled={busy} onClick={() => setRevisionRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                loading={busy}
+                disabled={!revisionNote.trim()}
+                onClick={() =>
+                  run(async () => {
+                    try {
+                      await request('/' + revisionRequest.id + '/review', {
+                        action: 'Revise',
+                        note: revisionNote,
+                      });
+                    } catch (error) {
+                      setRevisionError(error instanceof Error ? error.message : String(error));
+                      throw error;
+                    }
+                    setRevisionRequest(null);
+                    return 'Revision recorded.';
+                  })
+                }
+              >
+                Request revision
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
       <Group justify='space-between'>
         <Title order={2}>Raid Center</Title>
         <Button variant='subtle' disabled={busy} onClick={() => run(async () => 'Queue refreshed.')}>
@@ -473,8 +539,13 @@ export function Component() {
                       )}
                       {r.notes.map((n, i) => (
                         <Text key={i} size='sm'>
-                          {n.by} · {n.difficulty ? 'Recommended ' + n.difficulty : n.action} ·{' '}
-                          {new Date(n.at).toLocaleString()} {n.note}
+                          {n.by} ·{' '}
+                          {n.difficulty
+                            ? 'Recommended ' + n.difficulty
+                            : n.action === 'Revise'
+                              ? 'Revision requested'
+                              : n.action}{' '}
+                          · {new Date(n.at).toLocaleString()} {n.note}
                         </Text>
                       ))}
                       {r.status === 'Pending' && (
@@ -528,19 +599,45 @@ export function Component() {
                                 : []),
                               ...(state.admin && r.status === 'Approved' ? ['Publish'] : []),
                             ].map((action) => (
-                              <Button
-                                key={action}
-                                disabled={busy}
-                                onClick={() =>
-                                  run(async () => {
-                                    await request('/' + r.id + '/review', { action, note });
-                                    comment('');
-                                    return action + ' recorded.';
-                                  })
-                                }
-                              >
-                                {action === 'Revise' ? 'Request revision' : action}
-                              </Button>
+                              <Group key={action} gap={4} wrap='nowrap'>
+                                <Button
+                                  disabled={busy}
+                                  onClick={() => {
+                                    if (action === 'Revise') {
+                                      setRevisionNote('');
+                                      setRevisionError('');
+                                      setRevisionRequest({ id: r.id, name: r.name });
+                                      return;
+                                    }
+                                    run(async () => {
+                                      await request('/' + r.id + '/review', { action, note });
+                                      comment('');
+                                      return action + ' recorded.';
+                                    });
+                                  }}
+                                >
+                                  {action === 'Revise' ? 'Request revision' : action}
+                                </Button>
+                                {action === 'Reject' && (
+                                  <Popover width={290} position='top' withArrow>
+                                    <Popover.Target>
+                                      <ActionIcon variant='subtle' aria-label='When to reject a base'>
+                                        <IconInfoCircle size={18} />
+                                      </ActionIcon>
+                                    </Popover.Target>
+                                    <Popover.Dropdown>
+                                      <Text fw={600} size='sm'>
+                                        When to reject a base
+                                      </Text>
+                                      <Text size='sm'>
+                                        Reject troll or intentionally unplayable bases, duplicates, and
+                                        designs too similar to an existing raid. If specific changes could
+                                        make the base suitable, request a revision and explain what to fix.
+                                      </Text>
+                                    </Popover.Dropdown>
+                                  </Popover>
+                                )}
+                              </Group>
                             ))}
                           </Group>
                         </>

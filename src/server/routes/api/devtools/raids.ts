@@ -475,6 +475,8 @@ export default typedPlugin(async (server) => {
       } else {
         if (row.author === req.user.id || status !== 'Pending')
           return res.code(409).send({ error: 'Only independent reviewers can vote on pending revisions' });
+        if (action === 'Revise' && !note)
+          return res.code(400).send({ error: 'Explain the changes the builder should make.' });
         votes[req.user.id] = action;
         const currentPolicy = (await tx.execute(sql`${policyQuery} FOR SHARE`)).rows[0];
         if (currentPolicy.version !== policy.version)
@@ -510,7 +512,9 @@ export default typedPlugin(async (server) => {
             ? 'New review comment'
             : action === 'Recommend difficulty'
               ? 'Difficulty recommendation · ' + difficulty
-              : 'Review vote recorded');
+              : action === 'Revise'
+                ? 'Revision feedback added'
+                : 'Review vote recorded');
         await tx.execute(
           addActivity({
             revisionId: id,
