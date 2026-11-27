@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RERaid", "zastach", "0.5.0")]
+    [Info("RERaid", "zastach", "0.5.1")]
     [Description("Rust Empires raid encounters, sieges, events and builder review.")]
     public class RERaid : RustPlugin
     {
@@ -814,6 +814,7 @@ namespace Oxide.Plugins
             public int Rolls;
             public List<LootEntry> Entries, Guaranteed;
             public List<WebLootPool> Cascade;
+            public Dictionary<string, List<int>> ArmorSlots;
         }
 
         private sealed class WebLootPool
@@ -1517,6 +1518,24 @@ namespace Oxide.Plugins
             }
         }
 
+        private static void ApplyArmorSlotRoll(Item item, WebLoot loot)
+        {
+            if (loot?.ArmorSlots == null || !loot.ArmorSlots.TryGetValue(item.info.shortname, out var odds)) return;
+            var slotMod = item.info.itemMods?.OfType<ItemModContainerArmorSlot>().FirstOrDefault();
+            if (slotMod == null) return;
+
+            int draw = UnityEngine.Random.Range(0, 100);
+            int slots = Math.Min(3, odds.Count);
+            for (; slots > 0; slots--)
+            {
+                draw -= odds[slots - 1];
+                if (draw < 0) break;
+            }
+
+            if (item.contents != null) item.contents.capacity = slots;
+            else if (slots > 0) slotMod.CreateAtCapacity(slots, item);
+        }
+
         private void SimulateLoot(BasePlayer player,string[] args)
         {
             if (!CanManagePreviews(player) && !permission.UserHasPermission(player.UserIDString,"reraid.panel"))
@@ -1700,7 +1719,9 @@ namespace Oxide.Plugins
                 if (string.IsNullOrEmpty(entry?.Item)) continue;
                 int min = Mathf.Clamp(entry.Min, 1, 100000);
                 var item = ItemManager.CreateByName(entry.Item, UnityEngine.Random.Range(min, Mathf.Clamp(entry.Max, min, 100000) + 1));
-                if (item != null && !item.MoveToContainer(boxes[UnityEngine.Random.Range(0, boxes.Count)].inventory)) item.Remove();
+                if (item == null) continue;
+                ApplyArmorSlotRoll(item, raid.CatalogLoot);
+                if (!item.MoveToContainer(boxes[UnityEngine.Random.Range(0, boxes.Count)].inventory)) item.Remove();
             }
             if (raid.Event)
             {

@@ -27,6 +27,7 @@ import { IconInfoCircle } from '@tabler/icons-react';
 import { starter, simulate, lootSchema, tiers, cascadeOdds, type Loot } from '@/lib/raids/loot';
 import { requiredVotes, type PanelRule } from '@/lib/raids/panel';
 import { LootCascade, LootTip, RustLootIcon } from './loot-cascade';
+import { lootItemName } from './loot-item-picker';
 const api = '/api/devtools/raids';
 type Revision = {
   progress: { eligible: number; required: number; counts: Record<string, number> };
@@ -897,6 +898,19 @@ export function Component() {
                         </Group>
                       ))}
                     </Group>
+                    {Object.entries(results.armorSlots).map(([item, counts]) => (
+                      <Group key={item} gap='xs'>
+                        <RustLootIcon item={item} />
+                        <Text size='sm' fw={600}>
+                          {lootItemName(item)} insert slots
+                        </Text>
+                        {counts.map((count, slots) => (
+                          <Badge key={slots} variant='light'>
+                            {slots} slots · {count} drops
+                          </Badge>
+                        ))}
+                      </Group>
+                    ))}
                   </Stack>
                 </Card>
               )}

@@ -1,4 +1,5 @@
 import z from 'zod';
+import { armorSlotMaximum, pickArmorSlots } from './armor-slots';
 
 export const tiers = ['Easy', 'Medium', 'Hard', 'Unfair', 'Bruh'] as const;
 const entry = z
@@ -21,6 +22,18 @@ export const lootSchema = z
     Entries: z.array(entry).max(200),
     Guaranteed: z.array(entry).max(200),
     Cascade: z.array(pool).min(1).max(12).optional(),
+    ArmorSlots: z
+      .record(z.string(), z.array(z.number().int().min(0).max(100)).min(1).max(3))
+      .refine(
+        (odds) =>
+          Object.entries(odds).every(
+            ([item, chances]) =>
+              chances.length === armorSlotMaximum(item) &&
+              chances.reduce((sum, chance) => sum + chance, 0) <= 100,
+          ),
+        'Armor slot odds must match the item’s slot limit and total at most 100%.',
+      )
+      .optional(),
   })
   .refine((table) => table.Rolls === 0 || table.Entries.length > 0 || table.Cascade?.length, {
     message: 'Add a drop pool or set rolls to zero.',
@@ -55,8 +68,14 @@ export function simulate(table: Loot, runs = 100, random = Math.random) {
   const totals = new Map<string, number>();
   const tierHits = table.Cascade?.map(() => 0) ?? [];
   let misses = 0;
+  const armorSlots: Record<string, number[]> = {};
   function add(e: LootEntry) {
     totals.set(e.Item, (totals.get(e.Item) ?? 0) + e.Min + Math.floor(random() * (e.Max - e.Min + 1)));
+    const odds = table.ArmorSlots?.[e.Item];
+    if (odds) {
+      const counts = armorSlots[e.Item] ?? (armorSlots[e.Item] = Array<number>(odds.length + 1).fill(0));
+      counts[pickArmorSlots(odds, Math.floor(random() * 100))]++;
+    }
   }
   for (let i = 0; i < runs; i++) {
     table.Guaranteed.forEach(add);
@@ -70,5 +89,5 @@ export function simulate(table: Loot, runs = 100, random = Math.random) {
       } else misses++;
     }
   }
-  return { items: Array.from(totals, ([item, count]) => ({ item, count })), tierHits, misses };
+  return { items: Array.from(totals, ([item, count]) => ({ item, count })), tierHits, misses, armorSlots };
 }

@@ -20,6 +20,7 @@ const items = Object.entries(catalog).flatMap(([category, entries]) =>
   entries.map(([shortname, name]) => ({ shortname, name, category })),
 );
 const names = new Map(items.map((item) => [item.shortname, item.name]));
+export const lootItemName = (item: string) => names.get(item) ?? item;
 const pageSize = 36;
 
 export function LootItemPicker({

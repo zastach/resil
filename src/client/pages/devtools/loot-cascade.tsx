@@ -6,6 +6,7 @@ import {
   Card,
   Group,
   NumberInput,
+  Slider,
   Stack,
   Text,
   TextInput,
@@ -13,7 +14,8 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { IconArrowDown, IconArrowUp, IconInfoCircle, IconPackage, IconTrash } from '@tabler/icons-react';
-import { LootItemPicker } from './loot-item-picker';
+import { LootItemPicker, lootItemName } from './loot-item-picker';
+import { armorSlotMaximum } from '@/lib/raids/armor-slots';
 import { cascadeOdds, type Loot, type LootEntry } from '@/lib/raids/loot';
 
 const palette = ['orange', 'grape', 'teal', 'blue', 'gray'];
@@ -166,6 +168,132 @@ function DropRows({
         </Group>
       )}
     </Stack>
+  );
+}
+
+function ArmorSlotOdds({ table, change }: { table: Loot; change: (table: Loot) => void }) {
+  const pools = table.Cascade?.flatMap((pool) => pool.Entries) ?? table.Entries;
+  const items = [...new Set([...pools, ...table.Guaranteed].map((entry) => entry.Item))].filter(
+    (item) => armorSlotMaximum(item) > 0,
+  );
+  if (!items.length) return null;
+
+  function setOdds(item: string, chances?: number[]) {
+    const next = { ...table.ArmorSlots };
+    if (chances) next[item] = chances;
+    else delete next[item];
+    change({ ...table, ArmorSlots: Object.keys(next).length ? next : undefined });
+  }
+
+  return (
+    <Card withBorder>
+      <Stack>
+        <Title order={4}>
+          <LootTip
+            label='Armor insert slots'
+            help='These odds apply after the item has dropped. They change how many empty insert slots it has. The leftover probability rolls zero slots.'
+          />
+        </Title>
+        {items.map((item) => {
+          const maximum = armorSlotMaximum(item);
+          const chances = table.ArmorSlots?.[item];
+          const zero = 100 - (chances?.reduce((sum, chance) => sum + chance, 0) ?? 0);
+          return (
+            <Card key={item} withBorder>
+              <Stack gap='sm'>
+                <Group justify='space-between'>
+                  <Group gap='xs'>
+                    <RustLootIcon item={item} />
+                    <Text fw={650}>{lootItemName(item)}</Text>
+                    <Badge variant='light'>
+                      Up to {maximum} {maximum === 1 ? 'slot' : 'slots'}
+                    </Badge>
+                  </Group>
+                  {chances ? (
+                    <Button variant='subtle' size='xs' onClick={() => setOdds(item)}>
+                      Use Rust default
+                    </Button>
+                  ) : (
+                    <Button
+                      variant='light'
+                      size='xs'
+                      onClick={() => setOdds(item, Array<number>(maximum).fill(0))}
+                    >
+                      Customize slot odds
+                    </Button>
+                  )}
+                </Group>
+                {chances && (
+                  <>
+                    {Array.from({ length: maximum }, (_, offset) => maximum - offset).map((slots) => {
+                      const current = chances[slots - 1] ?? 0;
+                      const limit = zero + current;
+                      const label =
+                        slots + (slots === 1 ? ' slot' : ' slots') + (slots === maximum ? ' (max)' : '');
+                      const update = (value: number) =>
+                        setOdds(
+                          item,
+                          chances.map((chance, i) =>
+                            i === slots - 1 ? Math.min(limit, Math.max(0, Math.round(value))) : chance,
+                          ),
+                        );
+                      return (
+                        <Stack key={slots} gap={4}>
+                          <Group justify='space-between'>
+                            <Text component='div' size='sm'>
+                              <LootTip
+                                label={label}
+                                help='Chance of rolling exactly this many slots when this item drops. Lower the other slot odds to free up more percentage.'
+                              />
+                            </Text>
+                            <NumberInput
+                              aria-label={lootItemName(item) + ' ' + label + ' chance'}
+                              w={100}
+                              min={0}
+                              max={limit}
+                              suffix='%'
+                              allowDecimal={false}
+                              value={current}
+                              onChange={(v) => update(Number(v))}
+                            />
+                          </Group>
+                          <Slider
+                            aria-label={lootItemName(item) + ' ' + label + ' chance slider'}
+                            min={0}
+                            max={100}
+                            value={current}
+                            onChange={update}
+                            label={(v) => v + '%'}
+                            disabled={limit === 0}
+                          />
+                        </Stack>
+                      );
+                    })}
+                    <Group justify='space-between'>
+                      <Badge variant='light' color='gray'>
+                        0 slots · {zero}%
+                      </Badge>
+                      <Button
+                        variant='light'
+                        size='xs'
+                        onClick={() =>
+                          setOdds(
+                            item,
+                            chances.map((_, i) => (i === maximum - 1 ? 100 : 0)),
+                          )
+                        }
+                      >
+                        Always roll max slots
+                      </Button>
+                    </Group>
+                  </>
+                )}
+              </Stack>
+            </Card>
+          );
+        })}
+      </Stack>
+    </Card>
   );
 }
 
@@ -352,6 +480,7 @@ export function LootCascade({ table, change }: { table: Loot; change: (table: Lo
           />
         </Stack>
       </Card>
+      <ArmorSlotOdds table={table} change={change} />
     </Stack>
   );
 }
