@@ -24,8 +24,9 @@ import {
   Title,
 } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
-import { starter, simulate, lootSchema, tiers, type Loot } from '@/lib/raids/loot';
+import { starter, simulate, lootSchema, tiers, cascadeOdds, type Loot } from '@/lib/raids/loot';
 import { requiredVotes, type PanelRule } from '@/lib/raids/panel';
+import { LootCascade, LootTip, RustLootIcon } from './loot-cascade';
 const api = '/api/devtools/raids';
 type Revision = {
   progress: { eligible: number; required: number; counts: Record<string, number> };
@@ -113,7 +114,7 @@ export function Component() {
     [lootName, assign] = useState('');
   const [table, edit] = useState<Loot>(structuredClone(starter)),
     [version, setVersion] = useState(0),
-    [results, preview] = useState('');
+    [results, preview] = useState<ReturnType<typeof simulate> | null>(null);
   const [importCode, setImportCode] = useState('');
   const [selectedImport, setSelectedImport] = useState<{ code: string; hasPhoto: boolean } | null>(null);
   const [credential, showCredential] = useState('');
@@ -158,7 +159,7 @@ export function Component() {
   }
   function change(t: Loot) {
     edit(t);
-    preview('');
+    preview(null);
   }
   return (
     <Stack p='lg' maw={1080} mx='auto'>
@@ -515,15 +516,48 @@ export function Component() {
                         size='lg'
                       />
                       {r.loot && (
-                        <Text size='sm'>
-                          {r.loot.Rolls} weighted rolls ·{' '}
-                          {r.loot.Entries.map(
-                            (e) => e.Item + ' × ' + e.Min + '–' + e.Max + ' (weight ' + e.Weight + ')',
-                          ).join(', ')}{' '}
-                          · Guaranteed:{' '}
-                          {r.loot.Guaranteed.map((e) => e.Item + ' × ' + e.Min + '–' + e.Max).join(', ') ||
-                            'none'}
-                        </Text>
+                        <Stack gap='xs'>
+                          <Text size='sm' fw={600}>
+                            {r.loot.Name} · {r.loot.Rolls} rolls per raid
+                          </Text>
+                          {(
+                            r.loot.Cascade ?? [
+                              { Name: 'Weighted drops', Chance: 10000, Entries: r.loot.Entries },
+                            ]
+                          ).map((pool, i) => (
+                            <Group key={i} gap='xs'>
+                              <Badge variant='light'>
+                                {pool.Name} ·{' '}
+                                {((cascadeOdds(r.loot?.Cascade ?? [pool]).hits[i] ?? 0) * 100).toLocaleString(
+                                  undefined,
+                                  { maximumFractionDigits: 2 },
+                                )}
+                                % per roll
+                              </Badge>
+                              {pool.Entries.map((item, j) => (
+                                <Group key={j} gap={4}>
+                                  <RustLootIcon item={item.Item} />
+                                  <Text size='xs'>
+                                    {item.Item} × {item.Min}–{item.Max}
+                                  </Text>
+                                </Group>
+                              ))}
+                            </Group>
+                          ))}
+                          {r.loot.Guaranteed.length > 0 && (
+                            <Group gap='xs'>
+                              <Badge variant='light'>Guaranteed</Badge>
+                              {r.loot.Guaranteed.map((item, i) => (
+                                <Group key={i} gap={4}>
+                                  <RustLootIcon item={item.Item} />
+                                  <Text size='xs'>
+                                    {item.Item} × {item.Min}–{item.Max}
+                                  </Text>
+                                </Group>
+                              ))}
+                            </Group>
+                          )}
+                        </Stack>
                       )}
                       {state.reviewer && (
                         <>
@@ -795,68 +829,18 @@ export function Component() {
                 }}
               />
               <NumberInput
-                label='Weighted rolls per raid'
+                label={
+                  <LootTip
+                    label='Rolls per raid'
+                    help='Each roll starts a fresh attempt at the top. More rolls increase the chance of seeing a rare drop at least once. Guaranteed drops are added once per raid.'
+                  />
+                }
                 min={0}
                 max={200}
                 value={table.Rolls}
                 onChange={(v) => change({ ...table, Rolls: Number(v) })}
               />
-              {(['Entries', 'Guaranteed'] as const).map((group) => (
-                <Card key={group} withBorder>
-                  <Stack>
-                    <Title order={4}>{group === 'Entries' ? 'Weighted drops' : 'Guaranteed drops'}</Title>
-                    {table[group].map((entry, i) => (
-                      <Group align='end' key={i}>
-                        {(
-                          ['Item', 'Min', 'Max', ...(group === 'Entries' ? ['Weight' as const] : [])] as const
-                        ).map((field) => {
-                          const update = (v: string | number) =>
-                            change({
-                              ...table,
-                              [group]: table[group].map((e, j) => (i === j ? { ...e, [field]: v } : e)),
-                            });
-                          return field === 'Item' ? (
-                            <TextInput
-                              key={field}
-                              label='Item shortname'
-                              value={entry.Item}
-                              onChange={(e) => update(e.currentTarget.value)}
-                            />
-                          ) : (
-                            <NumberInput
-                              key={field}
-                              w={90}
-                              label={field}
-                              min={1}
-                              value={entry[field]}
-                              onChange={(v) => update(Number(v))}
-                            />
-                          );
-                        })}
-                        <Button
-                          variant='subtle'
-                          onClick={() =>
-                            change({ ...table, [group]: table[group].filter((_, j) => i !== j) })
-                          }
-                        >
-                          Remove
-                        </Button>
-                      </Group>
-                    ))}
-                    <Button
-                      variant='light'
-                      onClick={() =>
-                        change({
-                          ...table,
-                          [group]: [...table[group], { Item: '', Min: 1, Max: 1, Weight: 1 }],
-                        })
-                      }
-                    >
-                      Add item
-                    </Button>
-                  </Stack>
-                </Card>
-              ))}
+              <LootCascade table={table} change={change} />
               <Group>
                 <Button
                   disabled={busy}
@@ -875,11 +859,7 @@ export function Component() {
                   variant='light'
                   onClick={() => {
                     try {
-                      preview(
-                        simulate(lootSchema.parse(table))
-                          .map((e) => e.item + ' × ' + e.count)
-                          .join(', '),
-                      );
+                      preview(simulate(lootSchema.parse(table)));
                     } catch {
                       msg('Check item names, quantities, weights and rolls.');
                     }
@@ -888,7 +868,38 @@ export function Component() {
                   Simulate 100 raids
                 </Button>
               </Group>
-              {results && <Text>Total items across 100 raids · {results}</Text>}
+              {results && (
+                <Card withBorder>
+                  <Stack>
+                    <Title order={4}>
+                      <LootTip
+                        label='100-raid simulation'
+                        help='These are random samples. Re-run the simulation to see how the totals vary. The tier cards show the exact chance per roll.'
+                      />
+                    </Title>
+                    <Group>
+                      {table.Cascade?.map((pool, i) => (
+                        <Badge key={i} variant='light'>
+                          {pool.Name} · {results.tierHits[i]} hits
+                        </Badge>
+                      ))}
+                      <Badge variant='light' color='gray'>
+                        No drop · {results.misses} rolls
+                      </Badge>
+                    </Group>
+                    <Group>
+                      {results.items.map((entry) => (
+                        <Group key={entry.item} gap={6}>
+                          <RustLootIcon item={entry.item} />
+                          <Text size='sm'>
+                            {entry.item} × {entry.count}
+                          </Text>
+                        </Group>
+                      ))}
+                    </Group>
+                  </Stack>
+                </Card>
+              )}
             </Stack>
           </Tabs.Panel>
         )}

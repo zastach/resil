@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RERaid", "zastach", "0.4.9")]
+    [Info("RERaid", "zastach", "0.5.0")]
     [Description("Rust Empires raid encounters, sieges, events and builder review.")]
     public class RERaid : RustPlugin
     {
@@ -813,6 +813,14 @@ namespace Oxide.Plugins
         {
             public int Rolls;
             public List<LootEntry> Entries, Guaranteed;
+            public List<WebLootPool> Cascade;
+        }
+
+        private sealed class WebLootPool
+        {
+            // Basis points match the percentage precision in Raid Center.
+            public int Chance;
+            public List<LootEntry> Entries;
         }
 
         private sealed class CatalogItem
@@ -1493,13 +1501,18 @@ namespace Oxide.Plugins
 
         private IEnumerable<LootEntry> RollCatalogLoot(WebLoot loot)
         {
-            foreach (var entry in loot.Guaranteed) yield return entry;
-            var entries = loot.Entries;
-            if (entries.Count == 0) yield break;
-            double total = entries.Sum(e => (double)e.Weight);
+            if (loot.Guaranteed != null)
+                foreach (var entry in loot.Guaranteed) yield return entry;
             for (int i = 0; i < Mathf.Clamp(loot.Rolls, 0, 200); i++)
             {
-                double draw = UnityEngine.Random.value * total;
+                var entries = loot.Entries;
+                if (loot.Cascade != null && loot.Cascade.Count > 0)
+                {
+                    var hit = loot.Cascade.FirstOrDefault(pool => UnityEngine.Random.Range(0, 10000) < pool.Chance);
+                    entries = hit?.Entries;
+                }
+                if (entries == null || entries.Count == 0) continue;
+                double draw = UnityEngine.Random.value * entries.Sum(e => (double)e.Weight);
                 yield return entries.FirstOrDefault(e => (draw -= e.Weight) < 0) ?? entries.Last();
             }
         }
