@@ -381,6 +381,21 @@ function download(name: string, body: string, mime: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+function talkingNpcConversation(dialogue: Node[]) {
+  const ordered = [...dialogue.filter((node) => node.id === 'start'), ...dialogue.filter((node) => node.id !== 'start')];
+  const ids = new Map(ordered.map((node, index) => [node.id, index]));
+  return Object.fromEntries(ordered.map((node, index) => [index, {
+    Message: node.text,
+    'Message Display Time (seconds) - Only used if there are no responses': 2,
+    Responses: node.choices.map((choice) => ({
+      Message: choice.text,
+      'Next Message (null = Close UI)': choice.next ? ids.get(choice.next) : null,
+    })),
+  }]));
+}
+
+
+
 function validate(n: Npc) {
   const ids = n.dialogue.map((x) => x.id);
   if (!/^[a-z0-9][a-z0-9-]*$/.test(n.id)) return 'NPC ID must use lowercase letters, numbers and hyphens.';
@@ -781,6 +796,13 @@ export function Component() {
     }
     download(draft.id + '.json', JSON.stringify({ ...draft, version: 1 }, null, 2), 'application/json');
   };
+  const exportTalkingNpc = () => {
+    const error = validate(draft);
+    if (error) return setNotice(error);
+    const filename = 'studio-' + draft.id;
+    download(filename + '.json', JSON.stringify(talkingNpcConversation(draft.dialogue), null, 2), 'application/json');
+    setNotice('Place ' + filename + '.json in oxide/data/TalkingNpc/Conversations/. Use ' + filename + ' as the conversation file when adding a TalkingNpc. This export includes dialogue text and replies only.');
+  };
   const importJson = async (file: File | null) => {
     if (!file) return;
     try {
@@ -934,6 +956,7 @@ export function Component() {
           </Menu.Dropdown>
         </Menu>
         <Group gap='xs'>
+          <Button variant='light' onClick={exportTalkingNpc}>Export TalkingNpc dialogue</Button>
           <Button variant='light' leftSection={<IconDownload size={16} />} onClick={exportJson}>
             Export JSON
           </Button>
