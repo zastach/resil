@@ -32,7 +32,6 @@ type Revision = {
   loot: Loot | null;
   author: string;
   status: string;
-  revision_notice_seen: boolean;
   votes: Record<string, string>;
   notes: { by: string; action: string; note: string; difficulty?: string; at: string }[];
 };
@@ -63,8 +62,16 @@ export function Component() {
     [message, msg] = useState(''),
     [busy, lock] = useState(false);
   const [tab, selectTab] = useState<string | null>('queue');
+  const [notices, setNotices] = useState<
+    { id: string; revisionId: string | null; message: string; createdAt: string }[]
+  >([]);
+  async function refreshNotices() {
+    const result = await request('/notifications');
+    setNotices(result.notices);
+  }
   const [params, setParams] = useSearchParams();
   const id = params.get('revision') ?? '';
+  const activeTab = params.has('inbox') ? 'inbox' : tab;
   const select = (revision: string) => setParams(revision ? { revision } : {});
   const [note, comment] = useState('');
   const [reviewDetails, setReviewDetails] = useState<{
@@ -106,13 +113,20 @@ export function Component() {
   const [difficulty, setDifficulty] = useState<string | null>(null);
   const current = state?.revisions.find((r) => r.id === id);
   async function refresh() {
-    set(await request());
+    await Promise.all([request().then(set), refreshNotices()]);
   }
   useEffect(() => {
     let active = true;
     request()
       .then((data) => {
         if (active) set(data);
+      })
+      .catch((e) => {
+        if (active) msg(e.message);
+      });
+    request('/notifications')
+      .then((result) => {
+        if (active) setNotices(result.notices);
       })
       .catch((e) => {
         if (active) msg(e.message);
@@ -153,48 +167,69 @@ export function Component() {
           {message}
         </Alert>
       )}
-      {state?.revisions
-        .filter((r) => r.author === state.viewer && r.status === 'Revise' && !r.revision_notice_seen)
-        .map((r) => (
-          <Alert key={r.id} title='Revision requested' color='yellow'>
-            <Text size='sm'>
-              The panel requested changes to {r.name}, revision {r.revision}.
-            </Text>
-            <Group mt='xs'>
-              <Button
-                variant='light'
-                onClick={() => {
-                  select(r.id);
-                  selectTab('queue');
-                }}
-              >
-                Open review
-              </Button>
-              <Button
-                variant='subtle'
-                disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    await request('/' + r.id + '/notice/read', {});
-                    return 'Notification marked as read.';
-                  })
-                }
-              >
-                Mark as read
-              </Button>
-            </Group>
-          </Alert>
-        ))}
-      <Tabs value={tab} onChange={selectTab}>
+      <Tabs
+        value={activeTab}
+        onChange={(next) => {
+          if (params.has('inbox')) setParams({});
+          selectTab(next);
+          if (next === 'inbox') refreshNotices().catch((e) => msg(e.message));
+        }}
+      >
         <Tabs.List>
           <Tabs.Tab value='queue'>
             {state?.reviewer || state?.admin ? 'Review queue' : 'My submissions'}
           </Tabs.Tab>
+          <Tabs.Tab value='inbox'>Inbox{notices.length ? ` (${notices.length})` : ''}</Tabs.Tab>
           <Tabs.Tab value='submit'>Submit a base</Tabs.Tab>
           {(state?.admin || state?.reviewer) && <Tabs.Tab value='loot'>Loot tables</Tabs.Tab>}
           {state?.admin && <Tabs.Tab value='panel'>Panel settings</Tabs.Tab>}
           {state?.admin && <Tabs.Tab value='server'>Server setup</Tabs.Tab>}
         </Tabs.List>
+        <Tabs.Panel value='inbox' pt='md'>
+          <Stack>
+            <Title order={3}>Raid Center inbox</Title>
+            {!notices.length && <Text c='dimmed'>You’re caught up.</Text>}
+            {notices.map((notice) => (
+              <Card key={notice.id} withBorder>
+                <Group justify='space-between'>
+                  <div>
+                    <Text fw={600}>{notice.message}</Text>
+                    <Text size='sm' c='dimmed'>
+                      {new Date(notice.createdAt).toLocaleString()}
+                    </Text>
+                  </div>
+                  <Group>
+                    {notice.revisionId && (
+                      <Button
+                        variant='light'
+                        onClick={() => {
+                          select(notice.revisionId!);
+                          selectTab('queue');
+                        }}
+                      >
+                        Open review
+                      </Button>
+                    )}
+                    <Button
+                      variant='subtle'
+                      disabled={busy}
+                      onClick={() =>
+                        run(async () => {
+                          await request('/notifications/read', { id: notice.id });
+                          window.dispatchEvent(new Event('raid-notifications-changed'));
+                          return 'Notification marked as read.';
+                        })
+                      }
+                    >
+                      Mark as read
+                    </Button>
+                  </Group>
+                </Group>
+              </Card>
+            ))}
+          </Stack>
+        </Tabs.Panel>
+
         {state?.admin && policy && (
           <Tabs.Panel value='panel' pt='md'>
             <Stack maw={600}>

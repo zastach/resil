@@ -8,6 +8,8 @@ import type { SafeConfig } from '@/lib/config/safe';
 import { isAdministrator } from '@/lib/role';
 import {
   Anchor,
+  ActionIcon,
+  Indicator,
   AppShell,
   Avatar,
   Box,
@@ -27,6 +29,7 @@ import {
 } from '@mantine/core';
 import {
   IconAdjustments,
+  IconBell,
   IconChevronDown,
   IconChevronRight,
   IconExternalLink,
@@ -45,7 +48,7 @@ import {
   IconUsersGroup,
 } from '@tabler/icons-react';
 import type { TFunction } from 'i18next';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavigateFunction, Outlet, useLoaderData, useLocation, useNavigate } from 'react-router-dom';
 import type { dashboardLoader } from '../client/routes';
@@ -269,6 +272,29 @@ export default function Layout() {
   const { user, mutate } = useLogin();
   const { avatar } = useAvatar();
 
+  const [raidUnread, setRaidUnread] = useState(0);
+  const raidNoticeUser = user && hasAcceptedResilPolicy(user) ? user.id : null;
+  useEffect(() => {
+    if (!raidNoticeUser) return;
+    let active = true;
+    const refresh = () => {
+      fetch('/api/devtools/raids/notifications')
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => {
+          if (active && data) setRaidUnread(data.notices.length);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 60000);
+    window.addEventListener('raid-notifications-changed', refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('raid-notifications-changed', refresh);
+    };
+  }, [raidNoticeUser]);
+
   const [prev, setPrev] = useState(location.pathname);
   if (prev !== location.pathname) {
     setPrev(location.pathname);
@@ -314,6 +340,16 @@ export default function Layout() {
               <ResilBrand />
 
               <Group gap='xs' wrap='nowrap' style={{ marginLeft: 'auto' }}>
+                <Indicator disabled={!raidUnread} label={raidUnread} size={16} color='orange'>
+                  <ActionIcon
+                    component={Link}
+                    to='/dashboard/raids?inbox=1'
+                    variant='subtle'
+                    aria-label={raidUnread ? `Raid Center inbox, ${raidUnread} unread` : 'Raid Center inbox'}
+                  >
+                    <IconBell size={19} />
+                  </ActionIcon>
+                </Indicator>
                 <LanguageSelect />
 
                 <Menu shadow='md' width={200}>

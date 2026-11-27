@@ -983,7 +983,7 @@ namespace Oxide.Plugins
                 if (player.IsConnected) Respond(player, "The base copy did not finish. Aim at a wall or foundation and retry /reraid submit. If it happens again, contact staff.");
             });
             Save();
-            string[] options = { "method", "building" };
+            string[] options = { "method", "building", "share", "false" };
             Action finished = () => CompleteSubmission(entry, id, player.IPlayer);
             object result = CopyPaste.Call("TryCopyFromSteamId", player.userID, entry.Snapshot, options, finished);
             if (result == null && entry.Status == "Copying")
@@ -997,7 +997,7 @@ namespace Oxide.Plugins
                         System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
                         null, new[] { typeof(Oxide.Core.Libraries.Covalence.IPlayer), typeof(string), typeof(string[]) }, null);
                     if (command == null) throw new MissingMethodException("CopyPaste.CmdCopy");
-                    command.Invoke(CopyPaste, new object[] { player.IPlayer, "copy", new[] { entry.Snapshot, "method", "building" } });
+                    command.Invoke(CopyPaste, new object[] { player.IPlayer, "copy", new[] { entry.Snapshot, "method", "building", "share", "false" } });
                 }
                 catch (Exception ex)
                 {
@@ -1315,6 +1315,45 @@ namespace Oxide.Plugins
             return col + y;
         }
 
+        private void LockSubmittedRaid(Preview raid)
+        {
+            const string prefab = "assets/prefabs/locks/keypad/lock.code.prefab";
+            var lockItem = new Item { info = ItemManager.FindItemDefinition("lock.code") };
+            foreach (var entity in raid.Entities.ToArray())
+            {
+                if (entity == null || entity.IsDestroyed || !entity.HasSlot(BaseEntity.Slot.Lock)) continue;
+                var slot = entity.GetSlot(BaseEntity.Slot.Lock);
+                var codeLock = slot as CodeLock;
+                if (codeLock == null)
+                {
+                    var spawnedLock = GameManager.server.CreateEntity(prefab, Vector3.zero);
+                    codeLock = spawnedLock as CodeLock;
+                    if (codeLock == null)
+                    {
+                        spawnedLock?.Kill();
+                        PrintWarning($"Could not create a code lock for {entity.ShortPrefabName} in raid #{raid.Id}.");
+                        continue;
+                    }
+
+                    codeLock.SetParent(entity, "lock");
+                    codeLock.OnDeployed(entity, null, lockItem);
+                    codeLock.enableSaving = false;
+                    codeLock.Spawn();
+                    if (slot != null && !slot.IsDestroyed) slot.Kill();
+                    entity.SetSlot(BaseEntity.Slot.Lock, codeLock);
+                    raid.Entities.Add(codeLock);
+                }
+                codeLock.code = UnityEngine.Random.Range(0, 10000).ToString("D4");
+                codeLock.hasCode = true;
+                codeLock.guestCode = string.Empty;
+                codeLock.hasGuestCode = false;
+                codeLock.whitelistPlayers.Clear();
+                codeLock.guestPlayers.Clear();
+                codeLock.SetFlag(BaseEntity.Flags.Locked, true);
+                codeLock.SendNetworkUpdate();
+            }
+        }
+
         private static bool IsFurnace(StorageContainer container)
         {
             return container is BaseOven &&
@@ -1627,6 +1666,9 @@ namespace Oxide.Plugins
                 ClearPreview(raid);
                 return;
             }
+            if (!raid.Event && (credited != null || raid.Snapshot.StartsWith("re_review_", StringComparison.Ordinal) ||
+                raid.Snapshot.StartsWith("re_catalog_", StringComparison.Ordinal)))
+                LockSubmittedRaid(raid);
             raid.OriginalCount = raid.Objectives.Count;
             raid.Phase = "Available";
             raid.Deadline = Now + 2700;
@@ -1692,6 +1734,11 @@ namespace Oxide.Plugins
                 PrintWarning($"Unable to create a map pin for {raid.Name}.");
             }
 
+            if (raid.Practice && raid.Snapshot.StartsWith("re_review_", StringComparison.Ordinal))
+                CatalogRequest("/test/" + raid.SubmissionId + "/started", "{}", true, (code, body) =>
+                {
+                    if (code != 200) PrintWarning($"Raid Center could not record playtest start (HTTP {code}).");
+                });
             if (raid.Automatic) { state.Rotation.Remove(raid.Snapshot); state.Rotation.Add(raid.Snapshot); }
             if (raid.Practice && state.Submissions.TryGetValue(raid.SubmissionId,out var test))
             {

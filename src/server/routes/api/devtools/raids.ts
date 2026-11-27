@@ -48,6 +48,26 @@ function countStorage(entities: unknown) {
   }
   return counts;
 }
+function stripLockAccess(snapshotData: z.infer<typeof snapshot>) {
+  const pending: unknown[] = [...snapshotData.entities];
+  while (pending.length) {
+    const entry = pending.pop();
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const entity = entry as Record<string, unknown>;
+    const prefab = String(entity.prefabname ?? '');
+    if (prefab.endsWith('/lock.code.prefab')) {
+      entity.code = '';
+      delete entity.guestCode;
+      delete entity.whitelistPlayers;
+      delete entity.guestPlayers;
+    } else if (prefab.endsWith('/lock.key.prefab')) {
+      entity.code = '0';
+      entity.firstKeyCreated = false;
+    }
+    if (entity.lock) pending.push(entity.lock);
+    if (Array.isArray(entity.children)) for (const child of entity.children) pending.push(child);
+  }
+}
 const draft = z.object({
   name: z.string().trim().min(1).max(100),
   tier: z.enum(tiers),
@@ -101,6 +121,22 @@ function setup() {
     await db.execute(
       sql`ALTER TABLE resil_raid_revisions ADD COLUMN IF NOT EXISTS revision_notice_seen boolean NOT NULL DEFAULT false`,
     );
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_raid_activity (
+      id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, revision_id text, builder text,
+      actor text, audience text NOT NULL, message text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`);
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_raid_activity_read (
+      activity_id bigint REFERENCES resil_raid_activity(id) ON DELETE CASCADE,
+      user_id text NOT NULL, PRIMARY KEY(activity_id,user_id))`);
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS resil_raid_activity_builder_idx ON resil_raid_activity (builder,id DESC)`,
+    );
+    await db.execute(
+      sql`CREATE INDEX IF NOT EXISTS resil_raid_activity_audience_idx ON resil_raid_activity (audience,id DESC)`,
+    );
+    await db.execute(sql`INSERT INTO resil_raid_activity(revision_id,builder,audience,message)
+      SELECT id,author,'builder','Revision requested for ' || name || ' · revision ' || revision
+      FROM resil_raid_revisions r WHERE status='Revise' AND NOT revision_notice_seen
+      AND NOT EXISTS (SELECT FROM resil_raid_activity a WHERE a.revision_id=r.id AND a.message LIKE 'Revision requested%')`);
     await db.execute(
       sql`CREATE TABLE IF NOT EXISTS resil_raid_loot (name text primary key, version int not null, data jsonb not null)`,
     );
@@ -150,7 +186,27 @@ function panelProgress(rule: PanelRule, roster: Set<string>, author: string, vot
     if (id !== author && roster.has(id) && vote in counts) counts[vote]++;
   return { eligible, required: requiredVotes(rule, eligible), counts };
 }
-const columns = sql.raw('id,family,revision,name,tier,loot,author,status,votes,notes,revision_notice_seen');
+function addActivity(event: {
+  revisionId?: string;
+  builder?: string;
+  actor?: string;
+  audience: string;
+  message: string;
+}) {
+  return sql`INSERT INTO resil_raid_activity(revision_id,builder,actor,audience,message)
+    VALUES (${event.revisionId ?? null},${event.builder ?? null},${event.actor ?? null},${event.audience},${event.message})`;
+}
+
+async function activityScope(user: Req['user']) {
+  const admin = user.role === 'SUPERADMIN';
+  const policy = (await db.execute(policyQuery)).rows[0];
+  const reviewer = await panelRoster(String(policy.discordRole))
+    .then((members) => members.some((member) => member.id === user.id))
+    .catch(() => false);
+  return sql`(a.actor IS DISTINCT FROM ${user.id}) AND
+    (a.builder=${user.id} OR (a.audience='panel' AND (${reviewer} OR ${admin})) OR (a.audience='admin' AND ${admin}))`;
+}
+const columns = sql.raw('id,family,revision,name,tier,loot,author,status,votes,notes');
 export default typedPlugin(async (server) => {
   server.addHook('preHandler', async (req) => {
     if (req.url.startsWith(PATH)) await setup();
@@ -166,6 +222,7 @@ export default typedPlugin(async (server) => {
       if (photo && !imageType(Buffer.from(photo, 'base64')))
         return res.code(400).send({ error: 'Invalid Rust camera image' });
 
+      stripLockAccess(data);
       await db.execute(sql`DELETE FROM resil_raid_imports WHERE expires<=now()`);
       const alphabet = '0123456789abcdefghjkmnpqrstvwxyz';
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -208,12 +265,21 @@ export default typedPlugin(async (server) => {
     if (!parsed.success)
       return res.code(400).send({ error: 'Check the vote requirements and enter a valid Discord role ID.' });
     const { rule, version, discordRole } = parsed.data;
-    const result = await db.execute(
-      sql`UPDATE resil_raid_policy SET rule=${JSON.stringify(rule)}::jsonb,discord_role=${discordRole},version=version+1 WHERE singleton AND version=${version} RETURNING version`,
-    );
-    if (!result.rows.length)
-      return res.code(409).send({ error: 'Settings changed. Refresh and reopen panel settings.' });
-    return { saved: true };
+    return db.transaction(async (tx) => {
+      const result = await tx.execute(
+        sql`UPDATE resil_raid_policy SET rule=${JSON.stringify(rule)}::jsonb,discord_role=${discordRole},version=version+1 WHERE singleton AND version=${version} RETURNING version`,
+      );
+      if (!result.rows.length)
+        return res.code(409).send({ error: 'Settings changed. Refresh and reopen panel settings.' });
+      await tx.execute(
+        addActivity({
+          actor: req.user.id,
+          audience: 'panel',
+          message: 'Raid panel voting or Discord role settings updated',
+        }),
+      );
+      return { saved: true };
+    });
   });
   server.get(PATH, { preHandler: authenticateUser }, async (req) => {
     const policy = (await db.execute(policyQuery)).rows[0];
@@ -245,11 +311,22 @@ export default typedPlugin(async (server) => {
       tables: tables.rows,
     };
   });
-  server.post(PATH + '/:id/notice/read', { preHandler: authenticateUser }, async (req, res) => {
-    const { id } = z.object({ id: key }).parse(req.params);
-    const update = await db.execute(sql`UPDATE resil_raid_revisions SET revision_notice_seen=true
-      WHERE id=${id} AND author=${req.user.id} AND status='Revise' RETURNING id`);
-    return update.rows.length ? { saved: true } : res.code(404).send({ error: 'Notification unavailable' });
+  server.get(PATH + '/notifications', { preHandler: authenticateUser }, async (req, res) => {
+    const scope = await activityScope(req.user);
+    const { rows } =
+      await db.execute(sql`SELECT a.id::text,a.revision_id AS "revisionId",a.message,a.created_at AS "createdAt"
+      FROM resil_raid_activity a WHERE ${scope} AND NOT EXISTS
+      (SELECT FROM resil_raid_activity_read x WHERE x.activity_id=a.id AND x.user_id=${req.user.id})
+      ORDER BY a.id DESC LIMIT 100`);
+    return res.header('Cache-Control', 'private, no-store').send({ notices: rows });
+  });
+  server.post(PATH + '/notifications/read', { preHandler: authenticateUser }, async (req, res) => {
+    const { id } = z.object({ id: z.string().regex(/^\d{1,18}$/) }).parse(req.body);
+    const scope = await activityScope(req.user);
+    const result = await db.execute(sql`INSERT INTO resil_raid_activity_read(activity_id,user_id)
+      SELECT a.id,${req.user.id} FROM resil_raid_activity a WHERE a.id=${id}::bigint AND ${scope}
+      ON CONFLICT DO NOTHING RETURNING activity_id`);
+    return result.rows.length ? { saved: true } : res.code(404).send({ error: 'Notification unavailable' });
   });
   server.get(PATH + '/:id/storage', { preHandler: authenticateUser }, async (req, res) => {
     const { id } = z.object({ id: key }).parse(req.params);
@@ -282,16 +359,21 @@ export default typedPlugin(async (server) => {
     const { table, version } = z
       .object({ table: lootSchema, version: z.number().int().nonnegative() })
       .parse(req.body);
-    const result =
-      version === 0
-        ? await db.execute(
-            sql`INSERT INTO resil_raid_loot VALUES (${table.Name},1,${JSON.stringify(table)}::jsonb) ON CONFLICT DO NOTHING RETURNING version`,
-          )
-        : await db.execute(
-            sql`UPDATE resil_raid_loot SET data=${JSON.stringify(table)}::jsonb,version=version+1 WHERE name=${table.Name} AND version=${version} RETURNING version`,
-          );
-    if (!result.rows.length) return res.code(409).send({ error: 'Table changed. Refresh and reopen it.' });
-    return { saved: true };
+    return db.transaction(async (tx) => {
+      const result =
+        version === 0
+          ? await tx.execute(
+              sql`INSERT INTO resil_raid_loot VALUES (${table.Name},1,${JSON.stringify(table)}::jsonb) ON CONFLICT DO NOTHING RETURNING version`,
+            )
+          : await tx.execute(
+              sql`UPDATE resil_raid_loot SET data=${JSON.stringify(table)}::jsonb,version=version+1 WHERE name=${table.Name} AND version=${version} RETURNING version`,
+            );
+      if (!result.rows.length) return res.code(409).send({ error: 'Table changed. Refresh and reopen it.' });
+      await tx.execute(
+        addActivity({ actor: req.user.id, audience: 'panel', message: 'Loot table saved · ' + table.Name }),
+      );
+      return { saved: true };
+    });
   });
   server.post(PATH, { preHandler: authenticateUser, bodyLimit: 16 * 1024 * 1024 }, async (req, res) => {
     const value = draft.parse(req.body);
@@ -310,6 +392,7 @@ export default typedPlugin(async (server) => {
       return res
         .code(400)
         .send({ error: 'Take a Rust camera photo after /reraid submit, then import the new code.' });
+    if (!imported && value.data) stripLockAccess(value.data);
     const id = randomUUID().replaceAll('-', '');
     const previous =
       value.parent &&
@@ -327,11 +410,21 @@ export default typedPlugin(async (server) => {
       return res.code(409).send({ error: 'Select a reviewed parent revision' });
     const family = previous ? String(previous.family) : id;
     const rev = previous ? Number(previous.revision) + 1 : 1;
-    const result =
-      await db.execute(sql`INSERT INTO resil_raid_revisions(id,family,revision,name,tier,data,loot,author,photo) VALUES
+    return db.transaction(async (tx) => {
+      const result =
+        await tx.execute(sql`INSERT INTO resil_raid_revisions(id,family,revision,name,tier,data,loot,author,photo) VALUES
       (${id},${family},${rev},${value.name},${value.tier},${JSON.stringify(data)}::jsonb,${JSON.stringify(value.loot)}::jsonb,${req.user.id},${imported ? imported.photo : null}) ON CONFLICT DO NOTHING RETURNING id`);
-    if (!result.rows.length) return res.code(409).send({ error: 'A newer revision already exists' });
-    return { id };
+      if (!result.rows.length) return res.code(409).send({ error: 'A newer revision already exists' });
+      await tx.execute(
+        addActivity({
+          revisionId: id,
+          actor: req.user.id,
+          audience: 'panel',
+          message: `${rev > 1 ? 'New revision' : 'New raid submission'} · ${value.name} · revision ${rev}`,
+        }),
+      );
+      return { id };
+    });
   });
   server.post(PATH + '/:id/review', { preHandler: authenticateUser }, async (req, res) => {
     const { id } = z.object({ id: key }).parse(req.params);
@@ -353,11 +446,14 @@ export default typedPlugin(async (server) => {
       });
     return db.transaction(async (tx) => {
       const row = (
-        await tx.execute(sql`SELECT author,status,votes FROM resil_raid_revisions WHERE id=${id} FOR UPDATE`)
+        await tx.execute(
+          sql`SELECT name,revision,author,status,votes FROM resil_raid_revisions WHERE id=${id} FOR UPDATE`,
+        )
       ).rows[0];
       if (!row) return res.code(404).send({ error: 'Revision missing' });
       let status = String(row.status);
       const votes = row.votes as Record<string, string>;
+      const previousVote = votes[req.user.id];
       if (action === 'Publish') {
         if (status !== 'Approved') return res.code(409).send({ error: 'Approval required' });
         status = 'Published';
@@ -388,6 +484,33 @@ export default typedPlugin(async (server) => {
       await tx.execute(
         sql`UPDATE resil_raid_revisions SET status=${status},votes=${JSON.stringify(votes)}::jsonb,notes=notes || ${JSON.stringify(log)}::jsonb WHERE id=${id}`,
       );
+      const decisions: Record<string, string> = {
+        Approved: 'Raid approved',
+        Revise: 'Revision requested',
+        Reject: 'Raid rejected',
+        Published: 'Raid published',
+      };
+      const decision = decisions[status];
+      const changed = status !== row.status && decision;
+      const visibleFeedback = action === 'Comment' || action === 'Recommend difficulty' || note.length > 0;
+      if (changed || visibleFeedback || previousVote !== votes[req.user.id]) {
+        const label =
+          changed ||
+          (action === 'Comment'
+            ? 'New review comment'
+            : action === 'Recommend difficulty'
+              ? 'Difficulty recommendation · ' + difficulty
+              : 'Review vote recorded');
+        await tx.execute(
+          addActivity({
+            revisionId: id,
+            actor: req.user.id,
+            audience: 'panel',
+            builder: changed || visibleFeedback ? String(row.author) : undefined,
+            message: `${label} · ${row.name} · revision ${row.revision}`,
+          }),
+        );
+      }
       return { status };
     });
   });
@@ -407,6 +530,21 @@ export default typedPlugin(async (server) => {
       await db.execute(sql`SELECT data FROM resil_raid_revisions WHERE id=${id} AND status='Published'`)
     ).rows[0];
     return row ? row.data : res.code(404).send({ error: 'Published revision missing' });
+  });
+  server.post(PATH + '/catalog/test/:id/started', { preHandler: machine('PUBLISH') }, async (req, res) => {
+    const { id } = z.object({ id: key }).parse(req.params);
+    const row = (await db.execute(sql`SELECT name,revision,author FROM resil_raid_revisions WHERE id=${id}`))
+      .rows[0];
+    if (!row) return res.code(404).send({ error: 'Revision missing' });
+    await db.execute(
+      addActivity({
+        revisionId: id,
+        builder: String(row.author),
+        audience: 'builder',
+        message: `Playtest started · ${row.name} · revision ${row.revision}`,
+      }),
+    );
+    return { saved: true };
   });
   server.get(PATH + '/catalog/test/:id', { preHandler: machine('PUBLISH') }, async (req, res) => {
     const { id } = z.object({ id: key }).parse(req.params);
