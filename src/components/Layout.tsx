@@ -89,6 +89,12 @@ const buildNavLinks = (t: TFunction<['layout', 'common', 'serverSettings']>): Na
       (config.features.metrics.adminOnly ? isAdministrator(user?.role) : true),
   },
   {
+    label: 'Raid Center',
+    icon: <IconFolder size='1rem' />,
+    active: (path) => path === '/dashboard/raids',
+    href: '/dashboard/raids',
+  },
+  {
     label: 'My Images',
     icon: <IconFiles size='1rem' />,
     active: (path: string) => path === '/dashboard/files',

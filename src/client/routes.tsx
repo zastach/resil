@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
                 },
                 children: [
                   { index: true, lazy: () => import('./pages/devtools/index') },
+                  { path: 'raids', lazy: () => import('./pages/devtools/raids') },
                   { path: 'npcstudio', lazy: () => import('./pages/devtools/npcstudio') },
                 ],
               },
@@ -80,6 +81,7 @@ export const router = createBrowserRouter([
               {
                 ErrorBoundary: DashboardErrorBoundary,
                 children: [
+                  { path: 'raids', lazy: () => import('./pages/devtools/raids') },
                   { index: true, lazy: () => import('./pages/dashboard/index') },
                   { path: 'metrics', lazy: () => import('./pages/dashboard/metrics') },
                   { path: 'settings', lazy: () => import('./pages/dashboard/settings') },

@@ -22,6 +22,15 @@ export function Component() {
             </Button>
           </Stack>
         </Card>
+        <Card withBorder radius='md' p='lg'>
+          <Stack>
+            <Title order={4}>Raid Center</Title>
+            <Text size='sm'>Review base revisions, publish approved raids, and tune loot tables.</Text>
+            <Button component={Link} to='/devtools/raids'>
+              Open Raid Center
+            </Button>
+          </Stack>
+        </Card>
       </SimpleGrid>
     </Stack>
   );

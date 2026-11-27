@@ -1,0 +1,485 @@
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Code,
+  FileInput,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  Tabs,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { starter, simulate, lootSchema, tiers, type Loot } from '@/lib/raids/loot';
+const api = '/api/devtools/raids';
+type Revision = {
+  id: string;
+  family: string;
+  revision: number;
+  name: string;
+  tier: string;
+  loot: Loot | null;
+  author: string;
+  status: string;
+  votes: Record<string, string>;
+  notes: { by: string; action: string; note: string; at: string }[];
+};
+type State = {
+  admin: boolean;
+  reviewer: boolean;
+  viewer: string;
+  revisions: Revision[];
+  tables: { version: number; data: Loot }[];
+};
+async function request(path = '', body?: unknown) {
+  const res = await fetch(
+    api + path,
+    body === undefined
+      ? {}
+      : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+  );
+  const result = await res.json();
+  if (!res.ok) throw Error(result.error || result.message || 'Request failed');
+  return result;
+}
+export function Component() {
+  const [state, set] = useState<State>(),
+    [message, msg] = useState(''),
+    [busy, lock] = useState(false);
+  const [tab, selectTab] = useState<string | null>('queue'),
+    [id, select] = useState(''),
+    [note, comment] = useState('');
+  const [name, setName] = useState(''),
+    [tier, setTier] = useState<string>('Easy'),
+    [file, upload] = useState<File | null>(null),
+    [parent, revise] = useState(''),
+    [lootName, assign] = useState('');
+  const [table, edit] = useState<Loot>(structuredClone(starter)),
+    [version, setVersion] = useState(0),
+    [results, preview] = useState('');
+  const [importCode, setImportCode] = useState('');
+  const [credential, showCredential] = useState('');
+  const current = state?.revisions.find((r) => r.id === id);
+  async function refresh() {
+    set(await request());
+  }
+  useEffect(() => {
+    let active = true;
+    request()
+      .then((data) => {
+        if (active) set(data);
+      })
+      .catch((e) => {
+        if (active) msg(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  async function run(fn: () => Promise<string>) {
+    lock(true);
+    try {
+      const message = await fn();
+      await refresh();
+      msg(message);
+    } catch (e) {
+      msg(String(e));
+    } finally {
+      lock(false);
+    }
+  }
+  function change(t: Loot) {
+    edit(t);
+    preview('');
+  }
+  return (
+    <Stack p='lg' maw={1080} mx='auto'>
+      <Group justify='space-between'>
+        <Title order={2}>Raid Center</Title>
+        <Button variant='subtle' disabled={busy} onClick={() => run(async () => 'Queue refreshed.')}>
+          Refresh
+        </Button>
+      </Group>
+      {message && (
+        <Alert withCloseButton onClose={() => msg('')}>
+          {message}
+        </Alert>
+      )}
+      <Tabs value={tab} onChange={selectTab}>
+        <Tabs.List>
+          <Tabs.Tab value='queue'>{state?.reviewer ? 'Review queue' : 'My submissions'}</Tabs.Tab>
+          <Tabs.Tab value='submit'>Submit a base</Tabs.Tab>
+          {state?.reviewer && <Tabs.Tab value='loot'>Loot tables</Tabs.Tab>}
+          {state?.admin && <Tabs.Tab value='server'>Server setup</Tabs.Tab>}
+        </Tabs.List>
+        {state?.admin && (
+          <Tabs.Panel value='server' pt='md'>
+            <Stack>
+              <Title order={3}>Rust server connection</Title>
+              <Text>
+                Set CatalogEndpoint in oxide/config/RERaid.json to the address below. Use a read key on
+                servers that pull published raids. Add a publish key on the creative server for imports and
+                playtests.
+              </Text>
+              <Code block>https://resil.me/api/devtools/raids/catalog</Code>
+              {(['READ', 'PUBLISH'] as const).map((scope) => (
+                <Button
+                  key={scope}
+                  variant='light'
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Generate a new ' +
+                          scope.toLowerCase() +
+                          ' key? This replaces the previous site-generated key for this scope.',
+                      )
+                    )
+                      run(async () => {
+                        const key = await request('/key', { scope });
+                        showCredential(
+                          (scope === 'READ' ? 'CatalogReadToken' : 'CatalogPublishToken') + ' = ' + key.value,
+                        );
+                        return 'Copy the key into the server config now.';
+                      });
+                  }}
+                >
+                  Generate or replace {scope.toLowerCase()} key
+                </Button>
+              ))}
+              {credential && (
+                <>
+                  <Code block>{credential}</Code>
+                  <Button variant='subtle' onClick={() => showCredential('')}>
+                    Hide key
+                  </Button>
+                </>
+              )}
+              <Text>
+                Reload RERaid after saving the config. Use /reraid admin pull on the raid server after
+                publishing a revision.
+              </Text>
+            </Stack>
+          </Tabs.Panel>
+        )}
+
+        <Tabs.Panel value='queue' pt='md'>
+          <Stack>
+            {state && !state.revisions.length && <Text>No submissions yet.</Text>}
+            {state?.revisions.map((r) => (
+              <Card withBorder key={r.id}>
+                <Group justify='space-between'>
+                  <div>
+                    <Text fw={650}>
+                      {r.name} · revision {r.revision}
+                    </Text>
+                    <Text size='sm'>
+                      {r.tier} · {r.loot?.Name || 'Server tier loot'}
+                    </Text>
+                  </div>
+                  <Group>
+                    <Badge>{r.status}</Badge>
+                    <Button
+                      variant='light'
+                      onClick={() => {
+                        select(r.id);
+                        comment('');
+                      }}
+                    >
+                      Details
+                    </Button>
+                  </Group>
+                </Group>
+                {current?.id === r.id && (
+                  <Stack mt='md'>
+                    <Text size='sm'>Snapshot {r.id}</Text>
+                    {r.loot && (
+                      <Text size='sm'>
+                        {r.loot.Rolls} weighted rolls ·{' '}
+                        {r.loot.Entries.map(
+                          (e) => e.Item + ' × ' + e.Min + '–' + e.Max + ' (weight ' + e.Weight + ')',
+                        ).join(', ')}{' '}
+                        · Guaranteed:{' '}
+                        {r.loot.Guaranteed.map((e) => e.Item + ' × ' + e.Min + '–' + e.Max).join(', ') ||
+                          'none'}
+                      </Text>
+                    )}
+                    {state.reviewer && (
+                      <>
+                        <Text size='sm'>Run this on the review server to playtest this revision.</Text>
+                        <Code block>/reraid admin webtest {r.id}</Code>
+                      </>
+                    )}
+                    {r.notes.map((n, i) => (
+                      <Text key={i} size='sm'>
+                        {n.by} · {n.action} · {new Date(n.at).toLocaleString()} {n.note}
+                      </Text>
+                    ))}
+                    {r.status === 'Pending' && (
+                      <Text size='sm'>
+                        {Object.values(r.votes).filter((v) => v === 'Approve').length} of 2 approvals
+                      </Text>
+                    )}
+                    {state.reviewer && (
+                      <>
+                        <TextInput
+                          label='Review note'
+                          value={note}
+                          onChange={(e) => comment(e.currentTarget.value)}
+                        />
+                        <Group>
+                          {[
+                            'Comment',
+                            ...(r.status === 'Pending' && r.author !== state.viewer
+                              ? ['Approve', 'Revise', 'Reject']
+                              : []),
+                            ...(r.status === 'Approved' ? ['Publish'] : []),
+                          ].map((action) => (
+                            <Button
+                              key={action}
+                              disabled={busy}
+                              onClick={() =>
+                                run(async () => {
+                                  await request('/' + r.id + '/review', { action, note });
+                                  comment('');
+                                  return action + ' recorded.';
+                                })
+                              }
+                            >
+                              {action === 'Revise' ? 'Request revision' : action}
+                            </Button>
+                          ))}
+                        </Group>
+                      </>
+                    )}
+                    {r.author === state.viewer &&
+                      ['Published', 'Revise', 'Reject'].includes(r.status) &&
+                      !state.revisions.some((x) => x.family === r.family && x.revision > r.revision) && (
+                        <Button
+                          onClick={() => {
+                            revise(r.id);
+                            setName(r.name);
+                            setTier(r.tier);
+                            assign(r.loot?.Name || '');
+                            selectTab('submit');
+                          }}
+                        >
+                          Submit next revision
+                        </Button>
+                      )}
+                  </Stack>
+                )}
+              </Card>
+            ))}
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value='submit' pt='md'>
+          <Stack>
+            <Title order={3}>{parent ? 'New revision' : 'New raid base'}</Title>
+            {parent && (
+              <Button variant='subtle' onClick={() => revise('')}>
+                Start a separate base instead
+              </Button>
+            )}
+            <TextInput label='Base name' value={name} onChange={(e) => setName(e.currentTarget.value)} />
+            <Select
+              label='Difficulty'
+              data={[...tiers]}
+              value={tier}
+              onChange={(v) => setTier(v || 'Easy')}
+            />
+            <TextInput
+              label='Creative server import code'
+              description='Run /reraid submit <tier> <name>, then /reraid web <submission ID>. Or upload a CopyPaste file below.'
+              value={importCode}
+              onChange={(e) => setImportCode(e.currentTarget.value.trim())}
+            />
+            <Button
+              variant='light'
+              disabled={busy || !importCode}
+              onClick={() =>
+                run(async () => {
+                  const imported = await request('/import', { code: importCode });
+                  upload(
+                    new File([JSON.stringify(imported.data)], 'server-snapshot.json', {
+                      type: 'application/json',
+                    }),
+                  );
+                  setName(imported.name);
+                  setTier(imported.tier);
+                  setImportCode('');
+                  return 'Snapshot imported. Select loot and submit for review.';
+                })
+              }
+            >
+              Import from creative server
+            </Button>
+            <FileInput
+              accept='.json'
+              label='CopyPaste snapshot'
+              description='Upload the saved base JSON from oxide/data/copypaste.'
+              value={file}
+              onChange={upload}
+            />
+            <Select
+              label='Loot table'
+              placeholder='Server tier loot'
+              clearable
+              value={lootName || null}
+              data={state?.tables.map((t) => t.data.Name) || []}
+              onChange={(v) => assign(v || '')}
+            />
+            <Button
+              disabled={busy || !file || !name.trim()}
+              onClick={() =>
+                run(async () => {
+                  if (!file || file.size > 15 * 1024 * 1024) throw Error('Snapshot must be under 15 MiB');
+                  const saved = await request('', {
+                    name,
+                    tier,
+                    parent: parent || undefined,
+                    data: JSON.parse(await file.text()),
+                    loot: state?.tables.find((t) => t.data.Name === lootName)?.data ?? null,
+                  });
+                  select(saved.id);
+                  revise('');
+                  upload(null);
+                  selectTab('queue');
+                  return 'Snapshot submitted for review.';
+                })
+              }
+            >
+              Submit for review
+            </Button>
+          </Stack>
+        </Tabs.Panel>
+        {state?.reviewer && (
+          <Tabs.Panel value='loot' pt='md'>
+            <Stack>
+              <Select
+                label='Edit saved table'
+                placeholder='Choose a table'
+                data={state.tables.map((t) => t.data.Name)}
+                onChange={(v) => {
+                  const t = state.tables.find((t) => t.data.Name === v);
+                  if (t) {
+                    change(structuredClone(t.data));
+                    setVersion(t.version);
+                  }
+                }}
+              />
+              <TextInput
+                label='Table name'
+                value={table.Name}
+                onChange={(e) => {
+                  setVersion(0);
+                  change({ ...table, Name: e.currentTarget.value });
+                }}
+              />
+              <NumberInput
+                label='Weighted rolls per raid'
+                min={0}
+                max={200}
+                value={table.Rolls}
+                onChange={(v) => change({ ...table, Rolls: Number(v) })}
+              />
+              {(['Entries', 'Guaranteed'] as const).map((group) => (
+                <Card key={group} withBorder>
+                  <Stack>
+                    <Title order={4}>{group === 'Entries' ? 'Weighted drops' : 'Guaranteed drops'}</Title>
+                    {table[group].map((entry, i) => (
+                      <Group align='end' key={i}>
+                        {(
+                          ['Item', 'Min', 'Max', ...(group === 'Entries' ? ['Weight' as const] : [])] as const
+                        ).map((field) => {
+                          const update = (v: string | number) =>
+                            change({
+                              ...table,
+                              [group]: table[group].map((e, j) => (i === j ? { ...e, [field]: v } : e)),
+                            });
+                          return field === 'Item' ? (
+                            <TextInput
+                              key={field}
+                              label='Item shortname'
+                              value={entry.Item}
+                              onChange={(e) => update(e.currentTarget.value)}
+                            />
+                          ) : (
+                            <NumberInput
+                              key={field}
+                              w={90}
+                              label={field}
+                              min={1}
+                              value={entry[field]}
+                              onChange={(v) => update(Number(v))}
+                            />
+                          );
+                        })}
+                        <Button
+                          variant='subtle'
+                          onClick={() =>
+                            change({ ...table, [group]: table[group].filter((_, j) => i !== j) })
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </Group>
+                    ))}
+                    <Button
+                      variant='light'
+                      onClick={() =>
+                        change({
+                          ...table,
+                          [group]: [...table[group], { Item: '', Min: 1, Max: 1, Weight: 1 }],
+                        })
+                      }
+                    >
+                      Add item
+                    </Button>
+                  </Stack>
+                </Card>
+              ))}
+              <Group>
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      const checked = lootSchema.parse(table);
+                      await request('/loot', { table: checked, version });
+                      setVersion(version + 1);
+                      return 'Table saved. Submitted revisions retain their original loot.';
+                    })
+                  }
+                >
+                  Save table
+                </Button>
+                <Button
+                  variant='light'
+                  onClick={() => {
+                    try {
+                      preview(
+                        simulate(lootSchema.parse(table))
+                          .map((e) => e.item + ' × ' + e.count)
+                          .join(', '),
+                      );
+                    } catch {
+                      msg('Check item names, quantities, weights and rolls.');
+                    }
+                  }}
+                >
+                  Simulate 100 raids
+                </Button>
+              </Group>
+              {results && <Text>Total items across 100 raids · {results}</Text>}
+            </Stack>
+          </Tabs.Panel>
+        )}
+      </Tabs>
+    </Stack>
+  );
+}
