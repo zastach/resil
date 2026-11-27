@@ -383,7 +383,7 @@ export default function Layout() {
             </ScrollArea>
 
             <div style={{ marginTop: 'auto' }}>
-              <VersionBadge />
+              {isAdministrator(user?.role) && <VersionBadge />}
 
               <Divider />
 
