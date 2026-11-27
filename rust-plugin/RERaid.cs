@@ -298,8 +298,8 @@ namespace Oxide.Plugins
             if (args.Length == 3 && args[1] == "webtest" && Guid.TryParseExact(args[2], "N", out _))
             {
                 if (!CanManagePreviews(player) && !permission.UserHasPermission(player.UserIDString,"reraid.panel")) { SendReply(player,"Panel access required."); return; }
-                string id = args[2];
-                CatalogRequest("/test/" + id, null, true, (code, body) =>
+                string revisionId = args[2];
+                CatalogRequest("/test/" + revisionId, null, true, (code, body) =>
                 {
                     if (player == null || !player.IsConnected) return;
                     if (code != 200) { Respond(player, "Playtest download failed (" + code + "). Check CatalogEndpoint and CatalogPublishToken."); return; }
@@ -308,13 +308,13 @@ namespace Oxide.Plugins
                         var response = Newtonsoft.Json.Linq.JObject.Parse(body);
                         var item = response.ToObject<CatalogItem>();
                         var data = response["data"] as Newtonsoft.Json.Linq.JObject;
-                        if (item.id != id || !Tiers.Contains(item.tier) || !(data?["entities"] is Newtonsoft.Json.Linq.JArray entities) || entities.Count == 0)
+                        if (item.id != revisionId || !Tiers.Contains(item.tier) || !(data?["entities"] is Newtonsoft.Json.Linq.JArray entities) || entities.Count == 0)
                             throw new Exception("Invalid review snapshot");
-                        string filename = "re_review_" + id;
+                        string filename = "re_review_" + revisionId;
                         Interface.Oxide.DataFileSystem.WriteObject("copypaste/" + filename, data);
                         StartPreview(player, new[] { "spawn", filename }, r => {
                             r.Name = item.name; r.Tier = item.tier; r.CatalogLoot = item.loot;
-                            r.Practice = true; r.SubmissionId = id; r.Members.Add(player.userID);
+                            r.Practice = true; r.SubmissionId = revisionId; r.Members.Add(player.userID);
                         });
                     }
                     catch (Exception ex) { Respond(player, "Playtest failed: " + ex.Message); }
