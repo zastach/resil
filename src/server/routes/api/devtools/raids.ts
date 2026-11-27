@@ -1,3 +1,4 @@
+import { linkedDiscordRole } from '@/server/middleware/discord-roles';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { panelRule, requiredVotes, type PanelRule } from '@/lib/raids/panel';
 import { db } from '@/lib/db';
@@ -19,16 +20,9 @@ const draft = z.object({
 });
 type Req = Parameters<typeof authenticateUser>[0];
 type Res = Parameters<typeof authenticateUser>[1];
-const isReviewer = (user: Req['user']) =>
-  user.role === 'SUPERADMIN' ||
-  (process.env.RESIL_RAID_PANEL_USERS || '')
-    .split(',')
-    .map((id) => id.trim())
-    .includes(user.id);
-const staff = async (req: Req, res: Res) => {
+const adminOnly = async (req: Req, res: Res) => {
   await authenticateUser(req, res);
-  if (!res.sent && !isReviewer(req.user))
-    return res.code(403).send({ error: 'Site administrator access required' });
+  if (req.user.role !== 'SUPERADMIN') return res.code(403).send({ error: 'Site administrator required' });
 };
 const machine = (access: 'READ' | 'PUBLISH') => async (req: Req, res: Res) => {
   const token = process.env['RESIL_RAID_' + access + '_TOKEN'];
@@ -52,6 +46,9 @@ function setup() {
       sql`INSERT INTO resil_raid_policy VALUES(true,'{"mode":"fixed","minimum":2,"percent":67}',1) ON CONFLICT DO NOTHING`,
     );
     await db.execute(
+      sql`ALTER TABLE resil_raid_policy ADD COLUMN IF NOT EXISTS discord_role text NOT NULL DEFAULT '750403808483475468'`,
+    );
+    await db.execute(
       sql`CREATE TABLE IF NOT EXISTS resil_raid_keys (scope text primary key,digest text not null)`,
     );
     await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_raid_imports (
@@ -69,15 +66,39 @@ function setup() {
     throw e;
   }));
 }
-const policyQuery = sql`SELECT rule,version FROM resil_raid_policy WHERE singleton`;
-function rosterQuery() {
-  const configured = JSON.stringify(
-    (process.env.RESIL_RAID_PANEL_USERS ?? '')
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean),
+const policyQuery = sql`SELECT rule,version,discord_role AS "discordRole" FROM resil_raid_policy WHERE singleton`;
+type PanelMember = { id: string; username: string };
+let rosterCache: { role: string; expires: number; result: Promise<PanelMember[]> } | undefined;
+function panelRoster(role: string) {
+  if (rosterCache?.role === role && rosterCache.expires > Date.now()) return rosterCache.result;
+  const result = loadPanelRoster(role);
+  rosterCache = { role, expires: Infinity, result };
+  void result.then(
+    () => {
+      if (rosterCache?.result === result) rosterCache.expires = Date.now() + 30000;
+    },
+    () => {
+      if (rosterCache?.result === result) rosterCache = undefined;
+    },
   );
-  return sql`SELECT id FROM "User" WHERE role='SUPERADMIN' OR id IN (SELECT jsonb_array_elements_text(${configured}::jsonb))`;
+  return result;
+}
+async function loadPanelRoster(role: string) {
+  const guild = process.env.OAUTH_DISCORD_GUILD_ID;
+  if (!guild) throw new Error('Raid Center requires the Rust Empires Discord server to be configured.');
+  const { rows } = await db.execute(sql`SELECT DISTINCT u.id,u.username FROM "User" u
+    JOIN "OAuthProvider" o ON o."userId"=u.id WHERE o.provider='DISCORD' ORDER BY u.username`);
+  const members: PanelMember[] = [];
+  for (let offset = 0; offset < rows.length; offset += 4) {
+    await Promise.all(
+      rows.slice(offset, offset + 4).map(async (row) => {
+        const id = String(row.id);
+        if (await linkedDiscordRole(id, { guild, roles: [role] }))
+          members.push({ id, username: String(row.username) });
+      }),
+    );
+  }
+  return members.sort((a, b) => a.username.localeCompare(b.username));
 }
 function panelProgress(rule: PanelRule, roster: Set<string>, author: string, votes: Record<string, string>) {
   const eligible = roster.size - Number(roster.has(author));
@@ -124,8 +145,7 @@ export default typedPlugin(async (server) => {
       RETURNING name,tier,data`);
     return result.rows[0] ?? res.code(404).send({ error: 'Import code expired or unavailable' });
   });
-  server.post(PATH + '/key', { preHandler: staff }, async (req, res) => {
-    if (req.user.role !== 'SUPERADMIN') return res.code(403).send({ error: 'Site administrator required' });
+  server.post(PATH + '/key', { preHandler: adminOnly }, async (req, res) => {
     const { scope } = z.object({ scope: z.enum(['READ', 'PUBLISH']) }).parse(req.body);
     const value = randomBytes(32).toString('hex');
     const digest = createHash('sha256').update(value).digest('hex');
@@ -134,30 +154,43 @@ export default typedPlugin(async (server) => {
     );
     return res.header('Cache-Control', 'no-store').send({ value });
   });
-  server.post(PATH + '/policy', { preHandler: staff }, async (req, res) => {
-    if (req.user.role !== 'SUPERADMIN') return res.code(403).send({ error: 'Site administrator required' });
-    const parsed = z.object({ rule: panelRule, version: z.number().int().positive() }).safeParse(req.body);
-    if (!parsed.success) return res.code(400).send({ error: 'Check the vote minimum and percentage.' });
-    const { rule, version } = parsed.data;
+  server.post(PATH + '/policy', { preHandler: adminOnly }, async (req, res) => {
+    const parsed = z
+      .object({
+        rule: panelRule,
+        discordRole: z
+          .string()
+          .trim()
+          .regex(/^\d{17,20}$/),
+        version: z.number().int().positive(),
+      })
+      .safeParse(req.body);
+    if (!parsed.success)
+      return res.code(400).send({ error: 'Check the vote requirements and enter a valid Discord role ID.' });
+    const { rule, version, discordRole } = parsed.data;
     const result = await db.execute(
-      sql`UPDATE resil_raid_policy SET rule=${JSON.stringify(rule)}::jsonb,version=version+1 WHERE singleton AND version=${version} RETURNING version`,
+      sql`UPDATE resil_raid_policy SET rule=${JSON.stringify(rule)}::jsonb,discord_role=${discordRole},version=version+1 WHERE singleton AND version=${version} RETURNING version`,
     );
     if (!result.rows.length)
       return res.code(409).send({ error: 'Settings changed. Refresh and reopen panel settings.' });
     return { saved: true };
   });
   server.get(PATH, { preHandler: authenticateUser }, async (req) => {
-    const reviewer = isReviewer(req.user);
+    const policy = (await db.execute(policyQuery)).rows[0];
+    const members = await panelRoster(String(policy.discordRole)).catch(() => null);
+    const roster = new Set((members ?? []).map((member) => member.id));
+    const reviewer = roster.has(req.user.id);
+    const admin = req.user.role === 'SUPERADMIN';
     const revisions = await db.execute(
-      sql`SELECT ${columns} FROM resil_raid_revisions WHERE ${reviewer} OR author=${req.user.id} ORDER BY name,revision DESC`,
+      sql`SELECT ${columns} FROM resil_raid_revisions WHERE ${reviewer || admin} OR author=${req.user.id} ORDER BY name,revision DESC`,
     );
     const tables = await db.execute(sql`SELECT version,data FROM resil_raid_loot ORDER BY name`);
-    const policy = (await db.execute(policyQuery)).rows[0];
-    const roster = new Set((await db.execute(rosterQuery())).rows.map((row) => String(row.id)));
     return {
       policy,
       panelSize: roster.size,
-      admin: req.user.role === 'SUPERADMIN',
+      panelUnavailable: members === null,
+      admin,
+      panelMembers: admin ? members : undefined,
       reviewer,
       viewer: req.user.id,
       revisions: revisions.rows.map((r) => ({
@@ -172,7 +205,13 @@ export default typedPlugin(async (server) => {
       tables: tables.rows,
     };
   });
-  server.post(PATH + '/loot', { preHandler: staff }, async (req, res) => {
+  server.post(PATH + '/loot', { preHandler: authenticateUser }, async (req, res) => {
+    const policy = (await db.execute(policyQuery)).rows[0];
+    if (
+      req.user.role !== 'SUPERADMIN' &&
+      !(await panelRoster(String(policy.discordRole))).some((member) => member.id === req.user.id)
+    )
+      return res.code(403).send({ error: 'Discord panel role required' });
     const { table, version } = z
       .object({ table: lootSchema, version: z.number().int().nonnegative() })
       .parse(req.body);
@@ -212,7 +251,7 @@ export default typedPlugin(async (server) => {
     if (!result.rows.length) return res.code(409).send({ error: 'A newer revision already exists' });
     return { id };
   });
-  server.post(PATH + '/:id/review', { preHandler: staff }, async (req, res) => {
+  server.post(PATH + '/:id/review', { preHandler: authenticateUser }, async (req, res) => {
     const { id } = z.object({ id: key }).parse(req.params);
     const { action, note, difficulty } = z
       .object({
@@ -221,6 +260,15 @@ export default typedPlugin(async (server) => {
         note: z.string().trim().max(2000),
       })
       .parse(req.body);
+    const policy = (await db.execute(policyQuery)).rows[0];
+    const roster =
+      action === 'Publish'
+        ? new Set<string>()
+        : new Set((await panelRoster(String(policy.discordRole))).map((member) => member.id));
+    if (action === 'Publish' ? req.user.role !== 'SUPERADMIN' : !roster.has(req.user.id))
+      return res.code(403).send({
+        error: action === 'Publish' ? 'Site administrator required' : 'Discord panel role required',
+      });
     return db.transaction(async (tx) => {
       const row = (
         await tx.execute(sql`SELECT author,status,votes FROM resil_raid_revisions WHERE id=${id} FOR UPDATE`)
@@ -240,8 +288,9 @@ export default typedPlugin(async (server) => {
         if (row.author === req.user.id || status !== 'Pending')
           return res.code(409).send({ error: 'Only independent reviewers can vote on pending revisions' });
         votes[req.user.id] = action;
-        const policy = (await tx.execute(sql`${policyQuery} FOR SHARE`)).rows[0];
-        const roster = new Set((await tx.execute(rosterQuery())).rows.map((row) => String(row.id)));
+        const currentPolicy = (await tx.execute(sql`${policyQuery} FOR SHARE`)).rows[0];
+        if (currentPolicy.version !== policy.version)
+          return res.code(409).send({ error: 'Panel settings changed. Try voting again.' });
         const progress = panelProgress(policy.rule as PanelRule, roster, String(row.author), votes);
         if (progress.counts[action] >= progress.required) status = action === 'Approve' ? 'Approved' : action;
       }

@@ -7,22 +7,33 @@ import { discordMembership, discordRolePolicy } from '@/lib/oauth/discord-roles'
 import { and, eq } from 'drizzle-orm';
 
 export async function requireDiscordRole(user: Pick<User, 'id' | 'role'>) {
-  if (user.role === 'SUPERADMIN' || user.role === 'ADMIN' || !discordRolePolicy()) return;
+  if (user.role === 'SUPERADMIN' || user.role === 'ADMIN') return;
+  const policy = discordRolePolicy();
+  if (!policy) return;
   const [account] = await db
     .select({ manualInviteAccess: users.manualInviteAccess })
     .from(users)
     .where(eq(users.id, user.id))
     .limit(1);
   if (account?.manualInviteAccess) return;
-  const allowed = await db.transaction(async (tx) => {
+  const allowed = await linkedDiscordRole(user.id, policy);
+  if (!allowed)
+    throw new ApiError(
+      3017,
+      'Discord sign-in is available to Verified Members of the Rust Empires Discord server.',
+    );
+}
+
+export async function linkedDiscordRole(userId: string, policy: { guild: string; roles: string[] }) {
+  return db.transaction(async (tx) => {
     const [provider] = await tx
       .select()
       .from(oauthProviders)
-      .where(and(eq(oauthProviders.userId, user.id), eq(oauthProviders.provider, 'DISCORD')))
+      .where(and(eq(oauthProviders.userId, userId), eq(oauthProviders.provider, 'DISCORD')))
       .limit(1)
       .for('update');
     if (!provider) return false;
-    let membership = await discordMembership(provider.accessToken);
+    let membership = await discordMembership(provider.accessToken, policy);
     if (membership === 'expired' && provider.refreshToken) {
       const response = await fetch('https://discord.com/api/v10/oauth2/token', {
         method: 'POST',
@@ -45,13 +56,8 @@ export async function requireDiscordRole(user: Pick<User, 'id' | 'role'>) {
           refreshToken: typeof token.refresh_token === 'string' ? token.refresh_token : provider.refreshToken,
         })
         .where(eq(oauthProviders.id, provider.id));
-      membership = await discordMembership(token.access_token);
+      membership = await discordMembership(token.access_token, policy);
     }
     return membership === 'allowed';
   });
-  if (!allowed)
-    throw new ApiError(
-      3017,
-      'Discord sign-in is available to Verified Members of the Rust Empires Discord server.',
-    );
 }

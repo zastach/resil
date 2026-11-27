@@ -38,8 +38,10 @@ export function discordRolePolicy() {
   return { guild, roles };
 }
 
-export async function discordMembership(accessToken: string): Promise<Membership> {
-  const policy = discordRolePolicy();
+export async function discordMembership(
+  accessToken: string,
+  policy = discordRolePolicy(),
+): Promise<Membership> {
   if (!policy) return 'allowed';
   const key = createHash('sha256')
     .update(JSON.stringify([policy.guild, policy.roles, accessToken]))

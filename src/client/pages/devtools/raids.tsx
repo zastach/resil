@@ -32,7 +32,9 @@ type Revision = {
   notes: { by: string; action: string; note: string; difficulty?: string; at: string }[];
 };
 type State = {
-  policy: { rule: PanelRule; version: number };
+  policy: { rule: PanelRule; version: number; discordRole: string };
+  panelMembers?: { id: string; username: string }[];
+  panelUnavailable: boolean;
   panelSize: number;
   admin: boolean;
   reviewer: boolean;
@@ -112,6 +114,9 @@ export function Component() {
           Refresh
         </Button>
       </Group>
+      {state?.panelUnavailable && (
+        <Alert>Raid Center could not check Discord roles. Refresh to try again.</Alert>
+      )}
       {message && (
         <Alert withCloseButton onClose={() => msg('')}>
           {message}
@@ -119,9 +124,11 @@ export function Component() {
       )}
       <Tabs value={tab} onChange={selectTab}>
         <Tabs.List>
-          <Tabs.Tab value='queue'>{state?.reviewer ? 'Review queue' : 'My submissions'}</Tabs.Tab>
+          <Tabs.Tab value='queue'>
+            {state?.reviewer || state?.admin ? 'Review queue' : 'My submissions'}
+          </Tabs.Tab>
           <Tabs.Tab value='submit'>Submit a base</Tabs.Tab>
-          {state?.reviewer && <Tabs.Tab value='loot'>Loot tables</Tabs.Tab>}
+          {(state?.admin || state?.reviewer) && <Tabs.Tab value='loot'>Loot tables</Tabs.Tab>}
           {state?.admin && <Tabs.Tab value='panel'>Panel settings</Tabs.Tab>}
           {state?.admin && <Tabs.Tab value='server'>Server setup</Tabs.Tab>}
         </Tabs.List>
@@ -129,6 +136,22 @@ export function Component() {
           <Tabs.Panel value='panel' pt='md'>
             <Stack maw={600}>
               <Title order={3}>Panel voting requirements</Title>
+              <TextInput
+                label='Discord panel role ID'
+                value={policy.discordRole}
+                onChange={(e) => setPolicy({ ...policy, discordRole: e.currentTarget.value })}
+              />
+              <Text size='sm'>
+                Only linked accounts with this role in the Rust Empires Discord server count toward the panel.
+              </Text>
+              {state.panelUnavailable ? (
+                <Alert>Discord panel membership is temporarily unavailable.</Alert>
+              ) : (
+                <Text size='sm'>
+                  Panel members ·{' '}
+                  {state.panelMembers?.map((member) => member.username).join(', ') || 'None found'}
+                </Text>
+              )}
               <Select
                 label='Decision rule'
                 value={policy.rule.mode}
@@ -303,14 +326,14 @@ export function Component() {
                         {r.progress.eligible} eligible panelists.
                       </Text>
                     )}
-                    {state.reviewer && (
+                    {(state.reviewer || state.admin) && (
                       <>
                         <TextInput
                           label='Review note'
                           value={note}
                           onChange={(e) => comment(e.currentTarget.value)}
                         />
-                        {r.status === 'Pending' && (
+                        {state.reviewer && r.status === 'Pending' && (
                           <Group align='end'>
                             <Select
                               label='Recommended difficulty'
@@ -341,11 +364,11 @@ export function Component() {
                         )}
                         <Group>
                           {[
-                            'Comment',
-                            ...(r.status === 'Pending' && r.author !== state.viewer
+                            ...(state.reviewer ? ['Comment'] : []),
+                            ...(state.reviewer && r.status === 'Pending' && r.author !== state.viewer
                               ? ['Approve', 'Revise', 'Reject']
                               : []),
-                            ...(r.status === 'Approved' ? ['Publish'] : []),
+                            ...(state.admin && r.status === 'Approved' ? ['Publish'] : []),
                           ].map((action) => (
                             <Button
                               key={action}
@@ -465,7 +488,7 @@ export function Component() {
             </Button>
           </Stack>
         </Tabs.Panel>
-        {state?.reviewer && (
+        {(state?.admin || state?.reviewer) && (
           <Tabs.Panel value='loot' pt='md'>
             <Stack>
               <Select
