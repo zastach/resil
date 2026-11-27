@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Badge,
@@ -8,6 +9,9 @@ import {
   FileInput,
   Group,
   NumberInput,
+  Progress,
+  SimpleGrid,
+  Image,
   Select,
   Stack,
   Tabs,
@@ -28,6 +32,7 @@ type Revision = {
   loot: Loot | null;
   author: string;
   status: string;
+  revision_notice_seen: boolean;
   votes: Record<string, string>;
   notes: { by: string; action: string; note: string; difficulty?: string; at: string }[];
 };
@@ -57,9 +62,34 @@ export function Component() {
   const [state, set] = useState<State>(),
     [message, msg] = useState(''),
     [busy, lock] = useState(false);
-  const [tab, selectTab] = useState<string | null>('queue'),
-    [id, select] = useState(''),
-    [note, comment] = useState('');
+  const [tab, selectTab] = useState<string | null>('queue');
+  const [params, setParams] = useSearchParams();
+  const id = params.get('revision') ?? '';
+  const select = (revision: string) => setParams(revision ? { revision } : {});
+  const [note, comment] = useState('');
+  const [reviewDetails, setReviewDetails] = useState<{
+    id: string;
+    counts: Record<string, number>;
+    photo: string | null;
+  }>();
+  const [reviewDetailsError, setReviewDetailsError] = useState('');
+  useEffect(() => {
+    if (!id) return;
+    let active = true;
+    request('/' + id + '/storage')
+      .then((data) => {
+        if (active) {
+          setReviewDetails({ ...data, id });
+          setReviewDetailsError('');
+        }
+      })
+      .catch((error) => {
+        if (active) setReviewDetailsError(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
   const [name, setName] = useState(''),
     [tier, setTier] = useState<string>('Easy'),
     [file, upload] = useState<File | null>(null),
@@ -69,6 +99,7 @@ export function Component() {
     [version, setVersion] = useState(0),
     [results, preview] = useState('');
   const [importCode, setImportCode] = useState('');
+  const [selectedImport, setSelectedImport] = useState<{ code: string; hasPhoto: boolean } | null>(null);
   const [credential, showCredential] = useState('');
   const [draftPolicy, setPolicy] = useState<State['policy'] | null>(null);
   const policy = draftPolicy ?? state?.policy;
@@ -122,6 +153,38 @@ export function Component() {
           {message}
         </Alert>
       )}
+      {state?.revisions
+        .filter((r) => r.author === state.viewer && r.status === 'Revise' && !r.revision_notice_seen)
+        .map((r) => (
+          <Alert key={r.id} title='Revision requested' color='yellow'>
+            <Text size='sm'>
+              The panel requested changes to {r.name}, revision {r.revision}.
+            </Text>
+            <Group mt='xs'>
+              <Button
+                variant='light'
+                onClick={() => {
+                  select(r.id);
+                  selectTab('queue');
+                }}
+              >
+                Open review
+              </Button>
+              <Button
+                variant='subtle'
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await request('/' + r.id + '/notice/read', {});
+                    return 'Notification marked as read.';
+                  })
+                }
+              >
+                Mark as read
+              </Button>
+            </Group>
+          </Alert>
+        ))}
       <Tabs value={tab} onChange={selectTab}>
         <Tabs.List>
           <Tabs.Tab value='queue'>
@@ -267,145 +330,205 @@ export function Component() {
 
         <Tabs.Panel value='queue' pt='md'>
           <Stack>
+            {id && (
+              <Button
+                variant='subtle'
+                onClick={() => {
+                  select('');
+                  setReviewDetailsError('');
+                }}
+              >
+                Back to review queue
+              </Button>
+            )}
+            {state && id && !current && <Alert>This revision is unavailable.</Alert>}
             {state && !state.revisions.length && <Text>No submissions yet.</Text>}
-            {state?.revisions.map((r) => (
-              <Card withBorder key={r.id}>
-                <Group justify='space-between'>
-                  <div>
-                    <Text fw={650}>
-                      {r.name} · revision {r.revision}
-                    </Text>
-                    <Text size='sm'>
-                      {r.tier} · {r.loot?.Name || 'Server tier loot'}
-                    </Text>
-                  </div>
-                  <Group>
-                    <Badge>{r.status}</Badge>
-                    <Button
-                      variant='light'
-                      onClick={() => {
-                        select(r.id);
-                        setDifficulty(null);
-                        comment('');
-                      }}
-                    >
-                      Details
-                    </Button>
-                  </Group>
-                </Group>
-                {current?.id === r.id && (
-                  <Stack mt='md'>
-                    <Text size='sm'>Snapshot {r.id}</Text>
-                    {r.loot && (
+            {state?.revisions
+              .filter((r) => !id || r.id === id)
+              .map((r) => (
+                <Card withBorder key={r.id}>
+                  <Group justify='space-between'>
+                    <div>
+                      <Text fw={650}>
+                        {r.name} · revision {r.revision}
+                      </Text>
                       <Text size='sm'>
-                        {r.loot.Rolls} weighted rolls ·{' '}
-                        {r.loot.Entries.map(
-                          (e) => e.Item + ' × ' + e.Min + '–' + e.Max + ' (weight ' + e.Weight + ')',
-                        ).join(', ')}{' '}
-                        · Guaranteed:{' '}
-                        {r.loot.Guaranteed.map((e) => e.Item + ' × ' + e.Min + '–' + e.Max).join(', ') ||
-                          'none'}
+                        {r.tier} · {r.loot?.Name || 'Server tier loot'}
                       </Text>
-                    )}
-                    {state.reviewer && (
-                      <>
-                        <Text size='sm'>Run this on the review server to playtest this revision.</Text>
-                        <Code block>/reraid admin webtest {r.id}</Code>
-                      </>
-                    )}
-                    {r.notes.map((n, i) => (
-                      <Text key={i} size='sm'>
-                        {n.by} · {n.difficulty ? 'Recommended ' + n.difficulty : n.action} ·{' '}
-                        {new Date(n.at).toLocaleString()} {n.note}
-                      </Text>
-                    ))}
-                    {r.status === 'Pending' && (
-                      <Text size='sm'>
-                        {r.progress.counts.Approve} approve · {r.progress.counts.Revise} request revision ·{' '}
-                        {r.progress.counts.Reject} reject. Requires {r.progress.required} matching votes from{' '}
-                        {r.progress.eligible} eligible panelists.
-                      </Text>
-                    )}
-                    {(state.reviewer || state.admin) && (
-                      <>
-                        <TextInput
-                          label='Review note'
-                          value={note}
-                          onChange={(e) => comment(e.currentTarget.value)}
-                        />
-                        {state.reviewer && r.status === 'Pending' && (
-                          <Group align='end'>
-                            <Select
-                              label='Recommended difficulty'
-                              placeholder='Choose a tier'
-                              data={[...tiers]}
-                              value={difficulty}
-                              onChange={setDifficulty}
-                            />
-                            <Button
-                              variant='light'
-                              disabled={busy || !difficulty}
-                              onClick={() =>
-                                run(async () => {
-                                  await request('/' + r.id + '/review', {
-                                    action: 'Recommend difficulty',
-                                    difficulty,
-                                    note,
-                                  });
-                                  setDifficulty(null);
-                                  comment('');
-                                  return 'Difficulty recommendation recorded.';
-                                })
-                              }
-                            >
-                              Save recommendation
-                            </Button>
-                          </Group>
-                        )}
-                        <Group>
-                          {[
-                            ...(state.reviewer ? ['Comment'] : []),
-                            ...(state.reviewer && r.status === 'Pending' && r.author !== state.viewer
-                              ? ['Approve', 'Revise', 'Reject']
-                              : []),
-                            ...(state.admin && r.status === 'Approved' ? ['Publish'] : []),
-                          ].map((action) => (
-                            <Button
-                              key={action}
-                              disabled={busy}
-                              onClick={() =>
-                                run(async () => {
-                                  await request('/' + r.id + '/review', { action, note });
-                                  comment('');
-                                  return action + ' recorded.';
-                                })
-                              }
-                            >
-                              {action === 'Revise' ? 'Request revision' : action}
-                            </Button>
-                          ))}
-                        </Group>
-                      </>
-                    )}
-                    {r.author === state.viewer &&
-                      ['Published', 'Revise', 'Reject'].includes(r.status) &&
-                      !state.revisions.some((x) => x.family === r.family && x.revision > r.revision) && (
+                    </div>
+                    <Group>
+                      <Badge>{r.status}</Badge>
+                      {!id && (
                         <Button
+                          variant='light'
                           onClick={() => {
-                            revise(r.id);
-                            setName(r.name);
-                            setTier(r.tier);
-                            assign(r.loot?.Name || '');
-                            selectTab('submit');
+                            select(r.id);
+                            setDifficulty(null);
+                            comment('');
                           }}
                         >
-                          Submit next revision
+                          Open review
                         </Button>
                       )}
-                  </Stack>
-                )}
-              </Card>
-            ))}
+                    </Group>
+                  </Group>
+                  {current?.id === r.id && (
+                    <Stack mt='md'>
+                      {reviewDetailsError && <Alert>{reviewDetailsError}</Alert>}
+                      {reviewDetails?.id === r.id && (
+                        <>
+                          {reviewDetails.photo && (
+                            <Image
+                              src={reviewDetails.photo}
+                              alt={'Rust camera photo of ' + r.name}
+                              mah={420}
+                              fit='contain'
+                              radius='md'
+                            />
+                          )}
+                          <Title order={4}>Storage containers</Title>
+                          <SimpleGrid cols={{ base: 2, sm: 5 }}>
+                            {Object.entries({
+                              furnaces: 'Furnaces',
+                              largeBoxes: 'Large boxes',
+                              smallBoxes: 'Small boxes',
+                              lockers: 'Lockers',
+                              toolCupboards: 'Tool cupboards',
+                            }).map(([key, label]) => (
+                              <Card key={key} withBorder>
+                                <Text fw={700}>{reviewDetails.counts[key]}</Text>
+                                <Text size='sm'>{label}</Text>
+                              </Card>
+                            ))}
+                          </SimpleGrid>
+                        </>
+                      )}
+                      <Title order={4}>Approval progress</Title>
+                      <Progress
+                        value={
+                          r.status === 'Approved' || r.status === 'Published'
+                            ? 100
+                            : (r.progress.counts.Approve / Math.max(1, r.progress.required)) * 100
+                        }
+                        aria-label='Approval progress'
+                        size='lg'
+                      />
+                      {r.loot && (
+                        <Text size='sm'>
+                          {r.loot.Rolls} weighted rolls ·{' '}
+                          {r.loot.Entries.map(
+                            (e) => e.Item + ' × ' + e.Min + '–' + e.Max + ' (weight ' + e.Weight + ')',
+                          ).join(', ')}{' '}
+                          · Guaranteed:{' '}
+                          {r.loot.Guaranteed.map((e) => e.Item + ' × ' + e.Min + '–' + e.Max).join(', ') ||
+                            'none'}
+                        </Text>
+                      )}
+                      {state.reviewer && (
+                        <>
+                          <Text size='sm'>Run this on the review server to playtest this revision.</Text>
+                          <Code block>/reraid admin webtest {r.id}</Code>
+                        </>
+                      )}
+                      <Title order={4}>Comments and recommendations</Title>
+                      {!r.notes.length && (
+                        <Text size='sm' c='dimmed'>
+                          No comments yet.
+                        </Text>
+                      )}
+                      {r.notes.map((n, i) => (
+                        <Text key={i} size='sm'>
+                          {n.by} · {n.difficulty ? 'Recommended ' + n.difficulty : n.action} ·{' '}
+                          {new Date(n.at).toLocaleString()} {n.note}
+                        </Text>
+                      ))}
+                      {r.status === 'Pending' && (
+                        <Text size='sm'>
+                          {r.progress.counts.Approve} approve · {r.progress.counts.Revise} request revision ·{' '}
+                          {r.progress.counts.Reject} reject. Requires {r.progress.required} matching votes
+                          from {r.progress.eligible} eligible panelists.
+                        </Text>
+                      )}
+                      {(state.reviewer || state.admin) && (
+                        <>
+                          <TextInput
+                            label='Review note'
+                            value={note}
+                            onChange={(e) => comment(e.currentTarget.value)}
+                          />
+                          {state.reviewer && r.status === 'Pending' && (
+                            <Group align='end'>
+                              <Select
+                                label='Recommended difficulty'
+                                placeholder='Choose a tier'
+                                data={[...tiers]}
+                                value={difficulty}
+                                onChange={setDifficulty}
+                              />
+                              <Button
+                                variant='light'
+                                disabled={busy || !difficulty}
+                                onClick={() =>
+                                  run(async () => {
+                                    await request('/' + r.id + '/review', {
+                                      action: 'Recommend difficulty',
+                                      difficulty,
+                                      note,
+                                    });
+                                    setDifficulty(null);
+                                    comment('');
+                                    return 'Difficulty recommendation recorded.';
+                                  })
+                                }
+                              >
+                                Save recommendation
+                              </Button>
+                            </Group>
+                          )}
+                          <Group>
+                            {[
+                              ...(state.reviewer ? ['Comment'] : []),
+                              ...(state.reviewer && r.status === 'Pending' && r.author !== state.viewer
+                                ? ['Approve', 'Revise', 'Reject']
+                                : []),
+                              ...(state.admin && r.status === 'Approved' ? ['Publish'] : []),
+                            ].map((action) => (
+                              <Button
+                                key={action}
+                                disabled={busy}
+                                onClick={() =>
+                                  run(async () => {
+                                    await request('/' + r.id + '/review', { action, note });
+                                    comment('');
+                                    return action + ' recorded.';
+                                  })
+                                }
+                              >
+                                {action === 'Revise' ? 'Request revision' : action}
+                              </Button>
+                            ))}
+                          </Group>
+                        </>
+                      )}
+                      {r.author === state.viewer &&
+                        ['Published', 'Revise', 'Reject'].includes(r.status) &&
+                        !state.revisions.some((x) => x.family === r.family && x.revision > r.revision) && (
+                          <Button
+                            onClick={() => {
+                              revise(r.id);
+                              setName(r.name);
+                              setTier(r.tier);
+                              assign(r.loot?.Name || '');
+                              selectTab('submit');
+                            }}
+                          >
+                            Submit next revision
+                          </Button>
+                        )}
+                    </Stack>
+                  )}
+                </Card>
+              ))}
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value='submit' pt='md'>
@@ -425,7 +548,7 @@ export function Component() {
             />
             <TextInput
               label='Creative server import code'
-              description='Run /reraid submit <tier> <name>, then /reraid web <submission ID>. Or upload a CopyPaste file below.'
+              description='Aim at the base and run /reraid submit <tier> <name>. Take a photo when prompted, then enter the code here.'
               value={importCode}
               onChange={(e) => setImportCode(e.currentTarget.value.trim())}
             />
@@ -435,11 +558,8 @@ export function Component() {
               onClick={() =>
                 run(async () => {
                   const imported = await request('/import', { code: importCode });
-                  upload(
-                    new File([JSON.stringify(imported.data)], 'server-snapshot.json', {
-                      type: 'application/json',
-                    }),
-                  );
+                  upload(null);
+                  setSelectedImport({ code: importCode, hasPhoto: imported.hasPhoto });
                   setName(imported.name);
                   setTier(imported.tier);
                   setImportCode('');
@@ -449,13 +569,27 @@ export function Component() {
             >
               Import from creative server
             </Button>
-            <FileInput
-              accept='.json'
-              label='CopyPaste snapshot'
-              description='Upload the saved base JSON from oxide/data/copypaste.'
-              value={file}
-              onChange={upload}
-            />
+            {selectedImport && (
+              <Alert onClose={() => setSelectedImport(null)} withCloseButton>
+                {selectedImport.hasPhoto
+                  ? 'Snapshot and Rust camera photo imported.'
+                  : state?.admin
+                    ? 'Snapshot imported without a photo.'
+                    : 'This code has no camera photo. Submit from Rust again and take a photo when prompted.'}
+              </Alert>
+            )}
+            {state?.admin && (
+              <FileInput
+                accept='.json'
+                label='CopyPaste snapshot'
+                description='Upload the saved base JSON from oxide/data/copypaste.'
+                value={file}
+                onChange={(file) => {
+                  upload(file);
+                  if (file) setSelectedImport(null);
+                }}
+              />
+            )}
             <Select
               label='Loot table'
               placeholder='Server tier loot'
@@ -465,19 +599,26 @@ export function Component() {
               onChange={(v) => assign(v || '')}
             />
             <Button
-              disabled={busy || !file || !name.trim()}
+              disabled={
+                busy ||
+                (!file && !selectedImport) ||
+                (!state?.admin && !selectedImport?.hasPhoto) ||
+                !name.trim()
+              }
               onClick={() =>
                 run(async () => {
-                  if (!file || file.size > 15 * 1024 * 1024) throw Error('Snapshot must be under 15 MiB');
+                  if (file && file.size > 15 * 1024 * 1024) throw Error('Snapshot must be under 15 MiB');
                   const saved = await request('', {
                     name,
                     tier,
                     parent: parent || undefined,
-                    data: JSON.parse(await file.text()),
+                    data: file ? JSON.parse(await file.text()) : undefined,
+                    importCode: selectedImport?.code,
                     loot: state?.tables.find((t) => t.data.Name === lootName)?.data ?? null,
                   });
                   select(saved.id);
                   revise('');
+                  setSelectedImport(null);
                   upload(null);
                   selectTab('queue');
                   return 'Snapshot submitted for review.';

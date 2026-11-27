@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RERaid", "zastach", "0.4.0")]
+    [Info("RERaid", "zastach", "0.4.8")]
     [Description("Rust Empires raid encounters, sieges, events and builder review.")]
     public class RERaid : RustPlugin
     {
@@ -164,15 +164,8 @@ namespace Oxide.Plugins
                 case "web":
                     if (args.Length != 2 || !state.Submissions.TryGetValue(args[1], out var webEntry) ||
                         webEntry.Builder != player.userID || webEntry.Status == "Copying" || webEntry.Status == "Snapshot failed")
-                    { SendReply(player, "Use /reraid web <your completed submission ID>."); return; }
-                    var snapshotData = Interface.Oxide.DataFileSystem.ReadObject<Newtonsoft.Json.Linq.JObject>("copypaste/" + webEntry.Snapshot);
-                    CatalogRequest("/import", JsonConvert.SerializeObject(new {name=webEntry.Name,tier=webEntry.Tier,data=snapshotData}), true, (code,body) =>
-                    {
-                        if (player == null || !player.IsConnected) return;
-                        if (code != 200) { Respond(player, "Site import failed (" + code + ")."); return; }
-                        var importCode = (string)Newtonsoft.Json.Linq.JObject.Parse(body)["code"];
-                        Respond(player, "Open resil.me/dashboard/raids → Submit a base. Your private import code (24 hours): " + importCode);
-                    });
+                    { SendReply(player, "To request a new import code, find your completed base with /reraid review, then run /reraid web <submission ID>."); return; }
+                    RequestSubmissionPhoto(player, args[1]);
                     return;
                 case "review":
                     Review(player,args);
@@ -228,7 +221,7 @@ namespace Oxide.Plugins
                         SendReply(player, "Usage: /reraid clearpreview");
                     break;
                 default:
-                    SendReply(player, "Unknown raid command. Use /reraid for help.");
+                    SendReply(player, "Unknown raid command. Use /reraid to see current raids or /reraid submit for builder instructions.");
                     break;
             }
         }
@@ -583,6 +576,7 @@ namespace Oxide.Plugins
         private void OnPlayerDisconnected(BasePlayer player, string reason)
         {
             hudText.Remove(player.userID);
+            pendingSubmissionPhotos.Remove(player.userID);
             bruhEntries.Remove(player.userID);
             RemoveBruhSpeaker(player.userID);
             openRaidPanels.Remove(player.userID);
@@ -932,14 +926,35 @@ namespace Oxide.Plugins
 
         private void Submit(BasePlayer player, string[] args)
         {
-            if (!Convert.ToBoolean(Config["EnableBuilderSubmissions"] ?? false) || CopyPaste == null)
-            { SendReply(player,"Submissions are available on the configured creative server."); return; }
-            string name = string.Join(" ",args.Skip(2));
-            if (args.Length < 3 || !Tiers.Contains(args[1]) || !PasteName.IsMatch(name))
-            { SendReply(player,"Look at your structure and use /reraid submit <tier> <name>."); return; }
+            bool revision = args[0].Equals("revision", StringComparison.OrdinalIgnoreCase);
+            if (args.Length < 3)
+            {
+                SendReply(player, revision
+                    ? "Look at the updated base and type /reraid revision <tier> <submission ID>. Use /reraid review to find your submission ID."
+                    : "Aim at a wall or foundation of your base and type /reraid submit Easy Test Base. Replace Easy with your tier and Test Base with your base name.");
+                SendReply(player, "Tiers: " + string.Join(", ", Tiers) + ". Take a photo with the Rust camera when prompted to get your Raid Center import code.");
+                return;
+            }
+            if (!Convert.ToBoolean(Config["EnableBuilderSubmissions"] ?? false))
+            { SendReply(player, "Submit your base from the creative server. This server has builder submissions turned off."); return; }
+            if (CopyPaste == null || !CopyPaste.IsLoaded)
+            { SendReply(player, "Base copying is unavailable on this server. Ask staff to check CopyPaste."); return; }
+
+            string tier = Tiers.FirstOrDefault(t => t.Equals(args[1], StringComparison.OrdinalIgnoreCase));
+            if (tier == null)
+            {
+                SendReply(player, "Use one of these tiers after /reraid submit: " + string.Join(", ", Tiers) + ".");
+                return;
+            }
+            string name = string.Join(" ", args.Skip(2)).Trim();
+            if (!PasteName.IsMatch(name))
+            {
+                SendReply(player, "Use a name up to 80 characters with letters, numbers, spaces, dots, hyphens, or underscores. Start with a letter, number, hyphen, or underscore.");
+                return;
+            }
             Submission prior = null;
             string parentId = null;
-            if (args[0].Equals("revision",StringComparison.OrdinalIgnoreCase))
+            if (revision)
             {
                 // /reraid revision <tier> <existing submission ID>
                 parentId = name;
@@ -952,28 +967,145 @@ namespace Oxide.Plugins
             else if (state.Submissions.Values.Any(x => x.Status != "Snapshot failed" && x.Name.Equals(name,StringComparison.OrdinalIgnoreCase)))
             { SendReply(player,"That name exists. Use /reraid revision <tier> <previous submission ID>."); return; }
             string id = Guid.NewGuid().ToString("N");
-            var entry = new Submission {Name=name,Tier=args[1],Builder=player.userID,Snapshot="re_" + id,Status="Copying",
+            string snapshot;
+            do { snapshot = "re" + Guid.NewGuid().ToString("N").Substring(0, 6); }
+            while (state.Submissions.Values.Any(x => x.Snapshot == snapshot) ||
+                Interface.Oxide.DataFileSystem.ExistsDatafile("copypaste/" + snapshot));
+            var entry = new Submission {Name=name,Tier=tier,Builder=player.userID,Snapshot=snapshot,Status="Copying",
                 ParentId=parentId,Revision=prior == null ? 1 : prior.Revision+1, BuilderName=player.displayName,
                 Anonymous=prior!=null && prior.Anonymous, Collaborators=prior==null ? new HashSet<ulong>() : new HashSet<ulong>(prior.Collaborators)};
             state.Submissions.Add(id,entry);
-            timer.Once(180f, () => { if (entry.Status == "Copying") { entry.Status="Snapshot failed"; Save(); } });
-            Save();
-            Action ready = () =>
+            timer.Once(180f, () =>
             {
                 if (entry.Status != "Copying") return;
-                entry.Status="Pending"; Save();
-                Respond(player,$"Submission {id}: {name} received.");
-            };
-            object result = CopyPaste.Call("TryCopyFromSteamId",player.userID,entry.Snapshot,new[] {"method","building"},ready);
-            if (!Equals(result,true))
-            { state.Submissions.Remove(id); Save(); Respond(player,result as string ?? "Snapshot failed."); }
+                entry.Status = "Snapshot failed";
+                Save();
+                if (player.IsConnected) Respond(player, "The base copy did not finish. Aim at a wall or foundation and retry /reraid submit. If it happens again, contact staff.");
+            });
+            Save();
+            string[] options = { "method", "building" };
+            Action finished = () => CompleteSubmission(entry, id, player.IPlayer);
+            object result = CopyPaste.Call("TryCopyFromSteamId", player.userID, entry.Snapshot, options, finished);
+            if (result == null && entry.Status == "Copying")
+                result = CopyPaste.Call("TryCopyFromSteamId", player.userID, entry.Snapshot, options);
+            if (result == null && entry.Status == "Copying")
+            {
+                // Invoke the native command as the builder so CopyPaste enforces its own permissions.
+                try
+                {
+                    var command = CopyPaste.GetType().GetMethod("CmdCopy",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                        null, new[] { typeof(Oxide.Core.Libraries.Covalence.IPlayer), typeof(string), typeof(string[]) }, null);
+                    if (command == null) throw new MissingMethodException("CopyPaste.CmdCopy");
+                    command.Invoke(CopyPaste, new object[] { player.IPlayer, "copy", new[] { entry.Snapshot, "method", "building" } });
+                }
+                catch (Exception ex)
+                {
+                    if (entry.Status == "Copying") { entry.Status = "Snapshot failed"; Save(); }
+                    PrintWarning("CopyPaste command fallback failed: " + ex.GetBaseException().Message);
+                    Respond(player, "The server could not start copying your base. Ask staff to check RERaid and CopyPaste.");
+                }
+                return;
+            }
+            if (!Equals(result, true) && entry.Status == "Copying")
+            {
+                state.Submissions.Remove(id);
+                Save();
+                Respond(player, result as string ??
+                    $"CopyPaste {CopyPaste.Version} returned no result for either copy signature. Try /copy RERaidProbe method building while aiming at the same block.");
+            }
+        }
+
+        private void OnCopyFinished(List<object> rawData, string filename, Oxide.Core.Libraries.Covalence.IPlayer player, Vector3 startPos)
+        {
+            if (player == null || !ulong.TryParse(player.Id, out ulong builder)) return;
+            var pending = state.Submissions.FirstOrDefault(x => x.Value.Snapshot == filename &&
+                x.Value.Status == "Copying" && x.Value.Builder == builder);
+            if (pending.Value != null) CompleteSubmission(pending.Value, pending.Key, player);
+        }
+
+        private void CompleteSubmission(Submission entry, string id, Oxide.Core.Libraries.Covalence.IPlayer player)
+        {
+            if (entry.Status != "Copying") return;
+            var files = Interface.Oxide.DataFileSystem;
+            string path = "copypaste/" + entry.Snapshot;
+            bool saved = files.ExistsDatafile(path) &&
+                files.ReadObject<Newtonsoft.Json.Linq.JObject>(path)?["entities"] is Newtonsoft.Json.Linq.JArray entities &&
+                entities.Count > 0;
+            entry.Status = saved ? "Pending" : "Snapshot failed";
+            Save();
+            if (!player.IsConnected) return;
+            if (saved && player.Object is BasePlayer builder) RequestSubmissionPhoto(builder, id);
+            else player.Reply("The copy came back empty. Aim at a wall or foundation and retry. If it happens again, ask staff to check that CopyPaste can save bases.");
+        }
+
+        private const string SubmissionCamera = "tool.instant_camera";
+        private readonly Dictionary<ulong, string> pendingSubmissionPhotos = new Dictionary<ulong, string>();
+
+        private void RequestSubmissionPhoto(BasePlayer builder, string id)
+        {
+            if (!builder.inventory.containerMain.itemList.Concat(builder.inventory.containerBelt.itemList)
+                .Any(item => item.info.shortname == SubmissionCamera))
+            {
+                var camera = ItemManager.CreateByName(SubmissionCamera, 1);
+                if (camera == null)
+                {
+                    SendReply(builder, "The server could not give you a Rust camera. Ask staff for help.");
+                    return;
+                }
+                builder.GiveItem(camera);
+            }
+
+            pendingSubmissionPhotos[builder.userID] = id;
+            SendReply(builder, "Base saved. Equip the Rust camera and take a clear photo of your base to get the Raid Center import code.");
+        }
+
+        private void OnPhotoCaptured(PhotoEntity photo, Item item, BasePlayer builder, byte[] image)
+        {
+            if (builder == null || !pendingSubmissionPhotos.TryGetValue(builder.userID, out string id)) return;
+            if (!state.Submissions.TryGetValue(id, out var entry) || entry.Builder != builder.userID)
+            {
+                pendingSubmissionPhotos.Remove(builder.userID);
+                return;
+            }
+            if (image == null || image.Length < 8 || image.Length > 1024 * 1024)
+            {
+                SendReply(builder, "That photo could not be used. Try taking it again.");
+                return;
+            }
+            pendingSubmissionPhotos.Remove(builder.userID);
+            SendWebImport(builder.IPlayer, entry, id, Convert.ToBase64String(image));
+        }
+
+        private void SendWebImport(Oxide.Core.Libraries.Covalence.IPlayer player, Submission entry, string id, string photo)
+        {
+            var snapshot = Interface.Oxide.DataFileSystem.ReadObject<Newtonsoft.Json.Linq.JObject>("copypaste/" + entry.Snapshot);
+            var payload = JsonConvert.SerializeObject(new { name = entry.Name, tier = entry.Tier, data = snapshot, photo });
+            CatalogRequest("/import", payload, true, (code, body) =>
+            {
+                if (!player.IsConnected) return;
+                if (code != 200)
+                {
+                    PrintWarning($"Raid Center import failed for {id} (HTTP {code}).");
+                    if (code == 401 || code == 403)
+                        player.Reply("Base saved. Ask staff to check the creative server's Raid Center connection.");
+                    else if (code == 413)
+                        player.Reply("Base saved, but it is too large for Raid Center. Submit a smaller base.");
+                    else
+                        player.Reply($"Base saved, but Raid Center could not issue a code. Run /reraid web {id} to take another photo and retry.");
+                    return;
+                }
+                var importCode = (string)Newtonsoft.Json.Linq.JObject.Parse(body)["code"];
+                player.Reply($"Import code: {importCode} (valid for 24 hours).");
+                player.Reply("Go to resil.me/dashboard/raids, open Submit a base, and enter the code. Then click Submit for review.");
+            });
         }
 
         private void JoinTest(BasePlayer player,string[] args)
         {
             var pair = state.Submissions.FirstOrDefault(x => args.Length==2 && x.Value.Status=="Pending" && x.Value.PlaytestCode==args[1]);
             var raid = encounters.FirstOrDefault(r => r.Practice && r.SubmissionId==pair.Key && r.Finished);
-            if (raid == null || pair.Value == null) { SendReply(player,"No active test for that code."); return; }
+            if (raid == null || pair.Value == null) { SendReply(player,"That playtest code did not match an active test. Ask the reviewer who started it for the current code."); return; }
             pair.Value.Testers.Add(player.userID);
             raid.Members.Add(player.userID);
             Save();
@@ -1183,6 +1315,55 @@ namespace Oxide.Plugins
             return col + y;
         }
 
+        private static bool IsFurnace(StorageContainer container)
+        {
+            return container is BaseOven &&
+                (container.ShortPrefabName == "furnace" || container.ShortPrefabName == "furnace.large" ||
+                 container.ShortPrefabName == "electricfurnace.deployed" ||
+                 container.ShortPrefabName == "industrial_electric_furnace.deployed");
+        }
+
+        private static bool IsLocker(StorageContainer container) => container.ShortPrefabName == "locker.deployed";
+
+        private static bool IsSpecialRaidContainer(StorageContainer container) =>
+            container is BuildingPrivlidge || IsFurnace(container) || IsLocker(container);
+
+        private static void AddRaidItem(StorageContainer container, string shortName, int amount)
+        {
+            var item = ItemManager.CreateByName(shortName, amount);
+            if (item != null && !item.MoveToContainer(container.inventory)) item.Remove();
+        }
+
+        private static void StockRaidContainer(StorageContainer container)
+        {
+            if (container is BuildingPrivlidge)
+            {
+                AddRaidItem(container, "wood", UnityEngine.Random.Range(100, 301));
+                AddRaidItem(container, "metal.fragments", UnityEngine.Random.Range(25, 101));
+                AddRaidItem(container, "scrap", UnityEngine.Random.Range(10, 31));
+                AddRaidItem(container, "metal.refined", UnityEngine.Random.Range(2, 7));
+
+                string[] optional = { "stones", "lowgradefuel", "crude.oil", "cloth", "leather" };
+                foreach (string item in optional)
+                    if (UnityEngine.Random.value < 0.5f)
+                        AddRaidItem(container, item, UnityEngine.Random.Range(10, 41));
+            }
+            else if (IsLocker(container))
+            {
+                AddRaidItem(container, "hoodie", 1);
+                AddRaidItem(container, "pants", 1);
+                AddRaidItem(container, "shoes.boots", 1);
+                if (UnityEngine.Random.value < 0.5f) AddRaidItem(container, "roadsign.jacket", 1);
+            }
+            else if (IsFurnace(container))
+            {
+                AddRaidItem(container, UnityEngine.Random.value < 0.5f ? "metal.ore" : "sulfur.ore",
+                    UnityEngine.Random.Range(25, 101));
+                if (!container.ShortPrefabName.Contains("electric"))
+                    AddRaidItem(container, "wood", UnityEngine.Random.Range(50, 151));
+            }
+        }
+
         private static bool Objective(BaseEntity e)
         {
             return e is BuildingPrivlidge || e is BoxStorage || e is LootContainer;
@@ -1305,9 +1486,14 @@ namespace Oxide.Plugins
         private void Gamble(BasePlayer player, string[] args)
         {
             var r = ForPlayer(player);
-            if (r == null || r.Practice || r.Phase != "Active" || r.Reward != "Undecided" || !r.Members.Contains(player.userID) ||
-                args.Length != 2 || ServerRewards == null || Rules(r).MaximumRP < 1)
-            { SendReply(player, "RP selection is unavailable."); return; }
+            if (args.Length != 2)
+            { SendReply(player, "Choose /reraid gamble solo, /reraid gamble team, or /reraid gamble clan."); return; }
+            if (r == null || r.Practice || r.Phase != "Active" || !r.Members.Contains(player.userID))
+            { SendReply(player, "Claim a standard raid before choosing an RP roll."); return; }
+            if (r.Reward != "Undecided")
+            { SendReply(player, $"Your reward is already set to {(r.Reward == "RP" ? "RP roll" : "Raid loot")}. Choose RP after claiming at the perimeter, before damaging the main base."); return; }
+            if (ServerRewards == null || !ServerRewards.IsLoaded || Rules(r).MaximumRP < 1)
+            { SendReply(player, "RP rewards are disabled for this raid. You can still finish for raid loot."); return; }
             var ids = new HashSet<ulong> { player.userID };
             switch (args[1].ToLowerInvariant())
             {
@@ -1326,9 +1512,11 @@ namespace Oxide.Plugins
             r.RewardMembers = ids.ToList();
             r.Reward = "RP";
             r.Members.IntersectWith(ids);
-            foreach (var box in r.Objectives.OfType<StorageContainer>()) box.inventory?.Clear();
+            foreach (var box in r.Entities.OfType<StorageContainer>())
+                if (r.Objectives.Contains(box) || IsSpecialRaidContainer(box))
+                    box.inventory?.Clear();
             RefreshHud();
-            SendReply(player, "Physical loot exchanged for an RP roll on completion.");
+            SendReply(player, "You chose an RP roll. Finish the raid to receive your roll.");
         }
 
         private sealed class Credit
@@ -1445,7 +1633,12 @@ namespace Oxide.Plugins
             var tier = Rules(raid);
             if (tier.PowerTurrets && !raid.Event)
                 foreach (var turret in raid.Entities.OfType<AutoTurret>()) turret.InitiateStartup();
-            var boxes = raid.Objectives.OfType<StorageContainer>().Where(x => x.inventory != null).ToList();
+            var boxes = raid.Objectives.OfType<StorageContainer>().Where(x => x.inventory != null &&
+                (raid.Event || !IsSpecialRaidContainer(x))).ToList();
+            if (!raid.Event)
+                foreach (var container in raid.Entities.OfType<StorageContainer>())
+                    if (!container.IsDestroyed && container.inventory != null && IsSpecialRaidContainer(container))
+                        StockRaidContainer(container);
             foreach (var entry in raid.CatalogLoot == null ? RollLoot(tier) : RollCatalogLoot(raid.CatalogLoot))
             {
                 if (boxes.Count == 0) break;
@@ -1583,7 +1776,7 @@ namespace Oxide.Plugins
             var player = hit?.InitiatorPlayer ?? (hit?.Initiator?.creatorEntity as BasePlayer);
             if (!raid.Entities.Contains(entity))
             {
-                if (entity is BuildingBlock || entity is Door) ClaimHint(player,raid,"That structure is not part of this paste.");
+                if (entity is BuildingBlock || entity is Door) ClaimHint(player,raid,"Hit a wall or door that belongs to the raid base.");
                 return null;
             }
             if (!raid.Finished) return true;
@@ -1592,13 +1785,13 @@ namespace Oxide.Plugins
                 return raid.Phase == "Combat" && player != null && raid.Members.Contains(player.userID) && Inside(raid,player.transform.position) ? (object)null : true;
             if (player == null) return true;
             if (!Inside(raid,player.transform.position)) { ClaimHint(player,raid,"Step inside the dome to claim."); return true; }
-            if (!raid.Practice && Cooling(player.userID)) { ClaimHint(player,raid,"Your raid cooldown is active."); return true; }
+            if (!raid.Practice && Cooling(player.userID)) { ClaimHint(player,raid,"Wait for the cooldown shown in /reraid before claiming another raid."); return true; }
             if (raid.Practice && !raid.Members.Contains(player.userID) && !CanManagePreviews(player) && !permission.UserHasPermission(player.UserIDString,"reraid.panel"))
             { ClaimHint(player,raid,"Join this playtest before claiming."); return true; }
             if (raid.Guards.Contains(entity)) return raid.Phase == "Available" || raid.Members.Contains(player.userID) ? (object)null : true;
             if (raid.Phase == "Available")
             {
-                if (!raid.Walls.Contains(entity) && !(entity is BuildingBlock) && !(entity is Door) && !raid.Objectives.Contains(entity)) { ClaimHint(player,raid,"Hit a pasted wall, door or original loot objective to claim."); return null; }
+                if (!raid.Walls.Contains(entity) && !(entity is BuildingBlock) && !(entity is Door) && !raid.Objectives.Contains(entity)) { ClaimHint(player,raid,"Damage an original raid wall, door, or loot objective to claim the raid."); return null; }
                 var members = new HashSet<ulong> { player.userID };
                 if (player.Team != null) members.UnionWith(player.Team.members);
                 var clan = Clans?.Call("GetClanMembers", player.userID) as List<string>;

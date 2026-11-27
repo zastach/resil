@@ -11,11 +11,49 @@ import z from 'zod';
 export const PATH = '/api/devtools/raids';
 const key = z.string().regex(/^[a-f0-9]{32}$/);
 const snapshot = z.object({ entities: z.array(z.record(z.string(), z.unknown())).min(1) }).passthrough();
+const importCode = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^(?:[0-9a-hjkmnp-tv-z]{10}|[a-f0-9]{32})$/);
+const photoData = z
+  .string()
+  .max(1400000)
+  .regex(/^[A-Za-z0-9+/]+={0,2}$/);
+function imageType(bytes: Buffer) {
+  if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return 'image/jpeg';
+  if (bytes.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))) return 'image/png';
+  return null;
+}
+
+function countStorage(entities: unknown) {
+  const counts = { furnaces: 0, largeBoxes: 0, smallBoxes: 0, lockers: 0, toolCupboards: 0 };
+  if (!Array.isArray(entities)) return counts;
+  for (const entity of entities) {
+    const name = String(entity?.prefabname ?? '')
+      .split('/')
+      .pop()
+      ?.replace(/\.prefab$/, '');
+    if (name === 'box.wooden.large') counts.largeBoxes++;
+    if (name === 'woodbox_deployed') counts.smallBoxes++;
+    if (name === 'locker.deployed') counts.lockers++;
+    if (name === 'cupboard.tool.deployed') counts.toolCupboards++;
+    if (
+      name === 'furnace' ||
+      name === 'furnace.large' ||
+      name === 'electricfurnace.deployed' ||
+      name === 'industrial_electric_furnace.deployed'
+    )
+      counts.furnaces++;
+  }
+  return counts;
+}
 const draft = z.object({
   name: z.string().trim().min(1).max(100),
   tier: z.enum(tiers),
   parent: key.optional(),
-  data: snapshot,
+  data: snapshot.optional(),
+  importCode: importCode.optional(),
   loot: lootSchema.nullable(),
 });
 type Req = Parameters<typeof authenticateUser>[0];
@@ -58,6 +96,11 @@ function setup() {
       id text primary key, family text not null, revision int not null, name text not null, tier text not null,
       data jsonb not null, loot jsonb, author text not null, status text not null default 'Pending',
       votes jsonb not null default '{}', notes jsonb not null default '[]', unique(family,revision))`);
+    await db.execute(sql`ALTER TABLE resil_raid_imports ADD COLUMN IF NOT EXISTS photo text`);
+    await db.execute(sql`ALTER TABLE resil_raid_revisions ADD COLUMN IF NOT EXISTS photo text`);
+    await db.execute(
+      sql`ALTER TABLE resil_raid_revisions ADD COLUMN IF NOT EXISTS revision_notice_seen boolean NOT NULL DEFAULT false`,
+    );
     await db.execute(
       sql`CREATE TABLE IF NOT EXISTS resil_raid_loot (name text primary key, version int not null, data jsonb not null)`,
     );
@@ -107,7 +150,7 @@ function panelProgress(rule: PanelRule, roster: Set<string>, author: string, vot
     if (id !== author && roster.has(id) && vote in counts) counts[vote]++;
   return { eligible, required: requiredVotes(rule, eligible), counts };
 }
-const columns = sql.raw('id,family,revision,name,tier,loot,author,status,votes,notes');
+const columns = sql.raw('id,family,revision,name,tier,loot,author,status,votes,notes,revision_notice_seen');
 export default typedPlugin(async (server) => {
   server.addHook('preHandler', async (req) => {
     if (req.url.startsWith(PATH)) await setup();
@@ -115,15 +158,20 @@ export default typedPlugin(async (server) => {
   server.post(
     PATH + '/catalog/import',
     { preHandler: machine('PUBLISH'), bodyLimit: 16 * 1024 * 1024 },
-    async (req) => {
-      const { name, tier, data } = draft.pick({ name: true, tier: true, data: true }).parse(req.body);
+    async (req, res) => {
+      const { name, tier, data, photo } = draft
+        .pick({ name: true, tier: true })
+        .extend({ data: snapshot, photo: photoData.optional() })
+        .parse(req.body);
+      if (photo && !imageType(Buffer.from(photo, 'base64')))
+        return res.code(400).send({ error: 'Invalid Rust camera image' });
 
       await db.execute(sql`DELETE FROM resil_raid_imports WHERE expires<=now()`);
       const alphabet = '0123456789abcdefghjkmnpqrstvwxyz';
       for (let attempt = 0; attempt < 5; attempt++) {
         const code = Array.from(randomBytes(10), (byte) => alphabet[byte & 31]).join('');
         const inserted = await db.execute(
-          sql`INSERT INTO resil_raid_imports(code,name,tier,data) VALUES (${code},${name},${tier},${JSON.stringify(data)}::jsonb) ON CONFLICT DO NOTHING RETURNING code`,
+          sql`INSERT INTO resil_raid_imports(code,name,tier,data,photo) VALUES (${code},${name},${tier},${JSON.stringify(data)}::jsonb,${photo ?? null}) ON CONFLICT DO NOTHING RETURNING code`,
         );
         if (inserted.rows.length) return { code };
       }
@@ -131,18 +179,10 @@ export default typedPlugin(async (server) => {
     },
   );
   server.post(PATH + '/import', { preHandler: authenticateUser }, async (req, res) => {
-    const { code } = z
-      .object({
-        code: z
-          .string()
-          .trim()
-          .toLowerCase()
-          .regex(/^(?:[0-9a-hjkmnp-tv-z]{10}|[a-f0-9]{32})$/),
-      })
-      .parse(req.body);
+    const { code } = z.object({ code: importCode }).parse(req.body);
     const result = await db.execute(sql`UPDATE resil_raid_imports SET claimant=${req.user.id}
       WHERE code=${code} AND expires>now() AND (claimant IS NULL OR claimant=${req.user.id})
-      RETURNING name,tier,data`);
+      RETURNING name,tier,(photo IS NOT NULL) AS "hasPhoto"`);
     return result.rows[0] ?? res.code(404).send({ error: 'Import code expired or unavailable' });
   });
   server.post(PATH + '/key', { preHandler: adminOnly }, async (req, res) => {
@@ -205,6 +245,33 @@ export default typedPlugin(async (server) => {
       tables: tables.rows,
     };
   });
+  server.post(PATH + '/:id/notice/read', { preHandler: authenticateUser }, async (req, res) => {
+    const { id } = z.object({ id: key }).parse(req.params);
+    const update = await db.execute(sql`UPDATE resil_raid_revisions SET revision_notice_seen=true
+      WHERE id=${id} AND author=${req.user.id} AND status='Revise' RETURNING id`);
+    return update.rows.length ? { saved: true } : res.code(404).send({ error: 'Notification unavailable' });
+  });
+  server.get(PATH + '/:id/storage', { preHandler: authenticateUser }, async (req, res) => {
+    const { id } = z.object({ id: key }).parse(req.params);
+    const row = (await db.execute(sql`SELECT author FROM resil_raid_revisions WHERE id=${id}`)).rows[0];
+    if (!row) return res.code(404).send({ error: 'Revision missing' });
+    if (row.author !== req.user.id && req.user.role !== 'SUPERADMIN') {
+      const policy = (await db.execute(policyQuery)).rows[0];
+      if (!(await panelRoster(String(policy.discordRole))).some((member) => member.id === req.user.id))
+        return res.code(404).send({ error: 'Revision missing' });
+    }
+    const snapshotRow = (
+      await db.execute(
+        sql`SELECT data->'entities' AS entities,photo FROM resil_raid_revisions WHERE id=${id}`,
+      )
+    ).rows[0];
+    const photo = typeof snapshotRow.photo === 'string' ? snapshotRow.photo : null;
+    const type = photo && imageType(Buffer.from(photo, 'base64'));
+    return res.header('Cache-Control', 'private, no-store').send({
+      counts: countStorage(snapshotRow.entities),
+      photo: type ? 'data:' + type + ';base64,' + photo : null,
+    });
+  });
   server.post(PATH + '/loot', { preHandler: authenticateUser }, async (req, res) => {
     const policy = (await db.execute(policyQuery)).rows[0];
     if (
@@ -228,6 +295,21 @@ export default typedPlugin(async (server) => {
   });
   server.post(PATH, { preHandler: authenticateUser, bodyLimit: 16 * 1024 * 1024 }, async (req, res) => {
     const value = draft.parse(req.body);
+    const imported = value.importCode
+      ? (
+          await db.execute(sql`SELECT data,photo FROM resil_raid_imports
+      WHERE code=${value.importCode} AND claimant=${req.user.id} AND expires>now()`)
+        ).rows[0]
+      : undefined;
+    if (value.importCode && !imported)
+      return res.code(404).send({ error: 'Import the base again with a current code' });
+    const data = imported ? imported.data : value.data;
+    if (!data)
+      return res.code(400).send({ error: 'Import a creative-server snapshot or upload a CopyPaste file' });
+    if (req.user.role !== 'SUPERADMIN' && !imported?.photo)
+      return res
+        .code(400)
+        .send({ error: 'Take a Rust camera photo after /reraid submit, then import the new code.' });
     const id = randomUUID().replaceAll('-', '');
     const previous =
       value.parent &&
@@ -246,8 +328,8 @@ export default typedPlugin(async (server) => {
     const family = previous ? String(previous.family) : id;
     const rev = previous ? Number(previous.revision) + 1 : 1;
     const result =
-      await db.execute(sql`INSERT INTO resil_raid_revisions(id,family,revision,name,tier,data,loot,author) VALUES
-      (${id},${family},${rev},${value.name},${value.tier},${JSON.stringify(value.data)}::jsonb,${JSON.stringify(value.loot)}::jsonb,${req.user.id}) ON CONFLICT DO NOTHING RETURNING id`);
+      await db.execute(sql`INSERT INTO resil_raid_revisions(id,family,revision,name,tier,data,loot,author,photo) VALUES
+      (${id},${family},${rev},${value.name},${value.tier},${JSON.stringify(data)}::jsonb,${JSON.stringify(value.loot)}::jsonb,${req.user.id},${imported ? imported.photo : null}) ON CONFLICT DO NOTHING RETURNING id`);
     if (!result.rows.length) return res.code(409).send({ error: 'A newer revision already exists' });
     return { id };
   });
