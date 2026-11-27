@@ -16,8 +16,10 @@ import {
   Title,
 } from '@mantine/core';
 import { starter, simulate, lootSchema, tiers, type Loot } from '@/lib/raids/loot';
+import { requiredVotes, type PanelRule } from '@/lib/raids/panel';
 const api = '/api/devtools/raids';
 type Revision = {
+  progress: { eligible: number; required: number; counts: Record<string, number> };
   id: string;
   family: string;
   revision: number;
@@ -30,6 +32,8 @@ type Revision = {
   notes: { by: string; action: string; note: string; at: string }[];
 };
 type State = {
+  policy: { rule: PanelRule; version: number };
+  panelSize: number;
   admin: boolean;
   reviewer: boolean;
   viewer: string;
@@ -64,6 +68,8 @@ export function Component() {
     [results, preview] = useState('');
   const [importCode, setImportCode] = useState('');
   const [credential, showCredential] = useState('');
+  const [draftPolicy, setPolicy] = useState<State['policy'] | null>(null);
+  const policy = draftPolicy ?? state?.policy;
   const current = state?.revisions.find((r) => r.id === id);
   async function refresh() {
     set(await request());
@@ -115,8 +121,75 @@ export function Component() {
           <Tabs.Tab value='queue'>{state?.reviewer ? 'Review queue' : 'My submissions'}</Tabs.Tab>
           <Tabs.Tab value='submit'>Submit a base</Tabs.Tab>
           {state?.reviewer && <Tabs.Tab value='loot'>Loot tables</Tabs.Tab>}
+          {state?.admin && <Tabs.Tab value='panel'>Panel settings</Tabs.Tab>}
           {state?.admin && <Tabs.Tab value='server'>Server setup</Tabs.Tab>}
         </Tabs.List>
+        {state?.admin && policy && (
+          <Tabs.Panel value='panel' pt='md'>
+            <Stack maw={600}>
+              <Title order={3}>Panel voting requirements</Title>
+              <Select
+                label='Decision rule'
+                value={policy.rule.mode}
+                data={[
+                  { value: 'fixed', label: 'Fixed vote count' },
+                  { value: 'majority', label: 'Simple majority (over half)' },
+                  { value: 'supermajority', label: 'Supermajority (percentage)' },
+                ]}
+                onChange={(mode) =>
+                  mode && setPolicy({ ...policy, rule: { ...policy.rule, mode: mode as PanelRule['mode'] } })
+                }
+              />
+              <NumberInput
+                label='Minimum matching votes'
+                min={1}
+                max={1000}
+                allowDecimal={false}
+                value={policy.rule.minimum}
+                onChange={(v) => setPolicy({ ...policy, rule: { ...policy.rule, minimum: Number(v) } })}
+              />
+              {policy.rule.mode === 'supermajority' && (
+                <NumberInput
+                  label='Required share of eligible panelists (%)'
+                  min={51}
+                  max={100}
+                  allowDecimal={false}
+                  value={policy.rule.percent}
+                  onChange={(v) => setPolicy({ ...policy, rule: { ...policy.rule, percent: Number(v) } })}
+                />
+              )}
+              <Text>
+                {state.panelSize} current panelists. For a submission from outside the panel, this rule
+                requires {requiredVotes(policy.rule, state.panelSize)} matching votes. A panelist who submits
+                a base is excluded from that revision’s vote count and eligible panel size.
+              </Text>
+              <Text size='sm'>
+                Approve, request revision, and reject each require the threshold. Changes apply to pending
+                reviews when a vote is cast. Completed decisions stand.
+              </Text>
+              {requiredVotes(policy.rule, state.panelSize) > state.panelSize && (
+                <Alert>The required vote count exceeds the current panel size.</Alert>
+              )}
+              <Group>
+                <Button
+                  disabled={busy || !draftPolicy}
+                  onClick={() =>
+                    run(async () => {
+                      await request('/policy', policy);
+                      setPolicy(null);
+                      return 'Panel requirements saved.';
+                    })
+                  }
+                >
+                  Save requirements
+                </Button>
+                <Button variant='subtle' disabled={busy || !draftPolicy} onClick={() => setPolicy(null)}>
+                  Discard edits
+                </Button>
+              </Group>
+            </Stack>
+          </Tabs.Panel>
+        )}
         {state?.admin && (
           <Tabs.Panel value='server' pt='md'>
             <Stack>
@@ -222,7 +295,9 @@ export function Component() {
                     ))}
                     {r.status === 'Pending' && (
                       <Text size='sm'>
-                        {Object.values(r.votes).filter((v) => v === 'Approve').length} of 2 approvals
+                        {r.progress.counts.Approve} approve · {r.progress.counts.Revise} request revision ·{' '}
+                        {r.progress.counts.Reject} reject. Requires {r.progress.required} matching votes from{' '}
+                        {r.progress.eligible} eligible panelists.
                       </Text>
                     )}
                     {state.reviewer && (

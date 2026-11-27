@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { panelRule, requiredVotes, type PanelRule } from '@/lib/raids/panel';
 import { db } from '@/lib/db';
 import { lootSchema, tiers } from '@/lib/raids/loot';
 import { userMiddleware as authenticateUser } from '@/server/middleware/user';
@@ -45,6 +46,12 @@ let ready: Promise<void> | undefined;
 function setup() {
   return (ready ??= (async () => {
     await db.execute(
+      sql`CREATE TABLE IF NOT EXISTS resil_raid_policy (singleton boolean primary key check(singleton), rule jsonb not null, version integer not null)`,
+    );
+    await db.execute(
+      sql`INSERT INTO resil_raid_policy VALUES(true,'{"mode":"fixed","minimum":2,"percent":67}',1) ON CONFLICT DO NOTHING`,
+    );
+    await db.execute(
       sql`CREATE TABLE IF NOT EXISTS resil_raid_keys (scope text primary key,digest text not null)`,
     );
     await db.execute(sql`CREATE TABLE IF NOT EXISTS resil_raid_imports (
@@ -61,6 +68,23 @@ function setup() {
     ready = undefined;
     throw e;
   }));
+}
+const policyQuery = sql`SELECT rule,version FROM resil_raid_policy WHERE singleton`;
+function rosterQuery() {
+  const configured = JSON.stringify(
+    (process.env.RESIL_RAID_PANEL_USERS ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+  return sql`SELECT id FROM "User" WHERE role='SUPERADMIN' OR id IN (SELECT jsonb_array_elements_text(${configured}::jsonb))`;
+}
+function panelProgress(rule: PanelRule, roster: Set<string>, author: string, votes: Record<string, string>) {
+  const eligible = roster.size - Number(roster.has(author));
+  const counts: Record<string, number> = { Approve: 0, Revise: 0, Reject: 0 };
+  for (const [id, vote] of Object.entries(votes))
+    if (id !== author && roster.has(id) && vote in counts) counts[vote]++;
+  return { eligible, required: requiredVotes(rule, eligible), counts };
 }
 const columns = sql.raw('id,family,revision,name,tier,loot,author,status,votes,notes');
 export default typedPlugin(async (server) => {
@@ -97,17 +121,41 @@ export default typedPlugin(async (server) => {
     );
     return res.header('Cache-Control', 'no-store').send({ value });
   });
+  server.post(PATH + '/policy', { preHandler: staff }, async (req, res) => {
+    if (req.user.role !== 'SUPERADMIN') return res.code(403).send({ error: 'Site administrator required' });
+    const parsed = z.object({ rule: panelRule, version: z.number().int().positive() }).safeParse(req.body);
+    if (!parsed.success) return res.code(400).send({ error: 'Check the vote minimum and percentage.' });
+    const { rule, version } = parsed.data;
+    const result = await db.execute(
+      sql`UPDATE resil_raid_policy SET rule=${JSON.stringify(rule)}::jsonb,version=version+1 WHERE singleton AND version=${version} RETURNING version`,
+    );
+    if (!result.rows.length)
+      return res.code(409).send({ error: 'Settings changed. Refresh and reopen panel settings.' });
+    return { saved: true };
+  });
   server.get(PATH, { preHandler: authenticateUser }, async (req) => {
     const reviewer = isReviewer(req.user);
     const revisions = await db.execute(
       sql`SELECT ${columns} FROM resil_raid_revisions WHERE ${reviewer} OR author=${req.user.id} ORDER BY name,revision DESC`,
     );
     const tables = await db.execute(sql`SELECT version,data FROM resil_raid_loot ORDER BY name`);
+    const policy = (await db.execute(policyQuery)).rows[0];
+    const roster = new Set((await db.execute(rosterQuery())).rows.map((row) => String(row.id)));
     return {
+      policy,
+      panelSize: roster.size,
       admin: req.user.role === 'SUPERADMIN',
       reviewer,
       viewer: req.user.id,
-      revisions: revisions.rows,
+      revisions: revisions.rows.map((r) => ({
+        ...r,
+        progress: panelProgress(
+          policy.rule as PanelRule,
+          roster,
+          String(r.author),
+          r.votes as Record<string, string>,
+        ),
+      })),
       tables: tables.rows,
     };
   });
@@ -175,8 +223,10 @@ export default typedPlugin(async (server) => {
         if (row.author === req.user.id || status !== 'Pending')
           return res.code(409).send({ error: 'Only independent reviewers can vote on pending revisions' });
         votes[req.user.id] = action;
-        if (Object.values(votes).filter((v) => v === action).length >= 2)
-          status = action === 'Approve' ? 'Approved' : action;
+        const policy = (await tx.execute(sql`${policyQuery} FOR SHARE`)).rows[0];
+        const roster = new Set((await tx.execute(rosterQuery())).rows.map((row) => String(row.id)));
+        const progress = panelProgress(policy.rule as PanelRule, roster, String(row.author), votes);
+        if (progress.counts[action] >= progress.required) status = action === 'Approve' ? 'Approved' : action;
       }
       const log = [{ by: req.user.username, action, note, at: new Date().toISOString() }];
       await tx.execute(
