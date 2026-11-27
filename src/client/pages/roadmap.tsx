@@ -44,8 +44,9 @@ const stages = [
       {
         title: '/siege',
         icon: IconFlag,
-        summary: 'Negotiate a siege on your terms.',
-        detail: 'Use /siege to propose a siege and agree on the terms before the fight starts.',
+        summary: 'Sign up with your clan to raid a giant base together.',
+        detail:
+          'Multiple clans sign up for one massive raid in a large PvP zone. Work together to crack the base, and watch out for grubs looking to steal the loot.',
       },
     ],
   },
