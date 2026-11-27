@@ -110,7 +110,15 @@ export default typedPlugin(async (server) => {
     },
   );
   server.post(PATH + '/import', { preHandler: authenticateUser }, async (req, res) => {
-    const { code } = z.object({ code: z.string().trim().toLowerCase().regex(/^(?:[0-9a-hjkmnp-tv-z]{10}|[a-f0-9]{32})$/) }).parse(req.body);
+    const { code } = z
+      .object({
+        code: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .regex(/^(?:[0-9a-hjkmnp-tv-z]{10}|[a-f0-9]{32})$/),
+      })
+      .parse(req.body);
     const result = await db.execute(sql`UPDATE resil_raid_imports SET claimant=${req.user.id}
       WHERE code=${code} AND expires>now() AND (claimant IS NULL OR claimant=${req.user.id})
       RETURNING name,tier,data`);
@@ -206,9 +214,10 @@ export default typedPlugin(async (server) => {
   });
   server.post(PATH + '/:id/review', { preHandler: staff }, async (req, res) => {
     const { id } = z.object({ id: key }).parse(req.params);
-    const { action, note } = z
+    const { action, note, difficulty } = z
       .object({
-        action: z.enum(['Approve', 'Revise', 'Reject', 'Publish', 'Comment']),
+        action: z.enum(['Approve', 'Revise', 'Reject', 'Publish', 'Comment', 'Recommend difficulty']),
+        difficulty: z.enum(tiers).optional(),
         note: z.string().trim().max(2000),
       })
       .parse(req.body);
@@ -222,6 +231,9 @@ export default typedPlugin(async (server) => {
       if (action === 'Publish') {
         if (status !== 'Approved') return res.code(409).send({ error: 'Approval required' });
         status = 'Published';
+      } else if (action === 'Recommend difficulty') {
+        if (status !== 'Pending') return res.code(409).send({ error: 'This review has already closed' });
+        if (!difficulty) return res.code(400).send({ error: 'Choose a difficulty to recommend' });
       } else if (action === 'Comment') {
         if (!note) return res.code(400).send({ error: 'Enter a comment' });
       } else {
@@ -233,7 +245,15 @@ export default typedPlugin(async (server) => {
         const progress = panelProgress(policy.rule as PanelRule, roster, String(row.author), votes);
         if (progress.counts[action] >= progress.required) status = action === 'Approve' ? 'Approved' : action;
       }
-      const log = [{ by: req.user.username, action, note, at: new Date().toISOString() }];
+      const log = [
+        {
+          by: req.user.username,
+          action,
+          note,
+          difficulty: action === 'Recommend difficulty' ? difficulty : undefined,
+          at: new Date().toISOString(),
+        },
+      ];
       await tx.execute(
         sql`UPDATE resil_raid_revisions SET status=${status},votes=${JSON.stringify(votes)}::jsonb,notes=notes || ${JSON.stringify(log)}::jsonb WHERE id=${id}`,
       );

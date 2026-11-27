@@ -29,7 +29,7 @@ type Revision = {
   author: string;
   status: string;
   votes: Record<string, string>;
-  notes: { by: string; action: string; note: string; at: string }[];
+  notes: { by: string; action: string; note: string; difficulty?: string; at: string }[];
 };
 type State = {
   policy: { rule: PanelRule; version: number };
@@ -70,6 +70,7 @@ export function Component() {
   const [credential, showCredential] = useState('');
   const [draftPolicy, setPolicy] = useState<State['policy'] | null>(null);
   const policy = draftPolicy ?? state?.policy;
+  const [difficulty, setDifficulty] = useState<string | null>(null);
   const current = state?.revisions.find((r) => r.id === id);
   async function refresh() {
     set(await request());
@@ -261,6 +262,7 @@ export function Component() {
                       variant='light'
                       onClick={() => {
                         select(r.id);
+                        setDifficulty(null);
                         comment('');
                       }}
                     >
@@ -290,7 +292,8 @@ export function Component() {
                     )}
                     {r.notes.map((n, i) => (
                       <Text key={i} size='sm'>
-                        {n.by} · {n.action} · {new Date(n.at).toLocaleString()} {n.note}
+                        {n.by} · {n.difficulty ? 'Recommended ' + n.difficulty : n.action} ·{' '}
+                        {new Date(n.at).toLocaleString()} {n.note}
                       </Text>
                     ))}
                     {r.status === 'Pending' && (
@@ -307,6 +310,35 @@ export function Component() {
                           value={note}
                           onChange={(e) => comment(e.currentTarget.value)}
                         />
+                        {r.status === 'Pending' && (
+                          <Group align='end'>
+                            <Select
+                              label='Recommended difficulty'
+                              placeholder='Choose a tier'
+                              data={[...tiers]}
+                              value={difficulty}
+                              onChange={setDifficulty}
+                            />
+                            <Button
+                              variant='light'
+                              disabled={busy || !difficulty}
+                              onClick={() =>
+                                run(async () => {
+                                  await request('/' + r.id + '/review', {
+                                    action: 'Recommend difficulty',
+                                    difficulty,
+                                    note,
+                                  });
+                                  setDifficulty(null);
+                                  comment('');
+                                  return 'Difficulty recommendation recorded.';
+                                })
+                              }
+                            >
+                              Save recommendation
+                            </Button>
+                          </Group>
+                        )}
                         <Group>
                           {[
                             'Comment',
