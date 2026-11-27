@@ -30,16 +30,10 @@ test('Discord donor policy rejects missing roles and accepts any configured role
   response = new Response(null, { status: 401 });
   assert.equal(await discordMembership('expired'), 'expired');
   response = new Response(null, { status: 429, headers: { 'Retry-After': '2.5' } });
-  await assert.rejects(
-    discordMembership('limited'),
-    /Discord is rate limiting membership checks.*Please try logging out and back in\./,
-  );
+  await assert.rejects(discordMembership('limited'), /Discord is rate limiting membership checks\./);
   const calls = fetchMock.mock.callCount();
   await assert.rejects(discordMembership('limited'), /Discord is rate limiting/);
   assert.equal(fetchMock.mock.callCount(), calls);
   response = new Response(null, { status: 502 });
-  await assert.rejects(
-    discordMembership('unavailable'),
-    /Discord membership verification unavailable.*Please try logging out and back in\./,
-  );
+  await assert.rejects(discordMembership('unavailable'), /Discord membership verification unavailable\./);
 });

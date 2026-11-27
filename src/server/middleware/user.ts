@@ -1,5 +1,4 @@
 import { hasAcceptedResilPolicy } from '@/lib/resil-policy';
-import { requireDiscordRole } from './discord-roles';
 import { isAdministrator } from '@/lib/role';
 import { config } from '@/lib/config';
 import { decryptToken } from '@/lib/crypto';
@@ -66,7 +65,6 @@ export async function authenticateUser(req: FastifyRequest, res: FastifyReply) {
     if (!user) throw new ApiError(2001);
     if (!isAdministrator(user.role)) throw new ApiError(3000);
 
-    await requireDiscordRole(user);
     req.user = user as User;
 
     return;
@@ -89,7 +87,6 @@ export async function authenticateUser(req: FastifyRequest, res: FastifyReply) {
   }
   if (!user) throw new ApiError(2001);
 
-  await requireDiscordRole(user);
   req.user = user as User;
 }
 

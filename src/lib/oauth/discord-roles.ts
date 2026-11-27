@@ -21,11 +21,7 @@ function rememberCheck(key: string, until: number, allowed: boolean) {
 }
 
 function rateLimited() {
-  return new ApiError(
-    6008,
-    'Discord is rate limiting membership checks. Try again shortly. Please try logging out and back in.',
-    503,
-  );
+  return new ApiError(6008, 'Discord is rate limiting membership checks. Try again shortly.', 503);
 }
 
 export function discordRolePolicy() {
@@ -108,12 +104,7 @@ async function fetchMembership(
       throw rateLimited();
     }
   }
-  if (!response?.ok)
-    throw new ApiError(
-      6008,
-      'Discord membership verification unavailable. Please try logging out and back in.',
-      503,
-    );
+  if (!response?.ok) throw new ApiError(6008, 'Discord membership verification unavailable.', 503);
   const member = await response.json().catch(() => null);
   if (!Array.isArray(member?.roles)) throw new ApiError(6008, 'Invalid Discord membership response.', 503);
   if (!policy.roles.some((role) => member.roles.includes(role))) return 'denied';
