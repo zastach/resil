@@ -21,6 +21,7 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDownload, IconInfoCircle, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react';
+import { haveWearConflict } from './wear-compatibility';
 import bundledWearables from './rust-wearables.json';
 
 type Equipment = { slot: string; shortname: string; skinId: string };
@@ -68,175 +69,14 @@ const slotLabel = (slot: string) =>
   (
     {
       'Head L1': 'Headwear',
-      'Head L2': 'Head Armor',
+      'Head L2': 'Face or second head item',
       'Chest L1': 'Shirt / Base Layer',
       'Chest L2': 'Jacket / Chest Armor',
       'Legs L1': 'Pants / Base Layer',
       'Legs L2': 'Leg Armor',
     } as Record<string, string>
   )[slot] || slot;
-const fullBodyShortnames = [
-  'hazmatsuit.diver',
-  'alien.costume',
-  'hazmatsuit_scientist_arctic',
-  'hazmatsuit.arcticsuit',
-  'attire.banditguard',
-  'bunny.suit',
-  'attire.egg.suit',
-  'hazmatsuit.frontier',
-  'ghostsheet',
-  'gingerbreadsuit',
-  'hazmatsuit',
-  'scientistsuit_heavy',
-  'horse.costume',
-  'hazmatsuit.kick',
-  'hazmat.krieg',
-  'hazmatsuit.lumberjack',
-  'halloween.mummysuit',
-  'hazmatsuit_scientist_naval',
-  'attire.ninja.suit',
-  'hazmatsuit.nomadsuit',
-  'hazmatsuit_scientist_nvgm',
-  'oubreak_scientist',
-  'paintballoveralls.suit',
-  'hazmatsuit.pilot',
-  'hazmat.plague',
-  'scarecrow.suit',
-  'hazmatsuit_scientist',
-  'hazmatsuit_scientist_peacekeeper',
-  'hazmatsuit.spacesuit',
-  'halloween.surgeonsuit',
-  'hazmatsuittwitch',
-  'jumpsuit.waterwellnpc',
-];
 const backpackShortnames = ['largebackpack', 'smallbackpack', 'kriegbackpack'];
-const itemGroups: Record<string, string[]> = {
-  Head: [
-    'ballistic.helmet',
-    'mask.bandana',
-    'hat.cap',
-    'hat.beenie',
-    'hat.candle.birthday',
-    'hat.boonie',
-    'bucket.helmet',
-    'attire.bunnyears',
-    'hat.bunnyhat',
-    'burlap.headwrap',
-    'hat.candle',
-    'clatter.helmet',
-    'cocoknight.armor.helmet',
-    'coffeecan.helmet',
-    'draculamask',
-    'hat.dragonmask',
-    'frankensteinmask',
-    'hat.gas.mask',
-    'gloweyes',
-    'frankensteins.monster.03.head',
-    'heavy.plate.helmet',
-    'deer.skull.mask',
-    'metal.facemask.hockey',
-    'hat.horsemask',
-    'metal.facemask.icemask',
-    'mask.balaclava',
-    'knightsarmour.helmet',
-    'frankensteins.monster.01.head',
-    'frankensteins.monster.02.head',
-    'metal.facemask',
-    'hat.miner',
-    'movembermoustache',
-    'mummymask',
-    'attire.nesthat',
-    'nightvisiongoggles',
-    'hat.oxmask',
-    'partyhat',
-    'prisonerhood',
-    'twitchsunglasses',
-    'hat.rabbitmask',
-    'hat.ratmask',
-    'attire.reindeer.headband',
-    'riot.helmet',
-    'santabeard',
-    'santahat',
-    'scarecrowhead',
-    'silly.horse.mask',
-    'hat.snakemask',
-    'attire.snowman.helmet',
-    'sunglasses',
-    'sunglasses02black',
-    'sunglasses02camo',
-    'sunglasses02red',
-    'sunglasses03black',
-    'sunglasses03chrome',
-    'sunglasses03gold',
-    'hat.tigermask',
-    'twitch.headset',
-    'hat.wellipets',
-    'hat.wolf',
-    'wood.armor.helmet',
-  ],
-  Chest: [
-    'ballistic.vest',
-    'bdu.shirt',
-    'bone.armor.suit',
-    'burlap.shirt',
-    'cocoknight.armor.torso',
-    'draculacape',
-    'heavy.plate.jacket',
-    'attire.hide.helterneck',
-    'attire.hide.poncho',
-    'attire.hide.vest',
-    'hoodie',
-    'jacket',
-    'jumpsuit.suit',
-    'jumpsuit.suit.blue',
-    'knighttorso.armour',
-    'metal.plate.torso',
-    'metal.plate.torso.icevest',
-    'shirt.collared',
-    'shirt.tanktop',
-    'tshirt',
-    'tshirt.long',
-    'roadsign.jacket',
-    'wood.armor.jacket',
-  ],
-  Legs: [
-    'ballistic.legarmor',
-    'bdu.pants',
-    'burlap.trousers',
-    'cocoknight.armor.pants',
-    'heavy.plate.pants',
-    'attire.hide.pants',
-    'attire.hide.skirt',
-    'pants',
-    'pants.shorts',
-    'roadsign.kilt',
-    'knightsarmour.skirt',
-    'wood.armor.pants',
-  ],
-  Feet: ['shoes.boots', 'burlap.shoes', 'boots.frog', 'attire.hide.boots', 'diving.fins'],
-  Hands: [
-    'burlap.gloves.new',
-    'burlap.gloves',
-    'cocoknight.armor.gloves',
-    'roadsign.gloves',
-    'tactical.gloves',
-    'woodarmor.gloves',
-  ],
-  Accessory: ['diving.mask', 'diving.tank', 'diving.tank.double', 'minigunammopack', 'twitchrivalsflag'],
-};
-itemGroups.Chest.push(
-  ...fullBodyShortnames,
-  'attire.bunny.onesie',
-  'chicken.costume',
-  'diving.wetsuit',
-  'barrelcostume',
-  'cratecostume',
-);
-// The six UI groups are an editor simplification, not the game's full layered wearable model.
-// Rust server ItemModWearable slot and conflict data must be checked before publishing.
-const itemSlots: Record<string, string[]> = {};
-for (const [slot, ids] of Object.entries(itemGroups)) for (const id of ids) (itemSlots[id] ||= []).push(slot);
-const allowedItemsForSlot = (slot: string) => itemGroups[baseArea(slot)] || [];
 const emptyEquipment = () => slots.map((slot) => ({ slot, shortname: '', skinId: '0' }));
 const starter = (): Npc => ({
   id: 'npc-' + Math.random().toString(36).slice(2, 10),
@@ -259,68 +99,6 @@ const starter = (): Npc => ({
   ],
 });
 const blankNode = (id: string): Node => ({ id, text: '', audio: '', choices: [] });
-const fullBodyItems = new Set(fullBodyShortnames);
-// Facepunch Clothing Slots: these occupy multiple layers, but not the entire wear inventory.
-const dualLayers: Record<string, string[]> = {
-  jacket: ['Chest L1', 'Chest L2'],
-  'jacket.snow': ['Chest L1', 'Chest L2'],
-  'heavy.plate.jacket': ['Chest L1', 'Chest L2'],
-  'heavy.plate.pants': ['Legs L1', 'Legs L2'],
-  'metal.facemask': ['Head L1', 'Head L2'],
-  'coffeecan.helmet': ['Head L1', 'Head L2'],
-  'heavy.plate.helmet': ['Head L1', 'Head L2'],
-  'ballistic.helmet': ['Head L1', 'Head L2'],
-  'diving.tank': ['Chest L2', 'Back'],
-  'diving.tank.double': ['Chest L2', 'Back'],
-  'diving.wetsuit': ['Chest L1', 'Legs L1'],
-  'chicken.costume': ['Chest L2', 'Legs L2'],
-  'attire.bunny.onesie': ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2'],
-  barrelcostume: ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2'],
-  cratecostume: ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2'],
-  'bone.armor.suit': ['Chest L1', 'Chest L2', 'Legs L1', 'Legs L2', 'Hands', 'Feet'],
-};
-const allWearSlots = [
-  'Head L1',
-  'Head L2',
-  'Chest L1',
-  'Chest L2',
-  'Legs L1',
-  'Legs L2',
-  'Hands',
-  'Feet',
-  'Back',
-];
-const headArmor = new Set([
-  'metal.facemask',
-  'coffeecan.helmet',
-  'heavy.plate.helmet',
-  'ballistic.helmet',
-  'riot.helmet',
-  'wood.armor.helmet',
-]);
-const chestArmor = new Set([
-  'metal.plate.torso',
-  'metal.plate.torso.icevest',
-  'roadsign.jacket',
-  'wood.armor.jacket',
-  'ballistic.vest',
-]);
-const legArmor = new Set(['roadsign.kilt', 'wood.armor.pants', 'ballistic.legarmor']);
-function occupiedSlots(eq: Equipment): string[] {
-  if (fullBodyItems.has(eq.shortname) || ['jumpsuit.suit', 'jumpsuit.suit.blue'].includes(eq.shortname))
-    return allWearSlots;
-  if (dualLayers[eq.shortname]) return dualLayers[eq.shortname];
-  if (eq.slot === 'Accessory' && eq.shortname === 'diving.mask') return ['Head L1'];
-  if (eq.slot === 'Accessory' && eq.shortname === 'minigunammopack') return ['Back'];
-  if (headArmor.has(eq.shortname)) return ['Head L2'];
-  if (chestArmor.has(eq.shortname)) return ['Chest L2'];
-  if (legArmor.has(eq.shortname)) return ['Legs L2'];
-  const area = baseArea(eq.slot);
-  return itemSlots[eq.shortname]?.includes(area) && ['Head', 'Chest', 'Legs'].includes(area)
-    ? [area + ' L1']
-    : [eq.slot];
-}
-
 const catalogKey = 'resil-npcstudio-wearable-catalog-v1';
 const legacyLibraryKey = 'resil-npcstudio-v1';
 function readLegacyNpcs(): Npc[] {
@@ -352,26 +130,6 @@ function readCatalog(): CatalogItem[] {
     return [];
   }
 }
-const itemLabel = (id: string) =>
-  (
-    {
-      gloweyes: 'Glowing Eyes',
-      'bdu.shirt': 'BDU Shirt',
-      'bdu.pants': 'BDU Pants',
-      'burlap.gloves': 'Leather Gloves',
-      'burlap.gloves.new': 'Burlap Gloves',
-      'boots.frog': 'Frog Boots',
-      smallbackpack: 'Small Backpack',
-      largebackpack: 'Large Backpack',
-      kriegbackpack: 'Krieg Large Backpack',
-      'bunny.suit': 'Bunny Costume',
-      'attire.bunny.onesie': 'Bunny Onesie',
-    } as Record<string, string>
-  )[id] ||
-  id
-    .split('.')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 const itemIcon = (id: string) => 'https://rustlabs.com/img/items180/' + encodeURIComponent(id) + '.png';
 function download(name: string, body: string, mime: string) {
   const url = URL.createObjectURL(new Blob([body], { type: mime }));
@@ -461,8 +219,23 @@ export function Component() {
   const dirty = draft !== baseline;
   const canReplaceDraft = () => !saving && (!dirty || window.confirm('Discard unsaved changes to this NPC?'));
   const openDraft = (npc: Npc, savedId = '', unsaved = false) => {
-    setDraft(npc);
-    if (!unsaved) setBaseline(npc);
+    const legacyPack = npc.equipment.find(
+      (item) =>
+        backpackShortnames.includes(item.shortname) &&
+        (!item.skinId || item.skinId === '0') &&
+        (!npc.backpack || npc.backpack === item.shortname),
+    );
+    const loaded = legacyPack
+      ? {
+          ...npc,
+          backpack: legacyPack.shortname,
+          equipment: npc.equipment.map((item) =>
+            item === legacyPack ? { ...item, shortname: '', skinId: '0' } : item,
+          ),
+        }
+      : npc;
+    setDraft(loaded);
+    if (!unsaved) setBaseline(loaded);
     setSelected(savedId);
     setAcknowledgeConflicts(false);
     setPreviewNode(null);
@@ -479,18 +252,19 @@ export function Component() {
     return [...byId.values()];
   });
   const catalogItem = (shortname: string) => catalog.find((x) => x.shortname === shortname);
+  const itemLabel = (id: string) => catalogItem(id)?.name ?? id;
   const catalogOptions = (slot: string) => {
-    const byId = new Map<string, { value: string; label: string }>();
-    for (const shortname of allowedItemsForSlot(slot))
-      byId.set(shortname, { value: shortname, label: itemLabel(shortname) });
-    for (const item of catalog.filter((x) => x.slots.includes(baseArea(slot)) || x.slots.includes(slot)))
-      byId.set(item.shortname, {
-        value: item.shortname,
-        label: item.name + (item.special ? ' · Special' : ''),
-      });
-    return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label));
+    return catalog
+      .filter(
+        (item) =>
+          !backpackShortnames.includes(item.shortname) &&
+          (item.slots.includes(baseArea(slot)) || item.slots.includes(slot)),
+      )
+      .map((item) => ({ value: item.shortname, label: item.name + (item.special ? ' · Special' : '') }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   };
   const equipment = draft.equipment.filter((item) => item.shortname.trim());
+  if (draft.backpack) equipment.push({ slot: 'Backpack', shortname: draft.backpack, skinId: '0' });
   const equipmentWarnings = new Map<string, string[]>();
   const warn = (slot: string, message: string) => {
     const messages = equipmentWarnings.get(slot) ?? [];
@@ -499,22 +273,23 @@ export function Component() {
   };
   for (const [index, item] of equipment.entries()) {
     const entry = catalogItem(item.shortname);
-    const areas = entry?.slots ?? itemSlots[item.shortname];
+    const areas = entry?.slots;
     if (!areas) warn(item.slot, 'Unverified Rust item: ' + item.shortname);
-    else if (!areas.includes(baseArea(item.slot)) && !areas.includes(item.slot))
+    else if (
+      backpackShortnames.includes(item.shortname)
+        ? item.slot !== 'Backpack'
+        : !areas.includes(baseArea(item.slot)) && !areas.includes(item.slot)
+    )
       warn(item.slot, 'This item belongs in a different equipment slot.');
     for (const other of equipment.slice(index + 1)) {
       if (
         item.shortname === other.shortname ||
-        occupiedSlots(item).some((layer) => occupiedSlots(other).includes(layer)) ||
+        haveWearConflict(item.shortname, other.shortname) ||
         entry?.conflicts?.includes(other.shortname) ||
         catalogItem(other.shortname)?.conflicts?.includes(item.shortname)
       ) {
-        warn(
-          item.slot,
-          'Conflicts with ' + (catalogItem(other.shortname)?.name ?? itemLabel(other.shortname)) + '.',
-        );
-        warn(other.slot, 'Conflicts with ' + (entry?.name ?? itemLabel(item.shortname)) + '.');
+        warn(item.slot, 'Conflicts with ' + itemLabel(other.shortname) + '.');
+        warn(other.slot, 'Conflicts with ' + itemLabel(item.shortname) + '.');
       }
     }
   }
@@ -533,7 +308,9 @@ export function Component() {
             !Array.isArray(x.slots) ||
             x.slots.some(
               (slot: unknown) =>
-                !slots.includes(String(slot)) && !slots.some((option) => baseArea(option) === slot),
+                slot !== 'Backpack' &&
+                !slots.includes(String(slot)) &&
+                !slots.some((option) => baseArea(option) === slot),
             ) ||
             (x.conflicts !== undefined &&
               (!Array.isArray(x.conflicts) || x.conflicts.some((c: unknown) => typeof c !== 'string'))),
@@ -677,13 +454,15 @@ export function Component() {
     }
   };
   const patch = (p: Partial<Npc>) => {
-    if (p.equipment) setAcknowledgeConflicts(false);
+    if (p.equipment || 'backpack' in p) setAcknowledgeConflicts(false);
     setDraft((prev) => ({ ...prev, ...p }));
   };
   const save = async () => {
     if (equipmentWarnings.size && !acknowledgeConflicts) {
       setTab('appearance');
-      setNotice('Review the equipment compatibility notices and choose Keep anyway to continue.');
+      setNotice(
+        'Review the equipment compatibility notices and enable “Save with these equipment warnings” to continue.',
+      );
       return;
     }
     const error = validate(draft);
@@ -1099,11 +878,7 @@ export function Component() {
                           )}
                         </div>
                         <Stack gap={2}>
-                          <Text size='sm'>
-                            {eq.shortname
-                              ? catalogItem(eq.shortname)?.name || itemLabel(eq.shortname)
-                              : 'No item selected'}
-                          </Text>
+                          <Text size='sm'>{eq.shortname ? itemLabel(eq.shortname) : 'No item selected'}</Text>
                           {catalogItem(eq.shortname)?.itemId !== undefined && (
                             <Text size='xs' c='dimmed'>
                               Rust item ID: {catalogItem(eq.shortname)?.itemId}
@@ -1184,6 +959,11 @@ export function Component() {
 
             <Card withBorder>
               <Text fw={600}>Backpack slot</Text>
+              {equipmentWarnings.get('Backpack')?.map((message) => (
+                <Alert key={message} color='yellow' p='xs'>
+                  {message}
+                </Alert>
+              ))}
               <Select
                 mt='sm'
                 searchable
@@ -1477,10 +1257,21 @@ export function Component() {
       {selected && baseline.id === selected && (
         <Alert title='Use this NPC in Rust'>
           <Stack gap='xs'>
-            <Text size='sm'>Definition ID <code>{baseline.id}</code></Text>
-            <Text size='sm'>1. Run <code>/npcstudio sync</code> in game.</Text>
-            <Text size='sm'>2. To place a new instance, stand where it should go, face the desired direction, and run <code>{'/npcstudio spawn ' + baseline.id}</code>.</Text>
-            <Text size='sm'>For an existing NPC, edit its conversation in the TalkingNpc editor with <code>/talking_npc</code>. Sync refreshes the definition, and spawning reuses any existing conversation file.</Text>
+            <Text size='sm'>
+              Definition ID <code>{baseline.id}</code>
+            </Text>
+            <Text size='sm'>
+              1. Run <code>/npcstudio sync</code> in game.
+            </Text>
+            <Text size='sm'>
+              2. To place a new instance, stand where it should go, face the desired direction, and run{' '}
+              <code>{'/npcstudio spawn ' + baseline.id}</code>.
+            </Text>
+            <Text size='sm'>
+              For an existing NPC, edit its conversation in the TalkingNpc editor with{' '}
+              <code>/talking_npc</code>. Sync refreshes the definition, and spawning reuses any existing
+              conversation file.
+            </Text>
           </Stack>
         </Alert>
       )}
