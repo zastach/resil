@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ActionIcon,
-  Anchor,
   Badge,
   Button,
   Card,
@@ -14,6 +13,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { IconArrowDown, IconArrowUp, IconInfoCircle, IconPackage, IconTrash } from '@tabler/icons-react';
+import { LootItemPicker } from './loot-item-picker';
 import { cascadeOdds, type Loot, type LootEntry } from '@/lib/raids/loot';
 
 const palette = ['orange', 'grape', 'teal', 'blue', 'gray'];
@@ -81,18 +81,19 @@ function DropRows({
           onChange(entries.map((row, j) => (j === i ? { ...row, [field]: value } : row)));
         return (
           <Group align='end' gap='xs' key={i}>
-            <RustLootIcon item={entry.Item} />
-            <TextInput
-              label={
+            <Stack gap={4}>
+              <Text component='div' size='sm'>
                 <LootTip
-                  label='Rust item shortname'
-                  help='Use the Rust shortname, such as metal.fragments. The icon previews the item.'
+                  label='Item'
+                  help='Browse Rust items by category or search by name. Each selected item has its own quantity and weight.'
                 />
-              }
-              placeholder='e.g. scrap'
-              value={entry.Item}
-              onChange={(e) => update('Item', e.currentTarget.value.trim().toLowerCase())}
-            />
+              </Text>
+              <LootItemPicker
+                value={entry.Item}
+                Icon={RustLootIcon}
+                onChange={(value) => update('Item', value)}
+              />
+            </Stack>
             <NumberInput
               label={<LootTip label='Min' help='Smallest stack this item can drop when selected.' />}
               min={1}
@@ -154,19 +155,16 @@ function DropRows({
           </Group>
         );
       })}
-      <Group>
-        <Button
-          variant='light'
-          size='xs'
-          disabled={entries.length >= 200}
-          onClick={() => onChange([...entries, { ...blankItem }])}
-        >
-          Add item
-        </Button>
-        <Anchor href='https://wiki.rustclash.com/group=itemlist' target='_blank' rel='noreferrer' size='xs'>
-          Find a Rust item shortname
-        </Anchor>
-      </Group>
+      {entries.length < 200 && (
+        <Group>
+          <LootItemPicker
+            adding
+            value=''
+            Icon={RustLootIcon}
+            onChange={(Item) => onChange([...entries, { ...blankItem, Item }])}
+          />
+        </Group>
+      )}
     </Stack>
   );
 }
