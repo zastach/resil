@@ -2,7 +2,8 @@
   {
     "shortname": "alien.costume",
     "name": "Alien Costume",
-    "slots": ["Chest"]
+    "slots": ["Chest"],
+    "coverage": ["over:Groin", "over:Bum", "over:LeftKnee", "over:RightKnee", "over:LeftLeg", "over:RightLeg"]
   },
   {
     "shortname": "hazmatsuit.arcticsuit",

@@ -30,3 +30,15 @@ test('backpacks use the dedicated picker and the bandana has its player-facing n
     assert.deepEqual(catalog.find((item) => item.shortname === id)?.slots, ['Backpack']);
   assert.equal(catalog.find((item) => item.shortname === 'mask.bandana')?.name, 'Bandana');
 });
+
+test('Alien Costume uses Chicken Costume coverage with room for a hat and top', () => {
+  assert.equal(haveWearConflict('alien.costume', 'hat.cap'), false);
+  assert.equal(haveWearConflict('alien.costume', 'shirt.collared'), false);
+  assert.equal(haveWearConflict('alien.costume', 'roadsign.kilt'), true);
+  for (const { shortname } of catalog)
+    assert.equal(
+      haveWearConflict('alien.costume', shortname),
+      haveWearConflict('chicken.costume', shortname),
+      shortname,
+    );
+});
