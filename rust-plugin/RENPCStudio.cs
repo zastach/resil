@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("RENPCStudio", "Rust Empires", "0.4.19")]
+    [Info("RENPCStudio", "Rust Empires", "0.4.20")]
     [Description("Standalone NPC Studio proof of concept: owner-only placement and custom E-interaction dialogue.")]
     public class RENPCStudio : RustPlugin
     {
@@ -84,7 +84,102 @@ namespace Oxide.Plugins
             playbackGeneration[listener.userID] = generation + 1;
         }
 
+        private readonly Dictionary<ulong, BasePlayer> talkingSources = new Dictionary<ulong, BasePlayer>();
+
+        private void ExportTalkingConversation(BasePlayer player, string id)
+        {
+            var definition = GetDefinition(id);
+            if (definition == null || !System.Text.RegularExpressions.Regex.IsMatch(definition.Id, @"\A[a-z0-9][a-z0-9-]*\z"))
+            {
+                player.ChatMessage("Choose a definition ID from /npcstudio definitions.");
+                return;
+            }
+            string filename = "studio-" + definition.Id;
+            string path = "TalkingNpc/Conversations/" + filename;
+            var files = Interface.Oxide.DataFileSystem;
+            if (files.ExistsDatafile(path))
+            {
+                player.ChatMessage("Conversation already exists: " + filename);
+                return;
+            }
+            var nodes = new List<DialogueNode>(definition.Dialogue);
+            var start = nodes.Find(n => n.Id == "start");
+            if (start == null) { player.ChatMessage("Conversation needs a start node."); return; }
+            nodes.Remove(start);
+            nodes.Insert(0, start);
+            var tree = new JObject();
+            foreach (var node in nodes)
+            {
+                var replies = new JArray();
+                foreach (var choice in node.Choices)
+                {
+                    int next = nodes.FindIndex(n => n.Id == choice.Next);
+                    replies.Add(new JObject {
+                        ["Message"] = choice.Text,
+                        ["Next Message (null = Close UI)"] = next < 0 ? JValue.CreateNull() : new JValue(next)
+                    });
+                }
+                tree[nodes.IndexOf(node).ToString()] = new JObject {
+                    ["Message"] = node.Text,
+                    ["Responses"] = replies,
+                    ["Message Display Time (seconds) - Only used if there are no responses"] = 2f
+                };
+            }
+            files.WriteObject(path, tree);
+            player.ChatMessage("Created " + filename + ". Place with /talking_npc add StudioVoiceTest " + filename + " false");
+        }
+
+        private NpcDefinition TalkingDefinition(string file)
+        {
+            return file != null && file.StartsWith("studio-", StringComparison.Ordinal) ?
+                GetDefinition(file.Substring(7)) : null;
+        }
+
+        private void OnStudioTalkerReady(BasePlayer source, string file)
+        {
+            var definition = TalkingDefinition(file);
+            if (source != null && definition != null) Dress(source, definition.Clothing);
+        }
+
+        private void OnStudioTalkerLine(BasePlayer listener, BasePlayer source, string file, uint index, string text)
+        {
+            if (listener == null || source == null) return;
+            var definition = TalkingDefinition(file);
+            if (definition == null) return;
+            talkingSources[listener.userID] = source;
+            var nodes = definition.Dialogue;
+            DialogueNode node = null;
+            if (index == 0) node = nodes.Find(n => n.Id == "start");
+            else
+            {
+                uint position = 0;
+                foreach (var candidate in nodes)
+                {
+                    if (candidate.Id == "start") continue;
+                    if (++position == index) { node = candidate; break; }
+                }
+            }
+            PlayNodeVoice(listener, source, node != null && node.Text == text ? node : null);
+        }
+
+        private void OnNpcConversationEnded(NPCTalking source, BasePlayer listener)
+        {
+            BasePlayer active;
+            if (listener == null || !talkingSources.TryGetValue(listener.userID, out active) || active != source) return;
+            talkingSources.Remove(listener.userID);
+            StopVoice(listener);
+        }
+
         private void PlayVoice(BasePlayer listener, NpcDefinition definition, DialogueNode node)
+        {
+            ulong placementId;
+            if (!conversationPlacement.TryGetValue(listener.userID, out placementId)) return;
+            BaseEntity source;
+            if (!spawned.TryGetValue(placementId, out source) || source == null || source.net == null) return;
+            PlayNodeVoice(listener, source, node);
+        }
+
+        private void PlayNodeVoice(BasePlayer listener, BaseEntity source, DialogueNode node)
         {
             StopVoice(listener);
             if (listener == null || node == null || string.IsNullOrWhiteSpace(node.Audio)) return;
@@ -100,10 +195,6 @@ namespace Oxide.Plugins
             }
             if (string.IsNullOrWhiteSpace(clipId) ||
                 !System.Text.RegularExpressions.Regex.IsMatch(clipId, "^[A-Za-z0-9_-]+$")) return;
-            ulong placementId;
-            if (!conversationPlacement.TryGetValue(listener.userID, out placementId)) return;
-            BaseEntity source;
-            if (!spawned.TryGetValue(placementId, out source) || source == null || source.net == null) return;
             int generation = playbackGeneration[listener.userID];
             List<string> frames;
             bool generated = !reference.StartsWith("clip:", StringComparison.OrdinalIgnoreCase);
@@ -120,7 +211,7 @@ namespace Oxide.Plugins
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || !conversations.Contains(listener.userID) || source.IsDestroyed ||
+                    !listener.IsConnected || (!conversations.Contains(listener.userID) && !talkingSources.ContainsKey(listener.userID)) || source.IsDestroyed ||
                     source.net == null) return;
                 if (code != 200 || string.IsNullOrWhiteSpace(response) || response.Length > 3000000)
                 {
@@ -182,7 +273,7 @@ namespace Oxide.Plugins
             {
                 int current;
                 if (!playbackGeneration.TryGetValue(listener.userID, out current) || current != generation ||
-                    !listener.IsConnected || (!diagnostic && !conversations.Contains(listener.userID)) || source.IsDestroyed || source.net == null)
+                    !listener.IsConnected || (!diagnostic && (!conversations.Contains(listener.userID) && !talkingSources.ContainsKey(listener.userID))) || source.IsDestroyed || source.net == null)
                 {
                     if (playbackTimer != null) playbackTimer.Destroy();
                     if (trace) Puts("NPC voice: stopped after " + index + "/" + packets.Count +
@@ -711,7 +802,7 @@ namespace Oxide.Plugins
             }
             if (args == null || args.Length == 0)
             {
-                player.ChatMessage("/npcstudio status | /npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list [page] | /npcstudio inspect [#]");
+                player.ChatMessage("/npcstudio status | /npcstudio sync | /npcstudio apply | /npcstudio import | /npcstudio definitions | /npcstudio talkingexport <definition-id> | /npcstudio spawn <definition-id> | /npcstudio confirm | /npcstudio cancel | /npcstudio rotate <#> <degrees> | /npcstudio remove [#] | /npcstudio list [page] | /npcstudio inspect [#]");
                 return;
             }
             switch (args[0].ToLowerInvariant())
@@ -790,6 +881,9 @@ namespace Oxide.Plugins
                     break;
                 case "clips":
                     player.ChatMessage("Native voice clips: " + (voiceClips.Count == 0 ? "(none)" : string.Join(", ", voiceClips.Keys)));
+                    break;
+                case "talkingexport":
+                    ExportTalkingConversation(player, args.Length == 2 ? args[1] : null);
                     break;
                 case "sync":
                     SyncStudio(player);
@@ -1633,6 +1727,7 @@ namespace Oxide.Plugins
             if (player != null)
             {
                 StopVoice(player);
+                talkingSources.Remove(player.userID);
                 recordingFrames.Remove(player.userID);
                 recordingNames.Remove(player.userID);
                 conversations.Remove(player.userID);
