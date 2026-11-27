@@ -720,7 +720,7 @@ export function Component() {
       setNotice(
         'NPC revision ' +
           result.revision +
-          ' saved. Rust server owners must run /npcstudio sync, then /npcstudio apply to update already placed NPCs. No automatic live updates occur.',
+          ' saved. Run /npcstudio sync in Rust to fetch the saved definition.',
       );
     } catch (e) {
       setNotice('Save failed: ' + String(e));
@@ -960,7 +960,7 @@ export function Component() {
             <Popover.Dropdown>
               <Text size='sm'>
                 Export a JSON copy for backup, sharing, or reimporting a definition later. Uploaded audio
-                stays on resil.me. To put an NPC in Rust, save it here and run /npcstudio sync.
+                stays on resil.me. Use the in-game commands at the bottom of the editor to place a saved NPC.
               </Text>
             </Popover.Dropdown>
           </Popover>
@@ -1474,6 +1474,16 @@ export function Component() {
           {selected ? 'Save NPC Changes' : 'Create and Save NPC'}
         </Button>
       </Group>
+      {selected && baseline.id === selected && (
+        <Alert title='Use this NPC in Rust'>
+          <Stack gap='xs'>
+            <Text size='sm'>Definition ID <code>{baseline.id}</code></Text>
+            <Text size='sm'>1. Run <code>/npcstudio sync</code> in game.</Text>
+            <Text size='sm'>2. To place a new instance, stand where it should go, face the desired direction, and run <code>{'/npcstudio spawn ' + baseline.id}</code>.</Text>
+            <Text size='sm'>For an existing NPC, edit its conversation in the TalkingNpc editor with <code>/talking_npc</code>. Sync refreshes the definition, and spawning reuses any existing conversation file.</Text>
+          </Stack>
+        </Alert>
+      )}
       {notice && (
         <Alert
           color={notice.startsWith('Saved') ? 'green' : 'blue'}
