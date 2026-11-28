@@ -488,6 +488,39 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
               The /sil-ready preview shows how your image is expected to look on the selected sign in Rust.
               Your server’s rendering may vary.
             </Text>
+            {isNeonSign(preview.preset[0]) && (
+              <Alert color='yellow' title='Neon sign brightness'>
+                <Stack gap='xs'>
+                  <Text size='sm'>
+                    Neon signs can glow much brighter in Rust and wash out fine details. We recommend
+                    50% brightness for better readability.
+                  </Text>
+                  <Group gap='xs'>
+                    <Button
+                      size='sm'
+                      color='yellow'
+                      disabled={busy || adjustments.brightness === 50}
+                      onClick={() => setAdjustments((previous) => ({ ...previous, brightness: 50 }))}
+                    >
+                      {adjustments.brightness === 50 ? '50% brightness applied' : 'Apply 50% brightness'}
+                    </Button>
+                    <Text size='sm' fw={600}>
+                      Current: {adjustments.brightness}%
+                    </Text>
+                    {adjustments.brightness !== 100 && (
+                      <Button
+                        size='compact-xs'
+                        variant='subtle'
+                        disabled={busy}
+                        onClick={() => setAdjustments((previous) => ({ ...previous, brightness: 100 }))}
+                      >
+                        Restore 100%
+                      </Button>
+                    )}
+                  </Group>
+                </Stack>
+              </Alert>
+            )}
             <Group gap='sm'>
               <Button
                 size='compact-sm'
@@ -571,11 +604,6 @@ export default function UploadFile({ title, folder }: { title?: string; folder?:
               If text is hard to read at actual size, use larger lettering, move the image closer with Zoom,
               or choose a larger sign.
             </Text>
-            {isNeonSign(preview.preset[0]) && (
-              <Text size='sm' c='dimmed'>
-                Lower brightness if your neon sign looks too bright in-game.
-              </Text>
-            )}
             {currentAdjustment?.error && (
               <Alert color='red' role='alert'>
                 {currentAdjustment.error}
